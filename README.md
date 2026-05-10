@@ -1,1 +1,0 @@
-# jerry-gantt-chart
