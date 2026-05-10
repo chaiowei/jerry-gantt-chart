@@ -489,7 +489,7 @@ thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
 // ═══════════════════════
 // ⚙️  設定區（填入你的 Apps Script 部署網址）
 // ═══════════════════════
-const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_DEPLOY_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyirC9Sx2Y3it0-qVqcZ8KsGKiM6ktMdT0_p2w62FPU56Orx_E1tTwEgAwYlKsdTXO8/exec';
 // 填入後，登入功能和分享功能才會啟用
 // 格式：https://script.google.com/macros/s/AKfy.../exec
 
@@ -500,7 +500,7 @@ let currentUser = null; // { username, displayName, color, folderId }
 let isGuestMode = false;
 
 function isCloudEnabled() {
-  return APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbyirC9Sx2Y3it0-qVqcZ8KsGKiM6ktMdT0_p2w62FPU56Orx_E1tTwEgAwYlKsdTXO8/exec';
+  return APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_DEPLOY_URL_HERE';
 }
 
 // 初始化時：若未設定 Apps Script URL，直接進訪客模式
