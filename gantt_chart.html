@@ -118,17 +118,29 @@ thead th.dc{text-align:center;padding:6px 2px;min-width:28px;font-size:9px;font-
 thead th.dc.th{background:rgba(79,107,237,.12);color:var(--acc)}
 thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
 .nth{min-width:220px;position:sticky;left:0;z-index:11;border-right:1px solid var(--bdr)}
-.tr td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle;height:50px}
+.tr td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle;min-height:50px;height:auto}
 .tr:last-child td{border-bottom:none}
 .tr:hover td{background:rgba(79,107,237,.025)}
 .tr.do td{border-top:2px solid var(--acc)!important;background:rgba(79,107,237,.06)!important}
-.nc{padding:7px 12px;white-space:nowrap;cursor:pointer;border-right:1px solid var(--bdr);position:sticky;left:0;background:var(--surf);z-index:5}
+/* ── SIDEBAR COLLAPSE ── */
+.sidebar{transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden}
+.sidebar.collapsed{width:0!important}
+.sb-toggle{position:fixed;top:10px;left:10px;z-index:400;width:32px;height:32px;border-radius:6px;background:#1E2235;border:none;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.sb-toggle:hover{background:#4F6BED;color:#fff}
+/* push topbar title when sidebar collapsed */
+.topbar-row1{transition:padding-left .22s}
+.sidebar.collapsed ~ .main .topbar-row1{padding-left:52px}
+
+/* GANTT — resizable name column */
+.nth{min-width:180px;width:220px;max-width:480px;resize:horizontal;overflow:hidden;position:sticky;left:0;z-index:11;border-right:1px solid var(--bdr)}
+.nc{padding:7px 12px;cursor:pointer;border-right:1px solid var(--bdr);position:sticky;left:0;background:var(--surf);z-index:5;word-break:break-all}
 .tr:hover .nc{background:#FAFAFA}
-.ni{display:flex;align-items:center;gap:7px}
-.dh{color:var(--tx3);cursor:grab;font-size:16px;user-select:none;flex-shrink:0}
+.ni{display:flex;align-items:flex-start;gap:7px}
+.dh{color:var(--tx3);cursor:grab;font-size:16px;user-select:none;flex-shrink:0;margin-top:2px}
 .nt{flex:1;min-width:0}
-.nn{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;max-width:148px}
-.nm{font-size:11px;color:var(--tx2);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+/* name wraps to 2 lines max */
+.nn{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .day-chip{display:inline-flex;align-items:center;background:#F3F4F6;color:var(--tx2);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;white-space:nowrap;font-family:'DM Mono',monospace;flex-shrink:0}
 .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0}
 .bd{background:var(--done-l);color:#065F46}.bo{background:var(--acc-l);color:var(--acc-d)}
@@ -257,6 +269,8 @@ thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
     <div class="mbt"><button class="btn" onclick="cm('shareModal')">關閉</button></div>
   </div>
 </div>
+
+<button class="sb-toggle" id="sbToggle" onclick="toggleSidebar()" title="展開/收合側欄">☰</button>
 
 <div class="app">
   <aside class="sidebar">
@@ -489,7 +503,7 @@ thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
 // ═══════════════════════
 // ⚙️  設定區（填入你的 Apps Script 部署網址）
 // ═══════════════════════
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjtH4ColhvUVx5JBHhrQcTwQD19vix4475lvR13hOvg671DhIZV4WKpKsadwrBxM1A/exec';
+const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_DEPLOY_URL_HERE';
 // 填入後，登入功能和分享功能才會啟用
 // 格式：https://script.google.com/macros/s/AKfy.../exec
 
@@ -606,36 +620,20 @@ async function apiFetch(method, params, body) {
   if (!isCloudEnabled()) throw new Error('Apps Script URL 未設定');
 
   if (method === 'GET') {
-    // GET 請求：Apps Script 支援跨域 GET，直接 fetch 即可
+    // GET：直接 fetch，Apps Script 支援跨域 GET
     const qs = new URLSearchParams(params).toString();
     const res = await fetch(APPS_SCRIPT_URL + '?' + qs);
     return res.json();
   } else {
-    // POST 請求：用 base64 編碼資料改成 GET 傳送（繞過 CORS 限制）
+    // POST：用 text/plain 傳 JSON 字串
+    // 原因：application/json 會觸發 CORS preflight 被擋
+    //       text/plain 屬於簡單請求，不需要 preflight，Apps Script 可以接收
     const jsonStr = JSON.stringify(body);
-    const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-
-    if (body.action === 'saveProjects' && body.projects && encoded.length > 5000) {
-      // 資料太大時分批：每個專案單獨存
-      let saved = 0;
-      for (const proj of body.projects) {
-        const single = {
-          action: 'saveProjects',
-          username: body.username,
-          folderId: body.folderId,
-          projects: [proj]
-        };
-        const enc = btoa(unescape(encodeURIComponent(JSON.stringify(single))));
-        const qs = new URLSearchParams({action:'saveProjects', data: enc}).toString();
-        await fetch(APPS_SCRIPT_URL + '?' + qs);
-        saved++;
-      }
-      return {ok: true, saved};
-    }
-
-    // 一般 POST：直接 GET 帶 base64 資料
-    const qs = new URLSearchParams({action: body.action, data: encoded}).toString();
-    const res = await fetch(APPS_SCRIPT_URL + '?' + qs);
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: jsonStr,
+    });
     return res.json();
   }
 }
@@ -811,6 +809,19 @@ function loadDemo(){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2200);}
 
 // ═══════════════════════
+// SIDEBAR TOGGLE
+// ═══════════════════════
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const btn=document.getElementById('sbToggle');
+  const collapsed=sb.classList.toggle('collapsed');
+  btn.textContent=collapsed?'▶':'☰';
+  btn.title=collapsed?'展開側欄':'收合側欄';
+  // 收合時 toggle 按鈕移到左側邊緣，展開時還原
+  btn.style.left=collapsed?'10px':'10px';
+}
+
+// ═══════════════════════
 // SIDEBAR & TOPBAR
 // ═══════════════════════
 function renderSidebar(){
@@ -879,14 +890,20 @@ function render(){
   const days=Math.round((ve-vs)/86400000)+1;
   const done=tasks.filter(t=>t.status==='done').length,ong=tasks.filter(t=>t.status==='ongoing').length,del=tasks.filter(t=>t.status==='delayed').length;
   const avg=tasks.length?Math.round(tasks.reduce((a,t)=>a+t.pct,0)/tasks.length):0;
-  const total=tasks.reduce((a,t)=>a+dayCount(t.start,t.end),0);
+  // 總工作天 = 所有任務最早開始日 到 最晚結束日 的跨度（而非各任務天數相加）
+  const spanDays = tasks.length >= 1
+    ? dayCount(
+        tasks.reduce((a,t)=>a<t.start?a:t.start, tasks[0].start),
+        tasks.reduce((a,t)=>a>t.end?a:t.end, tasks[0].end)
+      )
+    : 0;
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="sl">總任務</div><div class="sv ca">${tasks.length}</div></div>
     <div class="stat"><div class="sl">已完成</div><div class="sv cg">${done}</div></div>
     <div class="stat"><div class="sl">進行中</div><div class="sv ca">${ong}</div></div>
     <div class="stat"><div class="sl">延遲中</div><div class="sv cr">${del}</div></div>
     <div class="stat"><div class="sl">整體完成度</div><div class="sv co">${avg}%</div></div>
-    <div class="stat"><div class="sl">總工作天</div><div class="sv" style="color:var(--pend)">${total}天</div></div>`;
+    <div class="stat"><div class="sl">專案總天數</div><div class="sv" style="color:var(--pend)">${spanDays}天</div></div>`;
 
   let htr='<tr>';
   if(bulkMode)htr+=`<th class="cb-cell"><input type="checkbox" id="cbAll" onclick="bulkToggleAll(this.checked)" title="全選/全取消"></th>`;
