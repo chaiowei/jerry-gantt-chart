@@ -1643,7 +1643,7 @@ function exportExcel(){
   const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:6},{wch:10},{wch:8},{wch:20},{wch:10},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws,'甘特圖');XLSX.writeFile(wb,(p.name||'gantt')+'_export.xlsx');
 }
-const CM={'任務名稱':0,'task':0,'name':0,'負責人':1,'owner':1,'開始日期':2,'start':2,'結束日期':3,'end':3,'狀態':4,'status':4,'完成度':5,'完成度%':5,'progress':5,'備註':6,'note':6};
+const CM={'任務名稱':0,'task':0,'name':0,'負責人':1,'owner':1,'開始日期':2,'start':2,'結束日期':3,'end':3,'狀態':4,'status':4,'完成度':5,'完成度%':5,'progress':5,'pct':5,'前置任務':6,'deps':6,'bar顏色':7,'barcolor':7,'顏色':7,'備註':8,'note':8,'remark':8};
 const SR={'已完成':'done','done':'done','進行中':'ongoing','ongoing':'ongoing','待開始':'pending','pending':'pending','延遲':'delayed','delayed':'delayed'};
 const nk=k=>(k||'').toString().trim().toLowerCase().replace(/\s+/g,'');
 function openImport(){document.getElementById('ir').textContent='';document.getElementById('im').classList.add('open');}
@@ -1651,7 +1651,42 @@ const dz2=document.getElementById('dz');
 dz2.addEventListener('dragover',e=>{e.preventDefault();dz2.classList.add('dg');});
 dz2.addEventListener('dragleave',()=>dz2.classList.remove('dg'));
 dz2.addEventListener('drop',e=>{e.preventDefault();dz2.classList.remove('dg');handleFile(e.dataTransfer.files[0]);});
-function handleFile(file){if(!file)return;const p=activeProj();if(!p)return;const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'YYYY-MM-DD'});if(rows.length<2){document.getElementById('ir').textContent='⚠️ 內容太少';return;}const header=rows[0].map(h=>(h||'').toString());const idxMap=Array(7).fill(-1);const useH=header.some(h=>CM[nk(h)]!==undefined);if(useH)header.forEach((h,i)=>{const k=nk(h);if(CM[k]!==undefined)idxMap[CM[k]]=i;});else for(let i=0;i<7;i++)idxMap[i]=i;const get=(row,col)=>idxMap[col]>=0?(row[idxMap[col]]||'').toString().trim():(row[col]||'').toString().trim();let imp=0;(useH?rows.slice(1):rows).forEach(row=>{if(!row||!row.length)return;const name=get(row,0);if(!name)return;const start=(get(row,2)||ds(today)).replace(/\//g,'-'),end=(get(row,3)||ds(addD(today,7))).replace(/\//g,'-');if(parseD(end)<parseD(start))return;p.tasks.push({id:p.nextId++,name,owner:get(row,1),start,end,status:SR[nk(get(row,4))]||'pending',pct:Math.min(100,Math.max(0,parseInt(get(row,5))||0)),note:get(row,6),deps:[],color:null});imp++;});document.getElementById('ir').textContent=`✅ 匯入 ${imp} 筆`;render();}catch(err){document.getElementById('ir').textContent='❌ 失敗：'+err.message;}};reader.readAsArrayBuffer(file);}
+function handleFile(file){
+  if(!file)return;const p=activeProj();if(!p)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'YYYY-MM-DD'});
+      if(rows.length<2){document.getElementById('ir').textContent='⚠️ 內容太少';return;}
+      const header=rows[0].map(h=>(h||'').toString());
+      const idxMap=Array(9).fill(-1);
+      const useH=header.some(h=>CM[nk(h)]!==undefined);
+      if(useH) header.forEach((h,i)=>{const k=nk(h);if(CM[k]!==undefined)idxMap[CM[k]]=i;});
+      else for(let i=0;i<9;i++)idxMap[i]=i;
+      const get=(row,col)=>idxMap[col]>=0?(row[idxMap[col]]||'').toString().trim():(row[col]||'').toString().trim();
+      let imp=0;
+      (useH?rows.slice(1):rows).forEach(row=>{
+        if(!row||!row.length)return;
+        const name=get(row,0);if(!name)return;
+        const start=(get(row,2)||ds(today)).replace(/\//g,'-');
+        const end=(get(row,3)||ds(addD(today,7))).replace(/\//g,'-');
+        if(parseD(end)<parseD(start))return;
+        const rawColor=get(row,7);
+        const color=/^#[0-9a-fA-F]{6}$/.test(rawColor)?rawColor:null;
+        p.tasks.push({id:p.nextId++,name,owner:get(row,1),start,end,
+          status:SR[nk(get(row,4))]||'pending',
+          pct:Math.min(100,Math.max(0,parseInt(get(row,5))||0)),
+          note:get(row,8),deps:[],color});
+        imp++;
+      });
+      document.getElementById('ir').textContent=`✅ 匯入 ${imp} 筆`;
+      render();
+    }catch(err){document.getElementById('ir').textContent='❌ 失敗：'+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
 
 // ═══════════════════════
 // PROJECT JSON SHARE
