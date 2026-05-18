@@ -180,8 +180,35 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .gantt-table-body-left tbody tr:last-child td,
 .gantt-table-body-right tbody tr:last-child td{border-bottom:none}
 
-/* bar */
-.bc{padding:2px 0;position:relative}
+/* bar tooltip：hover 時在 bar 上方顯示進度和日期 */
+.bar[data-label]:hover::after{
+  content:attr(data-label);
+  position:absolute;
+  bottom:calc(100% + 5px);
+  left:50%;
+  transform:translateX(-50%);
+  background:#1E2235;
+  color:#fff;
+  font-size:10px;
+  font-weight:600;
+  padding:3px 8px;
+  border-radius:5px;
+  white-space:nowrap;
+  pointer-events:none;
+  z-index:100;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+.bar[data-label]:hover::before{
+  content:'';
+  position:absolute;
+  bottom:calc(100% + 1px);
+  left:50%;
+  transform:translateX(-50%);
+  border:4px solid transparent;
+  border-top-color:#1E2235;
+  pointer-events:none;
+  z-index:100;
+}
 .bw{position:relative;height:52px;display:flex;align-items:center}
 .bar{height:var(--bar-h);border-radius:5px;position:absolute;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;transition:filter .12s,box-shadow .15s;box-shadow:0 1px 3px rgba(0,0,0,.14);color:#fff}
 .bar:hover{filter:brightness(.9)}
@@ -210,16 +237,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .bp{background:var(--pend-l);color:#374151}.bl{background:var(--del-l);color:#991B1B}
 .dep-dot{width:7px;height:7px;border-radius:50%;background:var(--tx3);flex-shrink:0;transition:background .15s}
 .dep-dot.has{background:var(--acc)}
-.bc{padding:2px 0;position:relative}
-.bw{position:relative;height:50px;display:flex;align-items:center}
-.bar{height:var(--bar-h);border-radius:5px;position:absolute;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;transition:filter .12s,box-shadow .15s;box-shadow:0 1px 3px rgba(0,0,0,.14);color:#fff}
-.bar:hover{filter:brightness(.9)}
-.bar.hfrom{box-shadow:0 0 0 2.5px var(--acc),0 1px 3px rgba(0,0,0,.14)!important}
-.bar.hto{box-shadow:0 0 0 2.5px var(--del),0 1px 3px rgba(0,0,0,.14)!important}
-.bp2{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.22);border-radius:5px 0 0 5px;pointer-events:none}
-.bl2{position:relative;z-index:1;display:flex;align-items:center;gap:5px}
-.bd2{font-size:9.5px;opacity:.75;font-family:'DM Mono',monospace;font-weight:400}
-.tl{position:absolute;top:0;left:50%;width:2px;height:100%;opacity:.3;pointer-events:none;transform:translateX(-50%)}
 .leg{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--bdr);background:#FAFAFA;font-size:11px;color:var(--tx2)}
 .li{display:flex;align-items:center;gap:4px}
 .ld{width:9px;height:9px;border-radius:3px}
@@ -1118,7 +1135,7 @@ function render(){
       <div class="ni">
         <span class="dh" onclick="event.stopPropagation()" style="${bulkMode?'opacity:.3;cursor:default':''}">⠿</span>
         <div class="nt">
-          <div class="nn">${t.name}</div>
+          <div class="nn" style="color:${bg};font-weight:700">${t.name}</div>
           <div class="nm"><span class="day-chip">${dc2}天</span>${meta?`<span>${meta}</span>`:''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
@@ -1141,11 +1158,19 @@ function render(){
       if(isT)rBody+=`<div class="tl" style="background:#4F6BED"></div>`;
       if(vis&&i===cs){
         const span=ce-cs+1;
-        const barW=span*COL_W-4; // 固定 px 寬度，不依賴 % 計算
-        const ds2=span>=5?`<span class="bd2">${fmt(t.start)}–${fmt(t.end)}</span>`:'';
-        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" style="left:2px;width:${barW}px;background:${bg}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
+        const barW=span*COL_W-4;
+        const label=`${t.pct}% ${fmt(t.start)}–${fmt(t.end)}`;
+        // bar 夠寬（≥5欄=140px）才在 bar 內顯示文字，否則只顯示 tooltip
+        const isWide=span>=5;
+        const isMid=span>=2&&span<5; // 2-4欄：只顯示百分比，不顯示日期
+        let innerText='';
+        if(isWide) innerText=`${t.pct>0?t.pct+'%':''} <span class="bd2">${fmt(t.start)}–${fmt(t.end)}</span>`;
+        else if(isMid) innerText=`${t.pct}%`;
+        // 文字顏色：淺色 bar 用深色文字，深色 bar 用白字
+        const textColor='rgba(255,255,255,0.95)';
+        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" data-label="${label}" style="left:2px;width:${barW}px;background:${bg};color:${textColor}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
           <div class="bp2" style="width:${t.pct}%"></div>
-          <span class="bl2">${t.pct>0||span>2?t.pct+'%':''} ${ds2}</span>
+          <span class="bl2">${innerText}</span>
         </div></div>`;
       }
       rBody+='</td>';
@@ -1184,12 +1209,14 @@ function syncRowHeights(){
 
 // 同步 hover 高亮（左右欄同時亮）
 function rowHover(id,on){
-  document.querySelectorAll(`[data-id="${id}"]`).forEach(r=>{
-    r.style.background=on?'rgba(79,107,237,.04)':'';
-    r.querySelectorAll('td').forEach(td=>{
-      if(td.classList.contains('nc')) td.style.background=on?'#F0F4FF':'';
-      else td.style.background=on?'rgba(79,107,237,.025)':'';
-    });
+  // 左欄 nc：hover 用淡藍背景
+  document.querySelectorAll(`[data-id="${id}"] td.nc`).forEach(td=>{
+    td.style.background=on?'#F0F4FF':'';
+  });
+  // 右欄 bc：只改沒有 bar 的空白欄位，有 bar 的欄位不動（避免蓋住 bar 顏色）
+  document.querySelectorAll(`[data-id="${id}"] td.bc`).forEach(td=>{
+    // 只有空格才加 hover 背景
+    if(!td.querySelector('.bar')) td.style.background=on?'rgba(79,107,237,.03)':'';
   });
 }
 
