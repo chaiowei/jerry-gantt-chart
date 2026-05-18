@@ -217,7 +217,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .bp2{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.22);border-radius:5px 0 0 5px;pointer-events:none}
 .bl2{position:relative;z-index:1;display:flex;align-items:center;gap:5px}
 .bd2{font-size:9.5px;opacity:.75;font-family:'DM Mono',monospace;font-weight:400}
-.tl{position:absolute;top:0;left:50%;width:2px;height:100%;opacity:.3;pointer-events:none;transform:translateX(-50%)}
 .sidebar{transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden}
 .sidebar.collapsed{width:0!important}
 .sb-toggle{position:fixed;top:10px;left:10px;z-index:400;width:32px;height:32px;border-radius:6px;background:#1E2235;border:none;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.25)}
@@ -1155,20 +1154,25 @@ function render(){
       const wkStyle=isWk&&!isT?'background:rgba(0,0,0,.02)':'';
       const brd=isLast?'border-right:2px solid rgba(0,0,0,.12)':'';
       rBody+=`<td class="bc" style="${todayStyle||wkStyle};${brd};width:${COL_W}px;min-width:${COL_W}px">`;
-      if(isT)rBody+=`<div class="tl" style="background:#4F6BED"></div>`;
       if(vis&&i===cs){
         const span=ce-cs+1;
         const barW=span*COL_W-4;
         const label=`${t.pct}% ${fmt(t.start)}–${fmt(t.end)}`;
-        // bar 夠寬（≥5欄=140px）才在 bar 內顯示文字，否則只顯示 tooltip
-        const isWide=span>=5;
-        const isMid=span>=2&&span<5; // 2-4欄：只顯示百分比，不顯示日期
+        // 統一規則：bar 夠寬才顯示，字數根據寬度調整
+        // ≥6欄(168px)：進度% + 日期
+        // 3-5欄(84-140px)：進度% + 日期（只顯示日期不顯示月份開頭）
+        // 2欄(56px)：只顯示進度%
+        // 1欄(28px)：bar 內不顯示，hover tooltip 顯示
         let innerText='';
-        if(isWide) innerText=`${t.pct>0?t.pct+'%':''} <span class="bd2">${fmt(t.start)}–${fmt(t.end)}</span>`;
-        else if(isMid) innerText=`${t.pct}%`;
-        // 文字顏色：淺色 bar 用深色文字，深色 bar 用白字
-        const textColor='rgba(255,255,255,0.95)';
-        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" data-label="${label}" style="left:2px;width:${barW}px;background:${bg};color:${textColor}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
+        if(span>=3){
+          const pctPart=t.pct+'%';
+          const datePart=`${fmt(t.start)}–${fmt(t.end)}`;
+          innerText=`${pctPart} <span class="bd2">${datePart}</span>`;
+        } else if(span===2){
+          innerText=`${t.pct}%`;
+        }
+        // 文字顏色固定白色
+        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" data-label="${label}" style="left:2px;width:${barW}px;background:${bg}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
           <div class="bp2" style="width:${t.pct}%"></div>
           <span class="bl2">${innerText}</span>
         </div></div>`;
@@ -1263,6 +1267,23 @@ function drawDepsDOM(vs,days,rowY,tasks){
     });
   });
   wrap.style.position='relative';wrap.appendChild(svg);
+
+  // 今天線：在 SVG body 上畫一條藍色虛線
+  const todayOff=Math.round((today-vs)/86400000);
+  if(todayOff>=0&&todayOff<days){
+    wrap.querySelectorAll('.today-line-svg').forEach(e=>e.remove());
+    const tlSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    const tx=todayOff*cw+cw/2;
+    tlSvg.setAttribute('width',totalW);tlSvg.setAttribute('height',totalH);
+    tlSvg.style.cssText=`position:absolute;top:${headH}px;left:0;pointer-events:none;z-index:3;overflow:visible`;
+    tlSvg.classList.add('today-line-svg');
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',tx);line.setAttribute('y1',0);line.setAttribute('x2',tx);line.setAttribute('y2',totalH);
+    line.setAttribute('stroke','#4F6BED');line.setAttribute('stroke-width','1.5');
+    line.setAttribute('stroke-dasharray','4,3');line.setAttribute('opacity','.5');
+    tlSvg.appendChild(line);
+    wrap.appendChild(tlSvg);
+  }
 }
 
 // ═══════════════════════
@@ -1657,6 +1678,21 @@ function removeDep(id){editDeps=editDeps.filter(x=>x!==id);document.getElementBy
 function saveModal(){const name=document.getElementById('mn').value.trim();if(!name){alert('請填入任務名稱');return;}if(!chkDates())return;if(!chkDeps())return;const p=activeProj();if(!p)return;const task={id:editId||p.nextId++,name,owner:document.getElementById('mo').value.trim(),start:document.getElementById('msd').value,end:document.getElementById('med').value,status:document.getElementById('mst').value,pct:parseInt(document.getElementById('mp').value),note:document.getElementById('mno').value.trim(),deps:[...editDeps],color:editColor||null};if(editId){const i=p.tasks.findIndex(x=>x.id===editId);p.tasks[i]=task;}else p.tasks.push(task);cm('em');render();}
 function deleteTask(){if(!editId||!confirm('確定刪除此任務？'))return;const p=activeProj();if(!p)return;p.tasks=p.tasks.filter(x=>x.id!==editId);p.tasks.forEach(t=>{t.deps=(t.deps||[]).filter(d=>d!==editId);});cm('em');render();}
 function cm(id){document.getElementById(id).classList.remove('open');}
+
+// ESC 關閉最上層開啟的 modal
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  // 找目前開啟的 modal，關閉最後一個
+  const opened=[...document.querySelectorAll('.mb.open')];
+  if(opened.length) cm(opened[opened.length-1].id);
+});
+
+// 點 modal 背景（.mb）關閉，點內容（.modal）不關閉
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('mb')&&e.target.classList.contains('open')){
+    cm(e.target.id);
+  }
+});
 document.getElementById('mp').addEventListener('input',function(){document.getElementById('mpd').textContent=this.value+'%';});
 
 // ═══════════════════════
