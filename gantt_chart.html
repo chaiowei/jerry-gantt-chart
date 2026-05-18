@@ -19,7 +19,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;height:100%}
-.app{display:flex;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh;overflow-x:visible;overflow-y:hidden}
 
 /* SIDEBAR */
 .sidebar{width:var(--sidebar);background:#1E2235;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
@@ -50,6 +50,10 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* content 分上下兩層：stats 固定，gantt 可垂直捲動 */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.content-fixed{flex-shrink:0;padding:16px 20px 0}
+.content-scroll{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 16px}
 .topbar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;flex-shrink:0}
 .topbar-left{display:flex;align-items:center;gap:10px}
 .proj-title-input{font-size:16px;font-weight:600;color:var(--tx);border:none;background:transparent;font-family:inherit;outline:none;min-width:160px;max-width:300px;cursor:text;border-bottom:2px solid transparent;transition:border-color .15s;padding-bottom:1px}
@@ -96,7 +100,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .tr.selected .nc{background:rgba(79,107,237,.08)!important}
 
 /* CONTENT */
-.content{flex:1;overflow-y:auto;padding:16px 20px}
+.content{flex:1;overflow-y:auto;overflow-x:visible;padding:16px 20px}
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--tx2)}
 .empty-icon{font-size:48px;opacity:.4}
 .empty-title{font-size:18px;font-weight:600;color:var(--tx)}
@@ -109,32 +113,91 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .sv{font-size:20px;font-weight:600}
 .ca{color:var(--acc)}.cg{color:var(--done)}.cr{color:var(--del)}.co{color:#D97706}
 
-/* GANTT */
-.gc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden}
-.gs{overflow-x:auto;position:relative}
-table{border-collapse:collapse;width:100%;min-width:720px}
-thead th{background:#F3F4F6;font-size:10px;font-weight:600;color:var(--tx2);text-align:left;padding:7px 10px;border-bottom:1px solid var(--bdr);white-space:nowrap;position:sticky;top:0;z-index:10;text-transform:uppercase;letter-spacing:.4px}
-thead th.dc{text-align:center;padding:6px 2px;min-width:28px;font-size:9px;font-weight:500}
-thead th.dc.th{background:rgba(79,107,237,.12);color:var(--acc)}
-thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
-.nth{min-width:220px;position:sticky;left:0;z-index:11;border-right:1px solid var(--bdr)}
-.tr td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle;min-height:50px;height:auto}
-.tr:last-child td{border-bottom:none}
-.tr:hover td{background:rgba(79,107,237,.025)}
-.tr.do td{border-top:2px solid var(--acc)!important;background:rgba(79,107,237,.06)!important}
-/* ── SIDEBAR COLLAPSE ── */
+/* 月份顏色（12個月各自不同，交替深淺） */
+.mo-0{background:#EEF2FF;color:#3730A3}  /* Jan 靛藍 */
+.mo-1{background:#F0FDF4;color:#166534}  /* Feb 翠綠 */
+.mo-2{background:#FEF9C3;color:#854D0E}  /* Mar 琥珀黃 */
+.mo-3{background:#FFF1F2;color:#9F1239}  /* Apr 玫瑰 */
+.mo-4{background:#ECFEFF;color:#155E75}  /* May 青藍 */
+.mo-5{background:#FFF7ED;color:#9A3412}  /* Jun 橙 */
+.mo-6{background:#F5F3FF;color:#5B21B6}  /* Jul 紫 */
+.mo-7{background:#FAFAFA;color:#374151}  /* Aug 灰 */
+.mo-8{background:#F0FDFA;color:#115E59}  /* Sep 薄荷 */
+.mo-9{background:#FDF2F8;color:#831843}  /* Oct 粉 */
+.mo-10{background:#FFFBEB;color:#78350F} /* Nov 棕黃 */
+.mo-11{background:#EFF6FF;color:#1E40AF} /* Dec 藍 */
+
+/* 月份分隔線（body 欄位） */
+.month-border{border-right:2px solid rgba(0,0,0,.18)!important}
+
+/* ═══ GANTT 四區塊架構（Excel 凍結效果） ═══
+   ┌─────────────┬──────────────────────────────┐  ← 固定（不捲動）
+   │  左標頭      │  右標頭（月份+日期）橫向捲動    │
+   ├─────────────┼──────────────────────────────┤  ← 以下垂直捲動
+   │  左 body    │  右 body（bar）橫向＋垂直捲動   │
+   └─────────────┴──────────────────────────────┘
+*/
+.gc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;flex:1}
+
+/* ── 標頭列（固定不動） ── */
+.gantt-head-row{display:flex;flex-shrink:0;border-bottom:2px solid rgba(0,0,0,.12)}
+.gantt-head-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:#F3F4F6;position:relative}
+.gantt-head-right{flex:1;overflow:hidden;background:#F3F4F6}  /* overflow:hidden 隱藏捲軸，由 JS 同步橫移 */
+.gantt-table-head-left{border-collapse:collapse;width:100%}
+.gantt-table-head-right{border-collapse:collapse}
+
+/* ── Body 列（垂直可捲） ── */
+.gantt-body-row{display:flex;flex:1;overflow:hidden}
+.gantt-body-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:var(--surf)}
+.gantt-body-right{flex:1;overflow:auto}  /* 橫向+縱向都可捲 */
+.gantt-table-body-left{border-collapse:collapse;width:100%}
+.gantt-table-body-right{border-collapse:collapse}
+
+/* 標頭 th */
+.gantt-table-head-left th,
+.gantt-table-head-right th{
+  background:#F3F4F6;font-size:10px;font-weight:600;
+  padding:5px 8px;border-bottom:1px solid rgba(0,0,0,.08);
+  white-space:nowrap;text-transform:uppercase;letter-spacing:.4px
+}
+.gantt-table-head-right th.dc{text-align:center;padding:4px 1px;min-width:28px;width:28px;font-size:9px;font-weight:500}
+
+/* 拖曳調寬把手 */
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent}
+.col-resizer:hover,.col-resizer.dragging{background:var(--acc);opacity:.4}
+
+/* 左欄標頭 th */
+.lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:relative}
+
+/* 左欄 body td */
+.nc{padding:7px 12px;cursor:pointer;background:#fff;vertical-align:middle}
+
+/* body tr/td */
+.gantt-table-body-left tbody tr,
+.gantt-table-body-right tbody tr{height:52px}
+.gantt-table-body-left tbody td,
+.gantt-table-body-right tbody td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
+.gantt-table-body-left tbody tr:last-child td,
+.gantt-table-body-right tbody tr:last-child td{border-bottom:none}
+
+/* bar */
+.bc{padding:2px 0;position:relative}
+.bw{position:relative;height:52px;display:flex;align-items:center}
+.bar{height:var(--bar-h);border-radius:5px;position:absolute;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;transition:filter .12s,box-shadow .15s;box-shadow:0 1px 3px rgba(0,0,0,.14);color:#fff}
+.bar:hover{filter:brightness(.9)}
+.bar.hfrom{box-shadow:0 0 0 2.5px var(--acc),0 1px 3px rgba(0,0,0,.14)!important}
+.bar.hto{box-shadow:0 0 0 2.5px var(--del),0 1px 3px rgba(0,0,0,.14)!important}
+.bp2{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.22);border-radius:5px 0 0 5px;pointer-events:none}
+.bl2{position:relative;z-index:1;display:flex;align-items:center;gap:5px}
+.bd2{font-size:9.5px;opacity:.75;font-family:'DM Mono',monospace;font-weight:400}
+.tl{position:absolute;top:0;left:50%;width:2px;height:100%;opacity:.3;pointer-events:none;transform:translateX(-50%)}
 .sidebar{transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden}
 .sidebar.collapsed{width:0!important}
 .sb-toggle{position:fixed;top:10px;left:10px;z-index:400;width:32px;height:32px;border-radius:6px;background:#1E2235;border:none;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .sb-toggle:hover{background:#4F6BED;color:#fff}
-/* push topbar title when sidebar collapsed */
 .topbar-row1{transition:padding-left .22s}
 .sidebar.collapsed ~ .main .topbar-row1{padding-left:52px}
 
-/* GANTT — resizable name column */
-.nth{min-width:180px;width:220px;max-width:480px;resize:horizontal;overflow:hidden;position:sticky;left:0;z-index:11;border-right:1px solid var(--bdr)}
-.nc{padding:7px 12px;cursor:pointer;border-right:1px solid var(--bdr);position:sticky;left:0;background:var(--surf);z-index:5;word-break:break-all}
-.tr:hover .nc{background:#FAFAFA}
 .ni{display:flex;align-items:flex-start;gap:7px}
 .dh{color:var(--tx3);cursor:grab;font-size:16px;user-select:none;flex-shrink:0;margin-top:2px}
 .nt{flex:1;min-width:0}
@@ -366,11 +429,30 @@ thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
         <div class="empty-sub">點擊左側「＋ 建立新專案」開始</div>
         <button class="btn a" onclick="newProject()" style="margin-top:4px">＋ 建立第一個專案</button>
       </div>
-      <div id="ganttArea" style="display:none">
-        <div class="stats" id="stats"></div>
-        <div class="gc">
-          <div class="gs" id="gs">
-            <table id="gt"><thead id="gh"></thead><tbody id="gb"></tbody></table>
+      <div id="ganttArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <!-- 固定層：統計欄 -->
+        <div class="content-fixed">
+          <div class="stats" id="stats"></div>
+        </div>
+        <!-- 甘特圖主體 -->
+        <div class="gc" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin:0 20px 16px">
+          <!-- 標頭列（固定不捲動） -->
+          <div class="gantt-head-row" id="ganttHeadRow">
+            <div class="gantt-head-left" id="ganttHeadLeft">
+              <table class="gantt-table-head-left"><thead id="ghLeft"></thead></table>
+            </div>
+            <div class="gantt-head-right" id="ganttHeadRight">
+              <table class="gantt-table-head-right"><thead id="ghRight"></thead></table>
+            </div>
+          </div>
+          <!-- Body 列（垂直捲動） -->
+          <div class="gantt-body-row">
+            <div class="gantt-body-left" id="ganttBodyLeft">
+              <table class="gantt-table-body-left"><tbody id="gbLeft"></tbody></table>
+            </div>
+            <div class="gantt-body-right" id="ganttBodyRight" onscroll="syncScroll(this)">
+              <table class="gantt-table-body-right"><tbody id="gbRight"></tbody></table>
+            </div>
           </div>
           <div class="leg">
             <div class="li"><div class="ld" style="background:var(--done)"></div>已完成</div>
@@ -381,8 +463,8 @@ thead th.dc.wk{background:#F9FAFB;color:var(--tx3)}
             <div class="ln">⠿ 拖曳排序 ｜ 點任務列編輯</div>
           </div>
         </div>
-      </div>
-    </div>
+      </div><!-- end #ganttArea -->
+    </div><!-- end .content -->
   </div>
 </div>
 
@@ -809,6 +891,62 @@ function loadDemo(){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2200);}
 
 // ═══════════════════════
+// COLUMN RESIZER（任務名稱欄寬拖曳）
+// ═══════════════════════
+let _colW = 220; // 預設欄寬 px
+
+function initColResizer(){
+  const resizer = document.getElementById('colResizer');
+  if(!resizer) return;
+  applyColWidth(_colW);
+  // 移除舊監聽器再加新的，避免 render() 多次呼叫造成重複綁定
+  resizer.replaceWith(resizer.cloneNode(true));
+  const newResizer = document.getElementById('colResizer');
+  if(newResizer) newResizer.addEventListener('mousedown', startResize);
+}
+
+function applyColWidth(w){
+  _colW = Math.max(140, Math.min(520, w));
+  const W = _colW + 'px';
+
+  // 四區塊左欄：容器寬度（讓 flex-shrink:0 有固定寬度）
+  const headLeft  = document.getElementById('ganttHeadLeft');
+  const bodyLeft  = document.getElementById('ganttBodyLeft');
+  if(headLeft)  { headLeft.style.width  = W; headLeft.style.minWidth  = W; }
+  if(bodyLeft)  { bodyLeft.style.width  = W; bodyLeft.style.minWidth  = W; }
+
+  // 表格本身的寬度
+  const tblHeadL = headLeft?.querySelector('table');
+  const tblBodyL = bodyLeft?.querySelector('table');
+  if(tblHeadL) { tblHeadL.style.width = W; }
+  if(tblBodyL) { tblBodyL.style.width = W; }
+
+  // 標頭 th（lth）和 body td（nc）的欄寬
+  document.querySelectorAll('.lth').forEach(el=>{ el.style.width = W; el.style.minWidth = W; });
+  document.querySelectorAll('.nc').forEach(el=>{  el.style.width = W; el.style.minWidth = W; });
+}
+
+function startResize(e){
+  e.preventDefault();
+  const startX = e.clientX;
+  const startW = _colW;
+  const resizer = document.getElementById('colResizer');
+  resizer?.classList.add('dragging');
+  document.body.style.cursor='col-resize';
+  document.body.style.userSelect='none';
+  function onMove(ev){ applyColWidth(startW + ev.clientX - startX); }
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    resizer?.classList.remove('dragging');
+    document.body.style.cursor='';
+    document.body.style.userSelect='';
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ═══════════════════════
 // SIDEBAR TOGGLE
 // ═══════════════════════
 function toggleSidebar(){
@@ -855,7 +993,11 @@ function renderTopbar(){
   if(badge){badge.textContent=p.tasks.length+' 個任務';badge.style.display='';}
   pa.style.display='flex';ta.style.display='flex';
   if(emptyRow)emptyRow.style.display='none';
-  empty.style.display='none';gantt.style.display='block';
+  empty.style.display='none';
+  gantt.style.display='flex';
+  gantt.style.flexDirection='column';
+  gantt.style.overflow='hidden';
+  gantt.style.flex='1';
 }
 // title sync — use event delegation to handle both inputs
 document.addEventListener('input',function(e){
@@ -877,6 +1019,23 @@ function createProject(){const name=document.getElementById('npName').value.trim
 function confirmDeleteProject(id){pendingDeleteId=id||activeId;const p=getProj(pendingDeleteId);if(!p)return;document.getElementById('dpName').textContent=p.name;document.getElementById('dpm').classList.add('open');}
 function deleteProject(){if(!pendingDeleteId)return;const idx=projects.findIndex(p=>p.id===pendingDeleteId);const name=projects[idx]?.name||'';projects.splice(idx,1);if(activeId===pendingDeleteId)activeId=projects.length?projects[Math.max(0,idx-1)].id:null;pendingDeleteId=null;cm('dpm');renderSidebar();renderTopbar();render();toast(`🗑 已刪除「${name}」`);}
 
+// 月份顏色 style（直接用 inline style 避免 class 被 override）
+const MO_COLORS=[
+  {bg:'#EEF2FF',color:'#3730A3'}, // Jan
+  {bg:'#F0FDF4',color:'#166534'}, // Feb
+  {bg:'#FEF9C3',color:'#854D0E'}, // Mar
+  {bg:'#FFF1F2',color:'#9F1239'}, // Apr
+  {bg:'#ECFEFF',color:'#155E75'}, // May
+  {bg:'#FFF7ED',color:'#9A3412'}, // Jun
+  {bg:'#F5F3FF',color:'#5B21B6'}, // Jul
+  {bg:'#FAFAFA',color:'#374151'}, // Aug
+  {bg:'#F0FDFA',color:'#115E59'}, // Sep
+  {bg:'#FDF2F8',color:'#831843'}, // Oct
+  {bg:'#FFFBEB',color:'#78350F'}, // Nov
+  {bg:'#EFF6FF',color:'#1E40AF'}, // Dec
+];
+function getMoStyle(m){const c=MO_COLORS[m]||MO_COLORS[0];return`background:${c.bg};color:${c.color}`;}
+
 // ═══════════════════════
 // RENDER SCREEN GANTT
 // ═══════════════════════
@@ -890,13 +1049,7 @@ function render(){
   const days=Math.round((ve-vs)/86400000)+1;
   const done=tasks.filter(t=>t.status==='done').length,ong=tasks.filter(t=>t.status==='ongoing').length,del=tasks.filter(t=>t.status==='delayed').length;
   const avg=tasks.length?Math.round(tasks.reduce((a,t)=>a+t.pct,0)/tasks.length):0;
-  // 總工作天 = 所有任務最早開始日 到 最晚結束日 的跨度（而非各任務天數相加）
-  const spanDays = tasks.length >= 1
-    ? dayCount(
-        tasks.reduce((a,t)=>a<t.start?a:t.start, tasks[0].start),
-        tasks.reduce((a,t)=>a>t.end?a:t.end, tasks[0].end)
-      )
-    : 0;
+  const spanDays=tasks.length>=1?dayCount(tasks.reduce((a,t)=>a<t.start?a:t.start,tasks[0].start),tasks.reduce((a,t)=>a>t.end?a:t.end,tasks[0].end)):0;
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="sl">總任務</div><div class="sv ca">${tasks.length}</div></div>
     <div class="stat"><div class="sl">已完成</div><div class="sv cg">${done}</div></div>
@@ -905,18 +1058,46 @@ function render(){
     <div class="stat"><div class="sl">整體完成度</div><div class="sv co">${avg}%</div></div>
     <div class="stat"><div class="sl">專案總天數</div><div class="sv" style="color:var(--pend)">${spanDays}天</div></div>`;
 
-  let htr='<tr>';
-  if(bulkMode)htr+=`<th class="cb-cell"><input type="checkbox" id="cbAll" onclick="bulkToggleAll(this.checked)" title="全選/全取消"></th>`;
-  htr+='<th class="nth">任務</th>';let pm=-1;
+  // 月份群組
+  const monthGroups=[];
   for(let i=0;i<days;i++){
-    const d=addD(vs,i);const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
-    const m=d.getMonth();let lbl='';if(m!==pm){lbl=`${m+1}月`;pm=m;}else if(d.getDay()===1||i===0)lbl=''+d.getDate();
-    htr+=`<th class="dc${isT?' th':isWk?' wk':''}">${lbl}</th>`;
+    const d=addD(vs,i),m=d.getMonth();
+    if(!monthGroups.length||monthGroups[monthGroups.length-1].m!==m) monthGroups.push({m,start:i,count:1});
+    else monthGroups[monthGroups.length-1].count++;
   }
-  htr+='</tr>';
-  document.getElementById('gh').innerHTML=htr;
+  const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const mc=m=>'mo-'+m;
 
-  const rowY={};let html='';
+  // ── 左欄標頭（任務名稱欄） ──
+  let lHead=`<tr><th class="lth" rowspan="2" style="position:relative;vertical-align:middle">
+    任務
+    <div class="col-resizer" id="colResizer"></div>
+  </th></tr><tr></tr>`;
+  document.getElementById('ghLeft').innerHTML=lHead;
+
+  // ── 右欄標頭（月份 + 日期） ──
+  const COL_W=28; // 每天欄寬 px，和 CSS min-width 一致
+  let rHead='<tr>';
+  monthGroups.forEach(g=>{
+    const moStyle=getMoStyle(g.m);
+    rHead+=`<th colspan="${g.count}" style="text-align:center;font-size:11px;font-weight:700;padding:5px 4px;border-bottom:1px solid rgba(0,0,0,.08);border-right:2px solid rgba(0,0,0,.2);${moStyle}">${MN[g.m]}</th>`;
+  });
+  rHead+='</tr><tr>';
+  for(let i=0;i<days;i++){
+    const d=addD(vs,i);
+    const isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
+    const isLast=addD(d,1).getDate()===1;
+    const moStyle=getMoStyle(d.getMonth());
+    const todayStyle=isT?'background:rgba(79,107,237,.18);color:#3451C7;font-weight:700':'';
+    const wkStyle=isWk&&!isT?'background:rgba(0,0,0,.04);color:#9CA3AF':'';
+    const brd=isLast?'border-right:2px solid rgba(0,0,0,.2)':'';
+    rHead+=`<th class="dc" style="font-size:9px;padding:4px 1px;min-width:${COL_W}px;width:${COL_W}px;${moStyle};${todayStyle||wkStyle};${brd}">${d.getDate()}</th>`;
+  }
+  rHead+='</tr>';
+  document.getElementById('ghRight').innerHTML=rHead;
+
+  // ── 左欄 body + 右欄 body ──
+  const rowY={};let lBody='',rBody='';
   tasks.forEach((t,ri)=>{
     rowY[t.id]=ri;
     const ts=parseD(t.start),te=parseD(t.end);
@@ -924,49 +1105,102 @@ function render(){
     const cs=Math.max(0,so),ce=Math.min(days-1,eo);
     const bg=taskBarBg(t),vis=ce>=0&&cs<days,hasDep=!!(t.deps&&t.deps.length);
     const depNames=hasDep?(t.deps||[]).map(id=>tasks.find(x=>x.id===id)?.name||'').filter(Boolean).join('、'):'';
-    const dc=dayCount(t.start,t.end);
+    const dc2=dayCount(t.start,t.end);
     const meta=[t.owner,t.note,depNames?'← '+depNames:''].filter(Boolean).join(' · ');
     const isSelected=bulkSelected.has(t.id);
-    html+=`<tr class="tr${isSelected?' selected':''}" data-id="${t.id}" draggable="${bulkMode?'false':'true'}"
-      ${!bulkMode?`ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:''}>`; 
-    // checkbox cell (bulk mode only)
-    if(bulkMode){
-      html+=`<td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" ${isSelected?'checked':''} onchange="bulkToggle(${t.id},this.checked)"></td>`;
-    }
-    html+=`<td class="nc" onclick="${bulkMode?`bulkToggleRow(${t.id})`:`openEdit(${t.id})`}">
-        <div class="ni">
-          <span class="dh" onclick="event.stopPropagation()" style="${bulkMode?'opacity:.3;cursor:default':''}">⠿</span>
-          <div class="nt">
-            <div class="nn">${t.name}</div>
-            <div class="nm"><span class="day-chip">${dc}天</span>${meta?`<span>${meta}</span>`:''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-            <div class="dep-dot${hasDep?' has':''}" title="${hasDep?'有前置任務':''}"></div>
-            <span class="badge ${SC[t.status]}">${SL[t.status]}</span>
-          </div>
+    const drag=!bulkMode?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
+    const rowCls=`data-id="${t.id}"${isSelected?' class="selected"':''}`;
+
+    // 左欄列
+    lBody+=`<tr ${rowCls} ${drag} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
+    if(bulkMode) lBody+=`<td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" ${isSelected?'checked':''} onchange="bulkToggle(${t.id},this.checked)"></td>`;
+    lBody+=`<td class="nc" onclick="${bulkMode?`bulkToggleRow(${t.id})`:`openEdit(${t.id})`}">
+      <div class="ni">
+        <span class="dh" onclick="event.stopPropagation()" style="${bulkMode?'opacity:.3;cursor:default':''}">⠿</span>
+        <div class="nt">
+          <div class="nn">${t.name}</div>
+          <div class="nm"><span class="day-chip">${dc2}天</span>${meta?`<span>${meta}</span>`:''}</div>
         </div>
-      </td>`;
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <div class="dep-dot${hasDep?' has':''}" title="${hasDep?'有前置任務':''}"></div>
+          <span class="badge ${SC[t.status]}">${SL[t.status]}</span>
+        </div>
+      </div>
+    </td></tr>`;
+
+    // 右欄列
+    rBody+=`<tr ${rowCls} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
     for(let i=0;i<days;i++){
       const d=addD(vs,i);const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
-      const sty=isT?'background:rgba(79,107,237,.05)':isWk?'background:rgba(0,0,0,.015)':'';
-      html+=`<td class="bc" style="${sty}">`;
-      if(isT)html+=`<div class="tl" style="background:#4F6BED"></div>`;
+      const isLast=addD(d,1).getDate()===1;
+      const moStyle=getMoStyle(d.getMonth());
+      const todayStyle=isT?'background:rgba(79,107,237,.06)':'';
+      const wkStyle=isWk&&!isT?'background:rgba(0,0,0,.02)':'';
+      const brd=isLast?'border-right:2px solid rgba(0,0,0,.12)':'';
+      rBody+=`<td class="bc" style="${todayStyle||wkStyle};${brd};width:${COL_W}px;min-width:${COL_W}px">`;
+      if(isT)rBody+=`<div class="tl" style="background:#4F6BED"></div>`;
       if(vis&&i===cs){
-        const span=ce-cs+1,w=`calc(${span*100}% + ${span-1}px)`;
+        const span=ce-cs+1;
+        const barW=span*COL_W-4; // 固定 px 寬度，不依賴 % 計算
         const ds2=span>=5?`<span class="bd2">${fmt(t.start)}–${fmt(t.end)}</span>`:'';
-        html+=`<div class="bw"><div class="bar" data-id="${t.id}" style="left:2px;width:calc(${w} - 4px);background:${bg}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
+        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" style="left:2px;width:${barW}px;background:${bg}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
           <div class="bp2" style="width:${t.pct}%"></div>
           <span class="bl2">${t.pct>0||span>2?t.pct+'%':''} ${ds2}</span>
         </div></div>`;
       }
-      html+='</td>';
+      rBody+='</td>';
     }
-    html+='</tr>';
+    rBody+='</tr>';
   });
-  document.getElementById('gb').innerHTML=html;
+  document.getElementById('gbLeft').innerHTML=lBody;
+  document.getElementById('gbRight').innerHTML=rBody;
+
+  // 同步左右欄高度（確保每行完全對齊）
+  requestAnimationFrame(syncRowHeights);
+
+  // dep arrows 畫在右欄
   drawDepsDOM(vs,days,rowY,tasks);
-  document.querySelector('#qs')&&(document.getElementById('qs').value=ds(today));
-  document.querySelector('#qe')&&(document.getElementById('qe').value=ds(addD(today,7)));
+  initColResizer();
+}
+
+// 同步左右兩側每行的高度
+function syncRowHeights(){
+  const lRows=document.querySelectorAll('#gbLeft tr');
+  const rRows=document.querySelectorAll('#gbRight tr');
+  lRows.forEach((lr,i)=>{
+    if(!rRows[i])return;
+    const h=Math.max(lr.getBoundingClientRect().height,rRows[i].getBoundingClientRect().height,52);
+    lr.style.height=h+'px';
+    rRows[i].style.height=h+'px';
+  });
+  // 同步標頭高度
+  const lH1=document.querySelector('#ghLeft tr:nth-child(1)');
+  const rH1=document.querySelector('#ghRight tr:nth-child(1)');
+  const lH2=document.querySelector('#ghLeft tr:nth-child(2)');
+  const rH2=document.querySelector('#ghRight tr:nth-child(2)');
+  if(lH1&&rH1){const h=Math.max(lH1.getBoundingClientRect().height,rH1.getBoundingClientRect().height);lH1.style.height=h+'px';rH1.style.height=h+'px';}
+  if(lH2&&rH2){const h=Math.max(lH2.getBoundingClientRect().height,rH2.getBoundingClientRect().height);lH2.style.height=h+'px';rH2.style.height=h+'px';}
+}
+
+// 同步 hover 高亮（左右欄同時亮）
+function rowHover(id,on){
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(r=>{
+    r.style.background=on?'rgba(79,107,237,.04)':'';
+    r.querySelectorAll('td').forEach(td=>{
+      if(td.classList.contains('nc')) td.style.background=on?'#F0F4FF':'';
+      else td.style.background=on?'rgba(79,107,237,.025)':'';
+    });
+  });
+}
+
+// gantt-body-right 捲動時：
+// 1. 右標頭跟著橫移（讓月份/日期欄對齊）
+// 2. 左body跟著縱向捲動（任務名稱跟著對齊）
+function syncScroll(el){
+  const headRight=document.getElementById('ganttHeadRight');
+  const bodyLeft=document.getElementById('ganttBodyLeft');
+  if(headRight) headRight.scrollLeft=el.scrollLeft;
+  if(bodyLeft)  bodyLeft.scrollTop=el.scrollTop;
 }
 
 function hoverBar(id,on){
@@ -976,29 +1210,32 @@ function hoverBar(id,on){
   tasks.forEach(ot=>{if((ot.deps||[]).includes(id))document.querySelectorAll(`.bar[data-id="${ot.id}"]`).forEach(b=>b.classList.add('hto'));});
 }
 function drawDepsDOM(vs,days,rowY,tasks){
-  document.querySelectorAll('.dep-svg').forEach(e=>e.remove());
-  const rowH=50,nameW=220,cw=28,totalH=tasks.length*rowH,totalW=nameW+days*cw;
+  const wrap=document.getElementById('ganttRight');
+  if(!wrap)return;
+  wrap.querySelectorAll('.dep-svg').forEach(e=>e.remove());
+  const rowH=52,cw=28,totalH=tasks.length*rowH,totalW=days*cw;
+  const headH=54; // 兩列標頭高度
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('width',totalW);svg.setAttribute('height',totalH);
-  svg.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:4;overflow:visible';
+  svg.style.cssText=`position:absolute;top:${headH}px;left:0;pointer-events:none;z-index:4;overflow:visible`;
   svg.classList.add('dep-svg');
   const mid=`da${Date.now()}`;
   svg.innerHTML=`<defs><marker id="${mid}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6B7280"/></marker></defs>`;
   tasks.forEach(t=>{
     if(!(t.deps&&t.deps.length))return;
     const toR=rowY[t.id];if(toR===undefined)return;
-    const toX=nameW+Math.max(0,Math.round((parseD(t.start)-vs)/86400000))*cw,toY=toR*rowH+rowH/2;
+    const toX=Math.max(0,Math.round((parseD(t.start)-vs)/86400000))*cw,toY=toR*rowH+rowH/2;
     t.deps.forEach(did=>{
       const dep=tasks.find(x=>x.id===did);if(!dep)return;
       const fr=rowY[did];if(fr===undefined)return;
-      const fromX=nameW+(Math.min(days-1,Math.round((parseD(dep.end)-vs)/86400000))+1)*cw,fromY=fr*rowH+rowH/2,mx=(fromX+toX)/2;
+      const fromX=(Math.min(days-1,Math.round((parseD(dep.end)-vs)/86400000))+1)*cw,fromY=fr*rowH+rowH/2,mx=(fromX+toX)/2;
       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',`M${fromX},${fromY} C${mx},${fromY} ${mx},${toY} ${toX-2},${toY}`);
       path.setAttribute('stroke','#6B7280');path.setAttribute('stroke-width','1.5');path.setAttribute('stroke-dasharray','5,3');path.setAttribute('fill','none');path.setAttribute('marker-end',`url(#${mid})`);path.setAttribute('opacity','.6');
       svg.appendChild(path);
     });
   });
-  const wrap=document.getElementById('gs');wrap.style.position='relative';wrap.appendChild(svg);
+  wrap.style.position='relative';wrap.appendChild(svg);
 }
 
 // ═══════════════════════
@@ -1359,10 +1596,10 @@ function bulkDelete(){
 // DRAG
 // ═══════════════════════
 function dStart(e,id){dragSrc=id;e.dataTransfer.effectAllowed='move';}
-function dOver(e,id){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelector(`tr[data-id="${id}"]`)?.classList.add('do');}
-function dLeave(e){e.currentTarget.classList.remove('do');}
-function dDrop(e,id){e.preventDefault();if(dragSrc===id)return;const tasks=getTasks();const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);if(fi<0||ti<0)return;const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);render();}
-function dEnd(e){e.currentTarget.classList.remove('do');dragSrc=null;}
+function dOver(e,id){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll(`[data-id="${id}"]`).forEach(r=>r.classList.add('do'));}
+function dLeave(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));}
+function dDrop(e,id){e.preventDefault();if(dragSrc===id)return;document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));const tasks=getTasks();const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);if(fi<0||ti<0)return;const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);render();}
+function dEnd(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));dragSrc=null;}
 
 // ═══════════════════════
 // VALIDATION
