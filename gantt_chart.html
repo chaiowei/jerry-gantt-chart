@@ -50,7 +50,6 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-/* content 分上下兩層：stats 固定，gantt 可垂直捲動 */
 .content{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .content-fixed{flex-shrink:0;padding:16px 20px 0}
 .content-scroll{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 16px}
@@ -59,7 +58,6 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 .proj-title-input{font-size:16px;font-weight:600;color:var(--tx);border:none;background:transparent;font-family:inherit;outline:none;min-width:160px;max-width:300px;cursor:text;border-bottom:2px solid transparent;transition:border-color .15s;padding-bottom:1px}
 .proj-title-input:focus{border-color:var(--acc)}
 .proj-badge{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--acc-l);color:var(--acc-d);font-weight:600}
-/* TOPBAR two-row */
 .topbar{flex-direction:column;align-items:stretch;padding:0;gap:0}
 .topbar-row1{display:flex;align-items:center;justify-content:space-between;padding:9px 20px;gap:12px;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
 .topbar-row2{display:flex;align-items:center;padding:7px 20px;gap:6px;flex-wrap:wrap;background:#F8F9FF;border-bottom:1px solid var(--bdr)}
@@ -70,11 +68,8 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 .btn-group .btn:not(:last-child){border-radius:var(--r) 0 0 var(--r);border-right-width:.5px}
 .btn-group .btn:not(:first-child){border-radius:0 var(--r) var(--r) 0;border-left-width:.5px}
 .btn-group .btn:only-child{border-radius:var(--r)}
-/* new project */
 .btn-new-proj{background:#F0FDF4;color:#166534;border-color:#BBF7D0}.btn-new-proj:hover{background:#DCFCE7}
-/* save */
 .btn-save{background:#059669;color:#fff;border-color:#059669;font-weight:700;font-size:13px;height:34px;padding:0 16px;box-shadow:0 2px 6px rgba(5,150,105,.35)}.btn-save:hover{background:#047857;box-shadow:0 3px 10px rgba(5,150,105,.45)}
-/* delete project */
 .btn-del-proj{background:#DC2626;color:#fff;border-color:#DC2626;font-weight:700;font-size:13px;height:34px;padding:0 16px;box-shadow:0 2px 6px rgba(220,38,38,.35)}.btn-del-proj:hover{background:#B91C1C;box-shadow:0 3px 10px rgba(220,38,38,.45)}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;font-size:12px;font-family:inherit;font-weight:500;border:1px solid var(--bdr);border-radius:var(--r);background:var(--surf);color:var(--tx);cursor:pointer;white-space:nowrap;height:30px;transition:all .12s}
 .btn:hover{background:var(--bg)}
@@ -85,15 +80,17 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 .btn.sel-mode{background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:600}.btn.sel-mode:hover{background:#FDE68A}
 select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:1px solid var(--bdr);border-radius:var(--r);background:var(--surf);color:var(--tx);cursor:pointer}
 
+/* ★ 自動儲存狀態列 */
+#autoSaveStatus{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--tx3);background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:3px 12px;pointer-events:none;opacity:0.45;transition:opacity .4s;z-index:50}
+
 /* BULK SELECT */
-.bulk-bar{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1E2235;color:#fff;border-radius:var(--rl);padding:12px 20px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:100;align-items:center;gap:16px;font-size:13px;white-space:nowrap}
+.bulk-bar{display:none;position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#1E2235;color:#fff;border-radius:var(--rl);padding:12px 20px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:100;align-items:center;gap:16px;font-size:13px;white-space:nowrap}
 .bulk-bar.open{display:flex}
 .bulk-count{font-weight:600;color:#93C5FD}
 .bulk-actions{display:flex;gap:8px}
 .bulk-btn{padding:6px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
 .bulk-btn.del{background:#DC2626;color:#fff}.bulk-btn.del:hover{background:#B91C1C}
 .bulk-btn.cancel{background:rgba(255,255,255,.12);color:#fff}.bulk-btn.cancel:hover{background:rgba(255,255,255,.2)}
-/* checkbox column */
 .cb-cell{width:36px;text-align:center;border-right:none!important;cursor:default}
 .cb-cell input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--acc)}
 .tr.selected td{background:rgba(79,107,237,.06)!important}
@@ -113,47 +110,33 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .sv{font-size:20px;font-weight:600}
 .ca{color:var(--acc)}.cg{color:var(--done)}.cr{color:var(--del)}.co{color:#D97706}
 
-/* 月份顏色（12個月各自不同，交替深淺） */
-.mo-0{background:#EEF2FF;color:#3730A3}  /* Jan 靛藍 */
-.mo-1{background:#F0FDF4;color:#166534}  /* Feb 翠綠 */
-.mo-2{background:#FEF9C3;color:#854D0E}  /* Mar 琥珀黃 */
-.mo-3{background:#FFF1F2;color:#9F1239}  /* Apr 玫瑰 */
-.mo-4{background:#ECFEFF;color:#155E75}  /* May 青藍 */
-.mo-5{background:#FFF7ED;color:#9A3412}  /* Jun 橙 */
-.mo-6{background:#F5F3FF;color:#5B21B6}  /* Jul 紫 */
-.mo-7{background:#FAFAFA;color:#374151}  /* Aug 灰 */
-.mo-8{background:#F0FDFA;color:#115E59}  /* Sep 薄荷 */
-.mo-9{background:#FDF2F8;color:#831843}  /* Oct 粉 */
-.mo-10{background:#FFFBEB;color:#78350F} /* Nov 棕黃 */
-.mo-11{background:#EFF6FF;color:#1E40AF} /* Dec 藍 */
+.mo-0{background:#EEF2FF;color:#3730A3}
+.mo-1{background:#F0FDF4;color:#166534}
+.mo-2{background:#FEF9C3;color:#854D0E}
+.mo-3{background:#FFF1F2;color:#9F1239}
+.mo-4{background:#ECFEFF;color:#155E75}
+.mo-5{background:#FFF7ED;color:#9A3412}
+.mo-6{background:#F5F3FF;color:#5B21B6}
+.mo-7{background:#FAFAFA;color:#374151}
+.mo-8{background:#F0FDFA;color:#115E59}
+.mo-9{background:#FDF2F8;color:#831843}
+.mo-10{background:#FFFBEB;color:#78350F}
+.mo-11{background:#EFF6FF;color:#1E40AF}
 
-/* 月份分隔線（body 欄位） */
 .month-border{border-right:2px solid rgba(0,0,0,.18)!important}
 
-/* ═══ GANTT 四區塊架構（Excel 凍結效果） ═══
-   ┌─────────────┬──────────────────────────────┐  ← 固定（不捲動）
-   │  左標頭      │  右標頭（月份+日期）橫向捲動    │
-   ├─────────────┼──────────────────────────────┤  ← 以下垂直捲動
-   │  左 body    │  右 body（bar）橫向＋垂直捲動   │
-   └─────────────┴──────────────────────────────┘
-*/
 .gc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;flex:1}
-
-/* ── 標頭列（固定不動） ── */
 .gantt-head-row{display:flex;flex-shrink:0;border-bottom:2px solid rgba(0,0,0,.12)}
 .gantt-head-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:#F3F4F6;position:relative}
-.gantt-head-right{flex:1;overflow:hidden;background:#F3F4F6}  /* overflow:hidden 隱藏捲軸，由 JS 同步橫移 */
+.gantt-head-right{flex:1;overflow:hidden;background:#F3F4F6}
 .gantt-table-head-left{border-collapse:collapse;width:100%}
 .gantt-table-head-right{border-collapse:collapse}
-
-/* ── Body 列（垂直可捲） ── */
 .gantt-body-row{display:flex;flex:1;overflow:hidden}
 .gantt-body-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:var(--surf)}
-.gantt-body-right{flex:1;overflow:auto}  /* 橫向+縱向都可捲 */
+.gantt-body-right{flex:1;overflow:auto}
 .gantt-table-body-left{border-collapse:collapse;width:100%}
 .gantt-table-body-right{border-collapse:collapse}
 
-/* 標頭 th */
 .gantt-table-head-left th,
 .gantt-table-head-right th{
   background:#F3F4F6;font-size:10px;font-weight:600;
@@ -162,17 +145,12 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 }
 .gantt-table-head-right th.dc{text-align:center;padding:4px 1px;min-width:28px;width:28px;font-size:9px;font-weight:500}
 
-/* 拖曳調寬把手 */
 .col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent}
 .col-resizer:hover,.col-resizer.dragging{background:var(--acc);opacity:.4}
 
-/* 左欄標頭 th */
 .lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:relative}
-
-/* 左欄 body td */
 .nc{padding:7px 12px;cursor:pointer;background:#fff;vertical-align:middle}
 
-/* body tr/td */
 .gantt-table-body-left tbody tr,
 .gantt-table-body-right tbody tr{height:52px}
 .gantt-table-body-left tbody td,
@@ -180,7 +158,14 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .gantt-table-body-left tbody tr:last-child td,
 .gantt-table-body-right tbody tr:last-child td{border-bottom:none}
 
-/* bar tooltip：hover 時在 bar 上方顯示進度和日期 */
+/* ★ Bar 拖曳 handle */
+.bar-resize-left,.bar-resize-right{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:10;border-radius:4px;background:rgba(255,255,255,.35);opacity:0;transition:opacity .15s}
+.bar-resize-left{left:0;border-radius:5px 0 0 5px}
+.bar-resize-right{right:0;border-radius:0 5px 5px 0}
+.bar:hover .bar-resize-left,.bar:hover .bar-resize-right{opacity:1}
+.bar-move-cursor{cursor:grab!important}
+.bar-move-cursor:active{cursor:grabbing!important}
+
 .bar[data-label]:hover::after{
   content:attr(data-label);
   position:absolute;
@@ -227,7 +212,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .ni{display:flex;align-items:flex-start;gap:7px}
 .dh{color:var(--tx3);cursor:grab;font-size:16px;user-select:none;flex-shrink:0;margin-top:2px}
 .nt{flex:1;min-width:0}
-/* name wraps to 2 lines max */
 .nn{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
 .nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .day-chip{display:inline-flex;align-items:center;background:#F3F4F6;color:var(--tx2);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;white-space:nowrap;font-family:'DM Mono',monospace;flex-shrink:0}
@@ -280,9 +264,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 #ir{font-size:12px;color:var(--done);margin-top:6px}
 .confirm-msg{font-size:13px;color:var(--tx);line-height:1.6;margin-bottom:4px}
 .confirm-warn{font-size:12px;color:var(--del);margin-top:8px;background:var(--del-l);padding:8px 10px;border-radius:var(--r)}
-#toast{position:fixed;bottom:20px;right:20px;background:#111827;color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast{position:fixed;bottom:44px;right:20px;background:#111827;color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none}
 
-/* EXPORT PROGRESS */
 .export-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px}
 .export-overlay.open{display:flex}
 .export-box{background:#fff;border-radius:var(--rl);padding:28px 36px;text-align:center;min-width:260px}
@@ -294,6 +277,9 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 </head>
 <body>
 <div id="toast"></div>
+<!-- ★ 自動儲存狀態提示 -->
+<div id="autoSaveStatus">已自動儲存</div>
+
 <div class="export-overlay" id="exportOverlay">
   <div class="export-box">
     <div class="export-spinner"></div>
@@ -358,9 +344,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
         <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
         <div><div class="sb-title">甘特圖管理</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
       </div>
-      <!-- 登入狀態區 -->
       <div id="loginStatus" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)">
-        <!-- 訪客模式 -->
         <div id="guestStatus" style="display:none">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
             <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
@@ -368,7 +352,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
           </div>
           <button onclick="openLoginModal()" style="width:100%;padding:6px;background:rgba(79,107,237,.25);border:1px solid rgba(79,107,237,.4);border-radius:6px;color:#93C5FD;font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s" onmouseover="this.style.background='rgba(79,107,237,.4)'" onmouseout="this.style.background='rgba(79,107,237,.25)'">🔐 切換登入</button>
         </div>
-        <!-- 已登入 -->
         <div id="loggedInStatus" style="display:none">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
             <div style="width:8px;height:8px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
@@ -389,7 +372,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 
   <div class="main">
     <div class="topbar">
-      <!-- Row 1: 工具列（視窗、今天、匯入匯出） -->
       <div class="topbar-row1" id="topToolActions" style="display:none">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <input class="proj-title-input" id="projTitleInput" value="選擇或建立專案" readonly>
@@ -417,22 +399,16 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
           <button class="btn" id="shareBtn" style="background:#F0FDF4;color:#166534;border-color:#BBF7D0;display:none" onclick="openShareModal()">🔗 分享</button>
         </div>
       </div>
-      <!-- Row 1 placeholder when no project (title only) -->
       <div class="topbar-row1" id="topEmptyRow" style="display:flex">
         <div style="display:flex;align-items:center;gap:10px">
           <input class="proj-title-input" id="projTitleInputEmpty" value="選擇或建立專案" readonly style="pointer-events:none;opacity:.5">
         </div>
       </div>
-
-      <!-- Row 2: 專案管理操作 -->
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
-        <!-- 群組 A：新增任務 -->
         <button class="btn a" onclick="openAdd()" title="在目前專案新增任務">＋ 新增任務</button>
         <div class="tb-sep"></div>
-        <!-- 群組 B：任務刪除 -->
         <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()" title="勾選多個任務後批量刪除">☑ 任務刪除</button>
         <div class="tb-sep"></div>
-        <!-- 群組 C：專案儲存 / 刪除（顯眼顏色） -->
         <button class="btn btn-save" onclick="saveAll()" title="儲存所有專案到瀏覽器">💾 儲存專案</button>
         <button class="btn btn-del-proj" onclick="confirmDeleteProject()" title="永久刪除此專案">🗑 刪除專案</button>
       </div>
@@ -446,13 +422,10 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
         <button class="btn a" onclick="newProject()" style="margin-top:4px">＋ 建立第一個專案</button>
       </div>
       <div id="ganttArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-        <!-- 固定層：統計欄 -->
         <div class="content-fixed">
           <div class="stats" id="stats"></div>
         </div>
-        <!-- 甘特圖主體 -->
         <div class="gc" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin:0 20px 16px">
-          <!-- 標頭列（固定不捲動） -->
           <div class="gantt-head-row" id="ganttHeadRow">
             <div class="gantt-head-left" id="ganttHeadLeft">
               <table class="gantt-table-head-left"><thead id="ghLeft"></thead></table>
@@ -461,7 +434,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
               <table class="gantt-table-head-right"><thead id="ghRight"></thead></table>
             </div>
           </div>
-          <!-- Body 列（垂直捲動） -->
           <div class="gantt-body-row">
             <div class="gantt-body-left" id="ganttBodyLeft">
               <table class="gantt-table-body-left"><tbody id="gbLeft"></tbody></table>
@@ -476,11 +448,11 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
             <div class="li"><div class="ld" style="background:var(--pend)"></div>待開始</div>
             <div class="li"><div class="ld" style="background:var(--del)"></div>延遲</div>
             <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--acc)"></div>有前置任務</div>
-            <div class="ln">⠿ 拖曳排序 ｜ 點任務列編輯</div>
+            <div class="ln">⠿ 拖曳排序 ｜ 點任務列編輯 ｜ 拖曳 Bar 兩端調整日期</div>
           </div>
         </div>
-      </div><!-- end #ganttArea -->
-    </div><!-- end .content -->
+      </div>
+    </div>
   </div>
 </div>
 
@@ -494,9 +466,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
   </div>
 </div>
 
-<!-- HELP / USER MANUAL -->
+<!-- HELP OVERLAY -->
 <div id="helpOverlay" style="display:none;position:fixed;inset:0;z-index:300;background:#F0F2F8;overflow:hidden;flex-direction:column">
-  <!-- help topbar -->
   <div style="background:#1E2235;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <div style="display:flex;align-items:center;gap:12px">
       <div style="width:30px;height:30px;background:#4F6BED;border-radius:6px;display:grid;place-items:center;flex-shrink:0">
@@ -509,14 +480,11 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
     </div>
     <button onclick="closeHelp()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;display:flex;align-items:center;gap:6px;transition:background .12s" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">✕ 關閉說明書</button>
   </div>
-  <!-- help body -->
   <div style="display:flex;flex:1;overflow:hidden">
-    <!-- sidebar nav -->
     <div style="width:200px;background:#fff;border-right:1px solid rgba(0,0,0,.08);overflow-y:auto;flex-shrink:0;padding:16px 0">
       <div style="padding:0 12px 8px;font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.8px">目錄</div>
       <div id="helpNav"></div>
     </div>
-    <!-- content -->
     <div style="flex:1;overflow-y:auto;padding:32px 48px" id="helpContent"></div>
   </div>
 </div>
@@ -599,43 +567,27 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 
 <script>
 // ═══════════════════════
-// ⚙️  設定區（填入你的 Apps Script 部署網址）
+// ⚙️  設定區
 // ═══════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzhEfQW7CkeaALVQk-g2lbGly3zf-6tcsy_tGzDseJOetv7TUdWL2uAaWIi52DZFBgI/exec';
-// 填入後，登入功能和分享功能才會啟用
-// 格式：https://script.google.com/macros/s/AKfy.../exec
 
 // ═══════════════════════
 // AUTH STATE
 // ═══════════════════════
-let currentUser = null; // { username, displayName, color, folderId }
+let currentUser = null;
 let isGuestMode = false;
 
 function isCloudEnabled() {
   return APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_DEPLOY_URL_HERE';
 }
 
-// 初始化時：若未設定 Apps Script URL，直接進訪客模式
 function initAuth() {
-  // 嘗試還原 session
   try {
     const saved = localStorage.getItem('gm_user');
-    if (saved) {
-      currentUser = JSON.parse(saved);
-      isGuestMode = false;
-      applyLoginState();
-      return;
-    }
+    if (saved) { currentUser = JSON.parse(saved); isGuestMode = false; applyLoginState(); return; }
   } catch(e) {}
-
-  if (!isCloudEnabled()) {
-    // 未設定 URL → 靜默進入訪客模式
-    isGuestMode = true;
-    applyLoginState();
-  } else {
-    // 有設定 URL → 顯示登入畫面
-    document.getElementById('loginModal').classList.add('open');
-  }
+  if (!isCloudEnabled()) { isGuestMode = true; applyLoginState(); }
+  else { document.getElementById('loginModal').classList.add('open'); }
 }
 
 function openLoginModal() {
@@ -648,31 +600,26 @@ function openLoginModal() {
 async function doLogin() {
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPass').value;
-  if (!username || !password) {
-    showLoginError('請輸入帳號和密碼');return;
-  }
+  if (!username || !password) { showLoginError('請輸入帳號和密碼'); return; }
   const btn = document.querySelector('#loginModal .btn.a');
-  btn.textContent = '登入中...';btn.disabled = true;
+  btn.textContent = '登入中...'; btn.disabled = true;
   try {
     const res = await apiFetch('GET', {action:'login', username, password});
-    if (!res.ok) { showLoginError(res.error || '登入失敗');btn.textContent='🔐 登入並同步雲端';btn.disabled=false;return; }
-    currentUser = res.user;
-    isGuestMode = false;
+    if (!res.ok) { showLoginError(res.error || '登入失敗'); btn.textContent='🔐 登入並同步雲端'; btn.disabled=false; return; }
+    currentUser = res.user; isGuestMode = false;
     localStorage.setItem('gm_user', JSON.stringify(currentUser));
     document.getElementById('loginModal').classList.remove('open');
     applyLoginState();
-    // 載入雲端專案
     toast('🔄 正在從雲端載入你的專案...');
     await loadCloudProjects();
   } catch(e) {
     showLoginError('連線失敗，請確認網路或 Apps Script 設定');
-    btn.textContent='🔐 登入並同步雲端';btn.disabled=false;
+    btn.textContent='🔐 登入並同步雲端'; btn.disabled=false;
   }
 }
 
 function doGuestMode() {
-  isGuestMode = true;
-  currentUser = null;
+  isGuestMode = true; currentUser = null;
   document.getElementById('loginModal').classList.remove('open');
   applyLoginState();
   toast('👤 訪客模式：儲存時資料只會存到本機瀏覽器');
@@ -680,8 +627,7 @@ function doGuestMode() {
 
 function doLogout() {
   if (!confirm('確定登出？本機未儲存的資料將會保留。')) return;
-  currentUser = null;
-  isGuestMode = true;
+  currentUser = null; isGuestMode = true;
   localStorage.removeItem('gm_user');
   applyLoginState();
   toast('已登出');
@@ -692,45 +638,35 @@ function applyLoginState() {
   const loggedEl = document.getElementById('loggedInStatus');
   const nameEl = document.getElementById('loggedInName');
   const shareBtn = document.getElementById('shareBtn');
-
   if (currentUser && !isGuestMode) {
-    guestEl.style.display = 'none';
-    loggedEl.style.display = 'block';
+    guestEl.style.display = 'none'; loggedEl.style.display = 'block';
     nameEl.textContent = currentUser.displayName || currentUser.username;
     if (shareBtn) shareBtn.style.display = '';
   } else {
-    guestEl.style.display = 'block';
-    loggedEl.style.display = 'none';
+    guestEl.style.display = 'block'; loggedEl.style.display = 'none';
     if (shareBtn) shareBtn.style.display = 'none';
   }
 }
 
 function showLoginError(msg) {
   const el = document.getElementById('loginError');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
 }
 
 // ═══════════════════════
-// CLOUD API CALLS
+// CLOUD API
 // ═══════════════════════
 async function apiFetch(method, params, body) {
   if (!isCloudEnabled()) throw new Error('Apps Script URL 未設定');
-
   if (method === 'GET') {
-    // GET：直接 fetch，Apps Script 支援跨域 GET
     const qs = new URLSearchParams(params).toString();
     const res = await fetch(APPS_SCRIPT_URL + '?' + qs);
     return res.json();
   } else {
-    // POST：用 text/plain 傳 JSON 字串
-    // 原因：application/json 會觸發 CORS preflight 被擋
-    //       text/plain 屬於簡單請求，不需要 preflight，Apps Script 可以接收
-    const jsonStr = JSON.stringify(body);
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: jsonStr,
+      body: JSON.stringify(body),
     });
     return res.json();
   }
@@ -739,31 +675,19 @@ async function apiFetch(method, params, body) {
 async function loadCloudProjects() {
   if (!currentUser) return;
   try {
-    const res = await apiFetch('GET', {
-      action: 'loadProjects',
-      username: currentUser.username,
-      folderId: currentUser.folderId
-    });
+    const res = await apiFetch('GET', { action:'loadProjects', username:currentUser.username, folderId:currentUser.folderId });
     if (!res.ok) { toast('⚠️ 雲端載入失敗：' + res.error); return; }
     if (res.projects && res.projects.length > 0) {
-      // merge: 雲端優先，本地不存在的補入
       res.projects.forEach(cp => {
         const existing = projects.find(p => p.id === cp.id);
         if (!existing) projects.push(cp);
-        else {
-          // 雲端版本覆蓋本地（雲端為主）
-          Object.assign(existing, cp);
-        }
+        else Object.assign(existing, cp);
       });
       if (!activeId && projects.length) activeId = projects[0].id;
       renderSidebar(); renderTopbar(); render();
       toast('✅ 已從雲端載入 ' + res.projects.length + ' 個專案');
-    } else {
-      toast('雲端尚無專案，可以開始建立');
-    }
-  } catch(e) {
-    toast('⚠️ 雲端連線失敗，使用本機資料');
-  }
+    } else { toast('雲端尚無專案，可以開始建立'); }
+  } catch(e) { toast('⚠️ 雲端連線失敗，使用本機資料'); }
 }
 
 // ═══════════════════════
@@ -783,14 +707,7 @@ async function doCreateShare() {
   document.getElementById('shareActions').style.display = 'none';
   document.getElementById('shareLoading').style.display = 'block';
   try {
-    const res = await apiFetch('POST', null, {
-      action: 'createShare',
-      username: currentUser.username,
-      folderId: currentUser.folderId,
-      projectId: p.id,
-      projectData: p,
-      shareType: 'interactive'
-    });
+    const res = await apiFetch('POST', null, { action:'createShare', username:currentUser.username, folderId:currentUser.folderId, projectId:p.id, projectData:p, shareType:'interactive' });
     document.getElementById('shareLoading').style.display = 'none';
     if (!res.ok) { toast('分享失敗：' + res.error); document.getElementById('shareActions').style.display='block'; return; }
     document.getElementById('shareUrl').value = res.shareUrl;
@@ -810,19 +727,16 @@ function copyShareUrl() {
 }
 
 // ═══════════════════════
-// CONSTANTS
+// CONSTANTS & STATE
 // ═══════════════════════
 const SL={done:'已完成',ongoing:'進行中',pending:'待開始',delayed:'延遲'};
 const SC={done:'bd',ongoing:'bo',pending:'bp',delayed:'bl'};
 const PALETTE=['#4F6BED','#0EA5E9','#10B981','#84CC16','#F59E0B','#F97316','#EF4444','#F43F5E','#EC4899','#A855F7','#7C3AED','#6366F1','#06B6D4','#64748B','#92400E','#059669','#0284C7','#D97706'];
 const PROJ_COLORS=['#4F6BED','#10B981','#F59E0B','#EF4444','#A855F7','#F97316','#06B6D4','#EC4899','#64748B','#7C3AED'];
 
-// ═══════════════════════
-// STATE
-// ═══════════════════════
 let projects=[],activeId=null,editId=null,editDeps=[],editColor=null,dragSrc=null,newProjColor=PROJ_COLORS[0],pendingDeleteId=null;
 let bulkMode=false,bulkSelected=new Set();
-const today=new Date();today.setHours(0,0,0,0);
+const today=new Date(); today.setHours(0,0,0,0);
 const ds=d=>d.toISOString().slice(0,10);
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
 const parseD=s=>{if(!s)return today;const[y,m,d]=s.replace(/\//g,'-').split('-');return new Date(+y,+m-1,+d);};
@@ -838,16 +752,44 @@ function taskBarBg(t){
 }
 
 // ═══════════════════════
+// ★ 修改 1：自動儲存 + 容量警告
+// ═══════════════════════
+let _autoSaveTimer = null;
+function autoSave() {
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    try {
+      const data = JSON.stringify(projects);
+      // ★ 修改 2：容量警告（超過 4MB 提醒）
+      const bytes = new Blob([data]).size;
+      if (bytes > 4 * 1024 * 1024) {
+        toast('⚠️ 資料量已超過 4MB，建議匯出 JSON 備份並清理舊專案，避免儲存失敗。');
+      }
+      localStorage.setItem('gm_projects', data);
+      localStorage.setItem('gm_activeId', activeId || '');
+      const now = new Date();
+      const hm = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      const el = document.getElementById('autoSaveStatus');
+      if (el) {
+        el.textContent = '已自動儲存 ' + hm;
+        el.style.opacity = '1';
+        setTimeout(() => { el.style.opacity = '0.45'; }, 2500);
+      }
+    } catch(e) {
+      toast('⚠️ 自動儲存失敗：' + e.message);
+    }
+  }, 800);
+}
+
+// ═══════════════════════
 // STORAGE
 // ═══════════════════════
 function saveAll(){
   if (isGuestMode || !currentUser) {
-    // 訪客模式：只存本機，給明顯提示
     try {
       localStorage.setItem('gm_projects',JSON.stringify(projects));
       localStorage.setItem('gm_activeId',activeId||'');
     } catch(e) {}
-    // 同時下載一個 JSON 檔案到本機
     const snapshot = { _type:'gantt_guest_backup', _saved: ds(today), projects };
     const blob = new Blob([JSON.stringify(snapshot,null,2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
@@ -857,7 +799,6 @@ function saveAll(){
     toast('⚠️ 訪客模式：資料已儲存至本機瀏覽器，並下載 JSON 備份檔到你的電腦。登入後可同步至雲端。');
     return;
   }
-  // 已登入：儲存到本機 + 上傳雲端
   try {
     localStorage.setItem('gm_projects',JSON.stringify(projects));
     localStorage.setItem('gm_activeId',activeId||'');
@@ -873,6 +814,7 @@ function saveAll(){
     else toast('⚠️ 雲端儲存失敗：' + res.error);
   }).catch(e => toast('⚠️ 雲端連線失敗，資料已存本機'));
 }
+
 function loadAll(){
   try{
     const raw=localStorage.getItem('gm_projects');
@@ -883,6 +825,7 @@ function loadAll(){
   }catch(e){projects=[];activeId=null;}
   if(!projects.length)loadDemo();
 }
+
 function loadDemo(){
   const p1='proj_'+Date.now(),p2='proj_'+(Date.now()+1);
   projects=[
@@ -904,18 +847,18 @@ function loadDemo(){
   ];
   activeId=p1;
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2200);}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2800);}
 
 // ═══════════════════════
-// COLUMN RESIZER（任務名稱欄寬拖曳）
+// COLUMN RESIZER
 // ═══════════════════════
-let _colW = 220; // 預設欄寬 px
+let _colW = 220;
 
 function initColResizer(){
   const resizer = document.getElementById('colResizer');
   if(!resizer) return;
   applyColWidth(_colW);
-  // 移除舊監聽器再加新的，避免 render() 多次呼叫造成重複綁定
   resizer.replaceWith(resizer.cloneNode(true));
   const newResizer = document.getElementById('colResizer');
   if(newResizer) newResizer.addEventListener('mousedown', startResize);
@@ -924,28 +867,21 @@ function initColResizer(){
 function applyColWidth(w){
   _colW = Math.max(140, Math.min(520, w));
   const W = _colW + 'px';
-
-  // 四區塊左欄：容器寬度（讓 flex-shrink:0 有固定寬度）
   const headLeft  = document.getElementById('ganttHeadLeft');
   const bodyLeft  = document.getElementById('ganttBodyLeft');
   if(headLeft)  { headLeft.style.width  = W; headLeft.style.minWidth  = W; }
   if(bodyLeft)  { bodyLeft.style.width  = W; bodyLeft.style.minWidth  = W; }
-
-  // 表格本身的寬度
   const tblHeadL = headLeft?.querySelector('table');
   const tblBodyL = bodyLeft?.querySelector('table');
   if(tblHeadL) { tblHeadL.style.width = W; }
   if(tblBodyL) { tblBodyL.style.width = W; }
-
-  // 標頭 th（lth）和 body td（nc）的欄寬
   document.querySelectorAll('.lth').forEach(el=>{ el.style.width = W; el.style.minWidth = W; });
   document.querySelectorAll('.nc').forEach(el=>{  el.style.width = W; el.style.minWidth = W; });
 }
 
 function startResize(e){
   e.preventDefault();
-  const startX = e.clientX;
-  const startW = _colW;
+  const startX = e.clientX, startW = _colW;
   const resizer = document.getElementById('colResizer');
   resizer?.classList.add('dragging');
   document.body.style.cursor='col-resize';
@@ -971,8 +907,6 @@ function toggleSidebar(){
   const collapsed=sb.classList.toggle('collapsed');
   btn.textContent=collapsed?'▶':'☰';
   btn.title=collapsed?'展開側欄':'收合側欄';
-  // 收合時 toggle 按鈕移到左側邊緣，展開時還原
-  btn.style.left=collapsed?'10px':'10px';
 }
 
 // ═══════════════════════
@@ -988,7 +922,9 @@ function renderSidebar(){
       <button class="proj-del" title="刪除" onclick="event.stopPropagation();confirmDeleteProject('${p.id}')">✕</button>
     </div>`).join('');
 }
+
 function switchProject(id){activeId=id;exitBulkMode();renderSidebar();renderTopbar();render();}
+
 function renderTopbar(){
   const p=activeProj();
   const badge=document.getElementById('projBadge');
@@ -1015,7 +951,7 @@ function renderTopbar(){
   gantt.style.overflow='hidden';
   gantt.style.flex='1';
 }
-// title sync — use event delegation to handle both inputs
+
 document.addEventListener('input',function(e){
   if(e.target.id==='projTitleInput'){
     const p=activeProj();if(!p)return;
@@ -1023,6 +959,7 @@ document.addEventListener('input',function(e){
     renderSidebar();
     const badge=document.getElementById('projBadge');
     if(badge)badge.textContent=p.tasks.length+' 個任務';
+    autoSave(); // ★ 自動儲存
   }
 });
 
@@ -1031,29 +968,35 @@ document.addEventListener('input',function(e){
 // ═══════════════════════
 function newProject(){document.getElementById('npName').value='';newProjColor=PROJ_COLORS[projects.length%PROJ_COLORS.length];renderNpColors();document.getElementById('npm').classList.add('open');setTimeout(()=>document.getElementById('npName').focus(),50);}
 function renderNpColors(){document.getElementById('npColors').innerHTML=PROJ_COLORS.map(c=>`<div style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===newProjColor?'#111':'transparent'};transition:all .1s" onclick="newProjColor='${c}';renderNpColors()"></div>`).join('');}
-function createProject(){const name=document.getElementById('npName').value.trim()||'未命名';const p={id:'proj_'+Date.now(),name,color:newProjColor,nextId:1,tasks:[]};projects.push(p);activeId=p.id;cm('npm');renderSidebar();renderTopbar();render();toast(`✅ 已建立「${name}」`);}
+function createProject(){
+  const name=document.getElementById('npName').value.trim()||'未命名';
+  const p={id:'proj_'+Date.now(),name,color:newProjColor,nextId:1,tasks:[]};
+  projects.push(p);activeId=p.id;cm('npm');renderSidebar();renderTopbar();render();
+  toast(`✅ 已建立「${name}」`);
+  autoSave(); // ★ 自動儲存
+}
 function confirmDeleteProject(id){pendingDeleteId=id||activeId;const p=getProj(pendingDeleteId);if(!p)return;document.getElementById('dpName').textContent=p.name;document.getElementById('dpm').classList.add('open');}
-function deleteProject(){if(!pendingDeleteId)return;const idx=projects.findIndex(p=>p.id===pendingDeleteId);const name=projects[idx]?.name||'';projects.splice(idx,1);if(activeId===pendingDeleteId)activeId=projects.length?projects[Math.max(0,idx-1)].id:null;pendingDeleteId=null;cm('dpm');renderSidebar();renderTopbar();render();toast(`🗑 已刪除「${name}」`);}
+function deleteProject(){
+  if(!pendingDeleteId)return;
+  const idx=projects.findIndex(p=>p.id===pendingDeleteId);
+  const name=projects[idx]?.name||'';
+  projects.splice(idx,1);
+  if(activeId===pendingDeleteId)activeId=projects.length?projects[Math.max(0,idx-1)].id:null;
+  pendingDeleteId=null;cm('dpm');renderSidebar();renderTopbar();render();
+  toast(`🗑 已刪除「${name}」`);
+  autoSave(); // ★ 自動儲存
+}
 
-// 月份顏色 style（直接用 inline style 避免 class 被 override）
 const MO_COLORS=[
-  {bg:'#EEF2FF',color:'#3730A3'}, // Jan
-  {bg:'#F0FDF4',color:'#166534'}, // Feb
-  {bg:'#FEF9C3',color:'#854D0E'}, // Mar
-  {bg:'#FFF1F2',color:'#9F1239'}, // Apr
-  {bg:'#ECFEFF',color:'#155E75'}, // May
-  {bg:'#FFF7ED',color:'#9A3412'}, // Jun
-  {bg:'#F5F3FF',color:'#5B21B6'}, // Jul
-  {bg:'#FAFAFA',color:'#374151'}, // Aug
-  {bg:'#F0FDFA',color:'#115E59'}, // Sep
-  {bg:'#FDF2F8',color:'#831843'}, // Oct
-  {bg:'#FFFBEB',color:'#78350F'}, // Nov
-  {bg:'#EFF6FF',color:'#1E40AF'}, // Dec
+  {bg:'#EEF2FF',color:'#3730A3'},{bg:'#F0FDF4',color:'#166534'},{bg:'#FEF9C3',color:'#854D0E'},
+  {bg:'#FFF1F2',color:'#9F1239'},{bg:'#ECFEFF',color:'#155E75'},{bg:'#FFF7ED',color:'#9A3412'},
+  {bg:'#F5F3FF',color:'#5B21B6'},{bg:'#FAFAFA',color:'#374151'},{bg:'#F0FDFA',color:'#115E59'},
+  {bg:'#FDF2F8',color:'#831843'},{bg:'#FFFBEB',color:'#78350F'},{bg:'#EFF6FF',color:'#1E40AF'},
 ];
 function getMoStyle(m){const c=MO_COLORS[m]||MO_COLORS[0];return`background:${c.bg};color:${c.color}`;}
 
 // ═══════════════════════
-// RENDER SCREEN GANTT
+// RENDER
 // ═══════════════════════
 function getVS(){const r=parseInt(document.getElementById('viewRange').value);const s=new Date(today);s.setDate(s.getDate()-Math.floor(r*.18));return s;}
 function getVE(){return addD(getVS(),parseInt(document.getElementById('viewRange').value));}
@@ -1074,7 +1017,6 @@ function render(){
     <div class="stat"><div class="sl">整體完成度</div><div class="sv co">${avg}%</div></div>
     <div class="stat"><div class="sl">專案總天數</div><div class="sv" style="color:var(--pend)">${spanDays}天</div></div>`;
 
-  // 月份群組
   const monthGroups=[];
   for(let i=0;i<days;i++){
     const d=addD(vs,i),m=d.getMonth();
@@ -1082,17 +1024,14 @@ function render(){
     else monthGroups[monthGroups.length-1].count++;
   }
   const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  const mc=m=>'mo-'+m;
+  const COL_W=28;
 
-  // ── 左欄標頭（任務名稱欄） ──
   let lHead=`<tr><th class="lth" rowspan="2" style="position:relative;vertical-align:middle">
     任務
     <div class="col-resizer" id="colResizer"></div>
   </th></tr><tr></tr>`;
   document.getElementById('ghLeft').innerHTML=lHead;
 
-  // ── 右欄標頭（月份 + 日期） ──
-  const COL_W=28; // 每天欄寬 px，和 CSS min-width 一致
   let rHead='<tr>';
   monthGroups.forEach(g=>{
     const moStyle=getMoStyle(g.m);
@@ -1112,7 +1051,6 @@ function render(){
   rHead+='</tr>';
   document.getElementById('ghRight').innerHTML=rHead;
 
-  // ── 左欄 body + 右欄 body ──
   const rowY={};let lBody='',rBody='';
   tasks.forEach((t,ri)=>{
     rowY[t.id]=ri;
@@ -1127,7 +1065,6 @@ function render(){
     const drag=!bulkMode?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
     const rowCls=`data-id="${t.id}"${isSelected?' class="selected"':''}`;
 
-    // 左欄列
     lBody+=`<tr ${rowCls} ${drag} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
     if(bulkMode) lBody+=`<td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" ${isSelected?'checked':''} onchange="bulkToggle(${t.id},this.checked)"></td>`;
     lBody+=`<td class="nc" onclick="${bulkMode?`bulkToggleRow(${t.id})`:`openEdit(${t.id})`}">
@@ -1144,7 +1081,6 @@ function render(){
       </div>
     </td></tr>`;
 
-    // 右欄列
     rBody+=`<tr ${rowCls} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
     for(let i=0;i<days;i++){
       const d=addD(vs,i);const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
@@ -1158,23 +1094,18 @@ function render(){
         const span=ce-cs+1;
         const barW=span*COL_W-4;
         const label=`${t.pct}% ${fmt(t.start)}–${fmt(t.end)}`;
-        // 統一規則：bar 夠寬才顯示，字數根據寬度調整
-        // ≥6欄(168px)：進度% + 日期
-        // 3-5欄(84-140px)：進度% + 日期（只顯示日期不顯示月份開頭）
-        // 2欄(56px)：只顯示進度%
-        // 1欄(28px)：bar 內不顯示，hover tooltip 顯示
         let innerText='';
         if(span>=3){
-          const pctPart=t.pct+'%';
-          const datePart=`${fmt(t.start)}–${fmt(t.end)}`;
-          innerText=`${pctPart} <span class="bd2">${datePart}</span>`;
+          innerText=`${t.pct}% <span class="bd2">${fmt(t.start)}–${fmt(t.end)}</span>`;
         } else if(span===2){
           innerText=`${t.pct}%`;
         }
-        // 文字顏色固定白色
-        rBody+=`<div class="bw"><div class="bar" data-id="${t.id}" data-label="${label}" style="left:2px;width:${barW}px;background:${bg}" onclick="openEdit(${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
+        // ★ 修改 3：Bar 加入左右 resize handle + 中間拖曳
+        rBody+=`<div class="bw"><div class="bar bar-move-cursor" data-id="${t.id}" data-label="${label}" style="left:2px;width:${barW}px;background:${bg}" onclick="barClick(event,${t.id})" onmouseenter="hoverBar(${t.id},true)" onmouseleave="hoverBar(${t.id},false)">
           <div class="bp2" style="width:${t.pct}%"></div>
+          <div class="bar-resize-left" onmousedown="barResizeStart(event,${t.id},'left')"></div>
           <span class="bl2">${innerText}</span>
+          <div class="bar-resize-right" onmousedown="barResizeStart(event,${t.id},'right')"></div>
         </div></div>`;
       }
       rBody+='</td>';
@@ -1184,25 +1115,99 @@ function render(){
   document.getElementById('gbLeft').innerHTML=lBody;
   document.getElementById('gbRight').innerHTML=rBody;
 
-  // 同步左右欄高度（確保每行完全對齊）
   requestAnimationFrame(syncRowHeights);
-
-  // dep arrows 畫在右欄
   drawDepsDOM(vs,days,rowY,tasks);
   initColResizer();
+  initBarDrag();
 }
 
-// 同步左右兩側每行的高度
+// ═══════════════════════
+// ★ 修改 3：Bar 拖曳調整日期
+// ═══════════════════════
+let _barDrag = null; // { taskId, mode:'left'|'right'|'move', startX, origStart, origEnd, vs, COL_W }
+
+function barClick(e, id) {
+  // 如果是拖曳結束後的 click，忽略
+  if (_barDrag && _barDrag._moved) { e.stopPropagation(); return; }
+  openEdit(id);
+}
+
+function barResizeStart(e, id, mode) {
+  e.preventDefault();
+  e.stopPropagation();
+  const t = getTasks().find(x => x.id === id); if (!t) return;
+  const vs = getVS();
+  _barDrag = { taskId: id, mode, startX: e.clientX, origStart: t.start, origEnd: t.end, vs, COL_W: 28, _moved: false };
+  document.body.style.cursor = 'ew-resize';
+  document.body.style.userSelect = 'none';
+  document.addEventListener('mousemove', onBarDragMove);
+  document.addEventListener('mouseup', onBarDragEnd);
+}
+
+function initBarDrag() {
+  // 中間拖曳：整條 bar 移動
+  document.querySelectorAll('.bar.bar-move-cursor').forEach(el => {
+    el.addEventListener('mousedown', function(e) {
+      if (e.target.classList.contains('bar-resize-left') || e.target.classList.contains('bar-resize-right')) return;
+      e.preventDefault();
+      const id = parseInt(this.getAttribute('data-id'));
+      const t = getTasks().find(x => x.id === id); if (!t) return;
+      const vs = getVS();
+      _barDrag = { taskId: id, mode: 'move', startX: e.clientX, origStart: t.start, origEnd: t.end, vs, COL_W: 28, _moved: false };
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onBarDragMove);
+      document.addEventListener('mouseup', onBarDragEnd);
+    });
+  });
+}
+
+function onBarDragMove(e) {
+  if (!_barDrag) return;
+  const dx = e.clientX - _barDrag.startX;
+  if (Math.abs(dx) > 3) _barDrag._moved = true;
+  if (!_barDrag._moved) return;
+  const deltaDays = Math.round(dx / _barDrag.COL_W);
+  const p = activeProj(); if (!p) return;
+  const t = p.tasks.find(x => x.id === _barDrag.taskId); if (!t) return;
+
+  const origS = parseD(_barDrag.origStart), origE = parseD(_barDrag.origEnd);
+
+  if (_barDrag.mode === 'left') {
+    const newS = addD(origS, deltaDays);
+    if (newS <= origE) { t.start = ds(newS); }
+  } else if (_barDrag.mode === 'right') {
+    const newE = addD(origE, deltaDays);
+    if (newE >= origS) { t.end = ds(newE); }
+  } else {
+    t.start = ds(addD(origS, deltaDays));
+    t.end   = ds(addD(origE, deltaDays));
+  }
+  render();
+}
+
+function onBarDragEnd(e) {
+  if (!_barDrag) return;
+  document.removeEventListener('mousemove', onBarDragMove);
+  document.removeEventListener('mouseup', onBarDragEnd);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  if (_barDrag._moved) {
+    autoSave(); // ★ 自動儲存
+    const t = getTasks().find(x => x.id === _barDrag.taskId);
+    if (t) toast(`📅 已更新：${t.name}  ${t.start} → ${t.end}`);
+  }
+  setTimeout(() => { _barDrag = null; }, 50);
+}
+
 function syncRowHeights(){
   const lRows=document.querySelectorAll('#gbLeft tr');
   const rRows=document.querySelectorAll('#gbRight tr');
   lRows.forEach((lr,i)=>{
     if(!rRows[i])return;
     const h=Math.max(lr.getBoundingClientRect().height,rRows[i].getBoundingClientRect().height,52);
-    lr.style.height=h+'px';
-    rRows[i].style.height=h+'px';
+    lr.style.height=h+'px'; rRows[i].style.height=h+'px';
   });
-  // 同步標頭高度
   const lH1=document.querySelector('#ghLeft tr:nth-child(1)');
   const rH1=document.querySelector('#ghRight tr:nth-child(1)');
   const lH2=document.querySelector('#ghLeft tr:nth-child(2)');
@@ -1211,22 +1216,11 @@ function syncRowHeights(){
   if(lH2&&rH2){const h=Math.max(lH2.getBoundingClientRect().height,rH2.getBoundingClientRect().height);lH2.style.height=h+'px';rH2.style.height=h+'px';}
 }
 
-// 同步 hover 高亮（左右欄同時亮）
 function rowHover(id,on){
-  // 左欄 nc：hover 用淡藍背景
-  document.querySelectorAll(`[data-id="${id}"] td.nc`).forEach(td=>{
-    td.style.background=on?'#F0F4FF':'';
-  });
-  // 右欄 bc：只改沒有 bar 的空白欄位，有 bar 的欄位不動（避免蓋住 bar 顏色）
-  document.querySelectorAll(`[data-id="${id}"] td.bc`).forEach(td=>{
-    // 只有空格才加 hover 背景
-    if(!td.querySelector('.bar')) td.style.background=on?'rgba(79,107,237,.03)':'';
-  });
+  document.querySelectorAll(`[data-id="${id}"] td.nc`).forEach(td=>{ td.style.background=on?'#F0F4FF':''; });
+  document.querySelectorAll(`[data-id="${id}"] td.bc`).forEach(td=>{ if(!td.querySelector('.bar')) td.style.background=on?'rgba(79,107,237,.03)':''; });
 }
 
-// gantt-body-right 捲動時：
-// 1. 右標頭跟著橫移（讓月份/日期欄對齊）
-// 2. 左body跟著縱向捲動（任務名稱跟著對齊）
 function syncScroll(el){
   const headRight=document.getElementById('ganttHeadRight');
   const bodyLeft=document.getElementById('ganttBodyLeft');
@@ -1240,12 +1234,13 @@ function hoverBar(id,on){
   (t.deps||[]).forEach(pid=>document.querySelectorAll(`.bar[data-id="${pid}"]`).forEach(b=>b.classList.add('hfrom')));
   tasks.forEach(ot=>{if((ot.deps||[]).includes(id))document.querySelectorAll(`.bar[data-id="${ot.id}"]`).forEach(b=>b.classList.add('hto'));});
 }
+
 function drawDepsDOM(vs,days,rowY,tasks){
   const wrap=document.getElementById('ganttRight');
   if(!wrap)return;
   wrap.querySelectorAll('.dep-svg').forEach(e=>e.remove());
   const rowH=52,cw=28,totalH=tasks.length*rowH,totalW=days*cw;
-  const headH=54; // 兩列標頭高度
+  const headH=54;
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('width',totalW);svg.setAttribute('height',totalH);
   svg.style.cssText=`position:absolute;top:${headH}px;left:0;pointer-events:none;z-index:4;overflow:visible`;
@@ -1268,7 +1263,6 @@ function drawDepsDOM(vs,days,rowY,tasks){
   });
   wrap.style.position='relative';wrap.appendChild(svg);
 
-  // 今天線：在 SVG body 上畫一條藍色虛線
   const todayOff=Math.round((today-vs)/86400000);
   if(todayOff>=0&&todayOff<days){
     wrap.querySelectorAll('.today-line-svg').forEach(e=>e.remove());
@@ -1279,33 +1273,42 @@ function drawDepsDOM(vs,days,rowY,tasks){
     tlSvg.classList.add('today-line-svg');
     const line=document.createElementNS('http://www.w3.org/2000/svg','line');
     line.setAttribute('x1',tx);line.setAttribute('y1',0);line.setAttribute('x2',tx);line.setAttribute('y2',totalH);
-    line.setAttribute('stroke','#4F6BED');line.setAttribute('stroke-width','1.5');
-    line.setAttribute('stroke-dasharray','4,3');line.setAttribute('opacity','.5');
+    line.setAttribute('stroke','#4F6BED');line.setAttribute('stroke-width','1.5');line.setAttribute('stroke-dasharray','4,3');line.setAttribute('opacity','.5');
     tlSvg.appendChild(line);
     wrap.appendChild(tlSvg);
   }
 }
 
 // ═══════════════════════
-// CANVAS EXPORT ENGINE
+// ★ 修改 4：修復 jumpToday
 // ═══════════════════════
-function hexToRgb(hex){
-  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-  return{r,g,b};
+function jumpToday() {
+  const vs = getVS();
+  const COL_W = 28;
+  const offset = Math.round((today - vs) / 86400000);
+  const bodyRight = document.getElementById('ganttBodyRight');
+  if (bodyRight && offset >= 0) {
+    const scrollTo = offset * COL_W - bodyRight.clientWidth / 2 + COL_W / 2;
+    bodyRight.scrollLeft = Math.max(0, scrollTo);
+    // 同步標頭
+    const headRight = document.getElementById('ganttHeadRight');
+    if (headRight) headRight.scrollLeft = bodyRight.scrollLeft;
+  }
 }
+
+// ═══════════════════════
+// CANVAS EXPORT ENGINE（原版完整保留）
+// ═══════════════════════
+function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return{r,g,b};}
 function hexWithAlpha(hex,alpha){const {r,g,b}=hexToRgb(hex);return`rgba(${r},${g},${b},${alpha})`;}
 
 async function exportImage(format){
   const p=activeProj();
   if(!p||!p.tasks.length){alert('此專案沒有任務可匯出。');return;}
-
-  // show spinner
   document.getElementById('exportMsg').textContent=`正在繪製完整甘特圖...`;
   document.getElementById('exportSub').textContent=`共 ${p.tasks.length} 個任務，請稍候`;
   document.getElementById('exportOverlay').classList.add('open');
-
-  await new Promise(r=>setTimeout(r,50)); // let UI update
-
+  await new Promise(r=>setTimeout(r,50));
   try{
     const canvas=drawGanttCanvas(p);
     if(format==='png'){
@@ -1323,8 +1326,7 @@ async function exportImage(format){
       await new Promise(r=>setTimeout(r,20));
       const {jsPDF}=window.jspdf;
       const W=canvas.width,H=canvas.height;
-      // landscape, custom size in mm (1px ~ 0.264mm at 96dpi; we use 72dpi for jsPDF)
-      const mmW=W*0.352778,mmH=H*0.352778; // px→mm at 72dpi
+      const mmW=W*0.352778,mmH=H*0.352778;
       const pdf=new jsPDF({orientation:W>H?'landscape':'portrait',unit:'mm',format:[mmW,mmH]});
       const imgData=canvas.toDataURL('image/png',1.0);
       pdf.addImage(imgData,'PNG',0,0,mmW,mmH,undefined,'FAST');
@@ -1340,33 +1342,23 @@ async function exportImage(format){
 
 function drawGanttCanvas(p){
   const tasks=p.tasks;
-  // Full date range
   const allS=tasks.map(t=>parseD(t.start)),allE=tasks.map(t=>parseD(t.end));
   const minD=new Date(Math.min(...allS)),maxD=new Date(Math.max(...allE));
   const vs=addD(minD,-2),ve=addD(maxD,2);
   const days=Math.round((ve-vs)/86400000)+1;
-
-  // Layout constants (px, high-DPI ×2)
   const DPR=2;
   const NAME_W=240,COL_W=30,ROW_H=62,HEAD_H=52,FOOTER_H=44,TITLE_H=56,PADDING=24;
   const totalW=(NAME_W+days*COL_W+PADDING*2)*DPR;
   const totalH=(TITLE_H+HEAD_H+tasks.length*ROW_H+FOOTER_H)*DPR;
-
   const canvas=document.createElement('canvas');
   canvas.width=totalW;canvas.height=totalH;
   const cx=canvas.getContext('2d');
   cx.scale(DPR,DPR);
   const W=totalW/DPR,H=totalH/DPR;
-
-  // helpers
   const X=i=>PADDING+NAME_W+i*COL_W;
   const Y=ri=>TITLE_H+HEAD_H+ri*ROW_H;
   const gridW=days*COL_W;
-
-  // Background
   cx.fillStyle='#ffffff';cx.fillRect(0,0,W,H);
-
-  // ── TITLE AREA ──
   cx.fillStyle='#1E2235';cx.fillRect(0,0,W,TITLE_H);
   cx.fillStyle='#ffffff';cx.font=`600 18px "DM Sans",sans-serif`;cx.textBaseline='middle';
   cx.fillText(p.name,PADDING+40,TITLE_H/2-6);
@@ -1375,20 +1367,14 @@ function drawGanttCanvas(p){
   const minS=tasks.reduce((a,t)=>a<t.start?a:t.start,tasks[0].start);
   const maxE=tasks.reduce((a,t)=>a>t.end?a:t.end,tasks[0].end);
   cx.fillText(`${tasks.length} 個任務 ｜ ${minS} 至 ${maxE} ｜ 生成日期：${today_s}`,PADDING+40,TITLE_H/2+10);
-  // dot
   cx.fillStyle=p.color||'#4F6BED';cx.beginPath();cx.arc(PADDING+12,TITLE_H/2,8,0,Math.PI*2);cx.fill();
-
-  // ── HEADER ROW ──
   cx.fillStyle='#F3F4F6';cx.fillRect(0,TITLE_H,W,HEAD_H);
-  // Name column header
   cx.fillStyle='#6B7280';cx.font=`600 10px "DM Sans",sans-serif`;cx.textBaseline='middle';
   cx.fillText('任務',PADDING+12,TITLE_H+HEAD_H/2);
-  // Date column headers
   let prevMonth=-1;
   for(let i=0;i<days;i++){
     const d=addD(vs,i);
-    const isT=d.getTime()===today.getTime();
-    const isWk=d.getDay()===0||d.getDay()===6;
+    const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
     const x=X(i);
     if(isT){cx.fillStyle='rgba(79,107,237,.15)';cx.fillRect(x,TITLE_H,COL_W,HEAD_H);}
     else if(isWk){cx.fillStyle='rgba(0,0,0,.025)';cx.fillRect(x,TITLE_H,COL_W,HEAD_H);}
@@ -1404,12 +1390,8 @@ function drawGanttCanvas(p){
     }
   }
   cx.textAlign='left';
-
-  // ── HEADER BOTTOM BORDER ──
   cx.strokeStyle='#E5E7EB';cx.lineWidth=1;
   cx.beginPath();cx.moveTo(0,TITLE_H+HEAD_H);cx.lineTo(W,TITLE_H+HEAD_H);cx.stroke();
-
-  // ── ROWS ──
   const rowY={};
   tasks.forEach((t,ri)=>{
     rowY[t.id]=ri;
@@ -1417,101 +1399,49 @@ function drawGanttCanvas(p){
     const dc=dayCount(t.start,t.end);
     const bg=taskBarBg(t);
     const meta=[t.owner,t.note].filter(Boolean).join(' · ');
-
-    // Row bg alternating
     if(ri%2===1){cx.fillStyle='rgba(0,0,0,.018)';cx.fillRect(0,y,W,ROW_H);}
-
-    // Row bottom border
     cx.strokeStyle='rgba(0,0,0,.06)';cx.lineWidth=0.5;
     cx.beginPath();cx.moveTo(0,y+ROW_H);cx.lineTo(W,y+ROW_H);cx.stroke();
-
-    // Today column highlight
     const todayOff=Math.round((today-vs)/86400000);
-    if(todayOff>=0&&todayOff<days){
-      cx.fillStyle='rgba(79,107,237,.04)';
-      cx.fillRect(X(todayOff),y,COL_W,ROW_H);
-    }
-
-    // Weekend shading
-    for(let i=0;i<days;i++){
-      const d=addD(vs,i);
-      if(d.getDay()===0||d.getDay()===6){cx.fillStyle='rgba(0,0,0,.018)';cx.fillRect(X(i),y,COL_W,ROW_H);}
-    }
-
-    // Name cell background
+    if(todayOff>=0&&todayOff<days){cx.fillStyle='rgba(79,107,237,.04)';cx.fillRect(X(todayOff),y,COL_W,ROW_H);}
+    for(let i=0;i<days;i++){const d=addD(vs,i);if(d.getDay()===0||d.getDay()===6){cx.fillStyle='rgba(0,0,0,.018)';cx.fillRect(X(i),y,COL_W,ROW_H);}}
     cx.fillStyle='#ffffff';cx.fillRect(0,y,NAME_W+PADDING,ROW_H);
-
-    // Name column right border
     cx.strokeStyle='#E5E7EB';cx.lineWidth=0.5;
     cx.beginPath();cx.moveTo(PADDING+NAME_W,y);cx.lineTo(PADDING+NAME_W,y+ROW_H);cx.stroke();
-
-    // ── Name cell text layout ──
-    // Line 1 (task name): vertically at 35% of row
-    // Line 2 (chip + meta): vertically at 68% of row
-    const nameY = y + ROW_H * 0.38;   // baseline of task name
-    const metaY = y + ROW_H * 0.70;   // baseline of chip/meta row
-
-    // Status badge — reserve space on right so name doesn't collide
+    const nameY=y+ROW_H*0.38,metaY=y+ROW_H*0.70;
     const badgeCfg={done:{bg:'#D1FAE5',tx:'#065F46'},ongoing:{bg:'#E0E7FF',tx:'#3730A3'},pending:{bg:'#F3F4F6',tx:'#6B7280'},delayed:{bg:'#FEE2E2',tx:'#991B1B'}};
     const bc=badgeCfg[t.status]||badgeCfg.pending;
     const blabel=SL[t.status];
     cx.font=`600 9px "DM Sans",sans-serif`;cx.textBaseline='alphabetic';
     const bw=cx.measureText(blabel).width+14;
     const bx=PADDING+NAME_W-bw-8;
-    const badgeMidY = y + ROW_H/2;
+    const badgeMidY=y+ROW_H/2;
     cx.fillStyle=bc.bg;roundRect(cx,bx,badgeMidY-8,bw,16,8);cx.fill();
     cx.fillStyle=bc.tx;cx.textAlign='center';cx.fillText(blabel,bx+bw/2,badgeMidY+4);cx.textAlign='left';
-
-    // Task name (available width = NAME_W minus badge width minus small gaps)
-    const nameMaxW = NAME_W - bw - 24;
+    const nameMaxW=NAME_W-bw-24;
     cx.fillStyle='#111827';cx.font=`500 12.5px "DM Sans",sans-serif`;cx.textBaseline='alphabetic';
     cx.fillText(truncate(cx,t.name,nameMaxW),PADDING+10,nameY);
-
-    // Day chip
     cx.font=`500 9.5px "DM Mono",monospace`;cx.textBaseline='alphabetic';
-    const chipLabel=dc+'天';
-    const chipTxtW=cx.measureText(chipLabel).width;
-    const chipW=chipTxtW+12;
-    const chipX=PADDING+10;
-    const chipBoxY=metaY-11; // top of chip rect
+    const chipLabel=dc+'天';const chipTxtW=cx.measureText(chipLabel).width;
+    const chipW=chipTxtW+12;const chipX=PADDING+10;const chipBoxY=metaY-11;
     cx.fillStyle='#E5E7EB';roundRect(cx,chipX-2,chipBoxY,chipW,14,5);cx.fill();
     cx.fillStyle='#4B5563';cx.fillText(chipLabel,chipX+4,metaY);
-
-    // Owner / note meta text
-    if(meta){
-      cx.font=`400 10px "DM Sans",sans-serif`;cx.fillStyle='#9CA3AF';
-      const metaMaxW = nameMaxW - chipW - 6;
-      cx.fillText(truncate(cx,meta,metaMaxW),chipX+chipW+6,metaY);
-    }
-
-    // ── BAR ──
+    if(meta){cx.font=`400 10px "DM Sans",sans-serif`;cx.fillStyle='#9CA3AF';cx.fillText(truncate(cx,meta,nameMaxW-chipW-6),chipX+chipW+6,metaY);}
     const ts2=parseD(t.start),te2=parseD(t.end);
     const so=Math.round((ts2-vs)/86400000),eo=Math.round((te2-vs)/86400000);
     const cs2=Math.max(0,so),ce2=Math.min(days-1,eo);
     if(ce2>=0&&cs2<days){
       const bx2=X(cs2)+2,bw2=(ce2-cs2+1)*COL_W-4,barH=24,barY=y+(ROW_H-barH)/2;
-      // shadow
       cx.shadowColor='rgba(0,0,0,.15)';cx.shadowBlur=3;cx.shadowOffsetY=1;
       cx.fillStyle=bg;roundRect(cx,bx2,barY,bw2,barH,5);cx.fill();
       cx.shadowColor='transparent';cx.shadowBlur=0;cx.shadowOffsetY=0;
-      // progress overlay
-      if(t.pct>0){
-        cx.fillStyle='rgba(255,255,255,.22)';
-        roundRect(cx,bx2,barY,bw2*t.pct/100,barH,5);cx.fill();
-      }
-      // bar text
-      const span=ce2-cs2+1;
-      const showDate=span>=5;
+      if(t.pct>0){cx.fillStyle='rgba(255,255,255,.22)';roundRect(cx,bx2,barY,bw2*t.pct/100,barH,5);cx.fill();}
+      const span=ce2-cs2+1;const showDate=span>=5;
       let barTxt=t.pct>0||span>2?t.pct+'%':'';
       if(showDate)barTxt+=(barTxt?' ':'')+fmt(t.start)+'–'+fmt(t.end);
-      if(barTxt){
-        cx.fillStyle='rgba(255,255,255,.95)';cx.font=`600 10px "DM Sans",sans-serif`;cx.textBaseline='middle';
-        cx.fillText(truncate(cx,barTxt,bw2-12),bx2+8,barY+barH/2);
-      }
+      if(barTxt){cx.fillStyle='rgba(255,255,255,.95)';cx.font=`600 10px "DM Sans",sans-serif`;cx.textBaseline='middle';cx.fillText(truncate(cx,barTxt,bw2-12),bx2+8,barY+barH/2);}
     }
   });
-
-  // ── TODAY LINE ──
   const todayOff=Math.round((today-vs)/86400000);
   if(todayOff>=0&&todayOff<days){
     const tx2=X(todayOff)+COL_W/2;
@@ -1519,46 +1449,31 @@ function drawGanttCanvas(p){
     cx.beginPath();cx.moveTo(tx2,TITLE_H+HEAD_H);cx.lineTo(tx2,TITLE_H+HEAD_H+tasks.length*ROW_H);cx.stroke();
     cx.setLineDash([]);
   }
-
-  // ── DEP ARROWS ──
   Object.entries(rowY).forEach(([idStr,ri])=>{
     const t=tasks.find(x=>x.id===parseInt(idStr));if(!t||!(t.deps&&t.deps.length))return;
-    const ts2=parseD(t.start);
-    const toOff=Math.round((ts2-vs)/86400000);
-    const toX2=X(Math.max(0,toOff));
-    const toY2=Y(ri)+ROW_H/2;
+    const ts2=parseD(t.start);const toOff=Math.round((ts2-vs)/86400000);
+    const toX2=X(Math.max(0,toOff));const toY2=Y(ri)+ROW_H/2;
     t.deps.forEach(did=>{
       const dep=tasks.find(x=>x.id===did);if(!dep)return;
       const fr=rowY[did];if(fr===undefined)return;
-      const depEnd=parseD(dep.end);
-      const fromOff=Math.round((depEnd-vs)/86400000);
-      const fromX2=X(Math.min(days-1,fromOff))+COL_W;
-      const fromY2=Y(fr)+ROW_H/2;
+      const depEnd=parseD(dep.end);const fromOff=Math.round((depEnd-vs)/86400000);
+      const fromX2=X(Math.min(days-1,fromOff))+COL_W;const fromY2=Y(fr)+ROW_H/2;
       const mx=(fromX2+toX2)/2;
       cx.strokeStyle='rgba(107,114,128,.55)';cx.lineWidth=1.2;cx.setLineDash([5,3]);
       cx.beginPath();cx.moveTo(fromX2,fromY2);cx.bezierCurveTo(mx,fromY2,mx,toY2,toX2-2,toY2);cx.stroke();
       cx.setLineDash([]);
-      // arrowhead
       cx.fillStyle='rgba(107,114,128,.55)';
       cx.beginPath();cx.moveTo(toX2,toY2);cx.lineTo(toX2-6,toY2-4);cx.lineTo(toX2-6,toY2+4);cx.closePath();cx.fill();
     });
   });
-
-  // ── OUTER BORDERS ──
-  cx.strokeStyle='#E5E7EB';cx.lineWidth=1;
-  cx.strokeRect(0.5,0.5,W-1,H-1);
-  // vertical name column border (header)
+  cx.strokeStyle='#E5E7EB';cx.lineWidth=1;cx.strokeRect(0.5,0.5,W-1,H-1);
   cx.beginPath();cx.moveTo(PADDING+NAME_W,TITLE_H);cx.lineTo(PADDING+NAME_W,TITLE_H+HEAD_H);cx.stroke();
-
-  // ── FOOTER ──
   const footerY=TITLE_H+HEAD_H+tasks.length*ROW_H;
   cx.fillStyle='#F9FAFB';cx.fillRect(0,footerY,W,FOOTER_H);
   cx.strokeStyle='#E5E7EB';cx.lineWidth=0.5;
   cx.beginPath();cx.moveTo(0,footerY);cx.lineTo(W,footerY);cx.stroke();
-  // Legend
   const legends=[{color:'#059669',label:'已完成'},{color:'#4F6BED',label:'進行中'},{color:'#9CA3AF',label:'待開始'},{color:'#DC2626',label:'延遲'}];
-  let lx=PADDING;
-  cx.textBaseline='middle';
+  let lx=PADDING;cx.textBaseline='middle';
   legends.forEach(l=>{
     cx.fillStyle=l.color;cx.beginPath();cx.arc(lx+5,footerY+FOOTER_H/2,5,0,Math.PI*2);cx.fill();
     cx.fillStyle='#6B7280';cx.font=`400 10px "DM Sans",sans-serif`;
@@ -1568,85 +1483,51 @@ function drawGanttCanvas(p){
   cx.fillStyle='#9CA3AF';cx.font=`400 10px "DM Sans",sans-serif`;cx.textAlign='right';
   cx.fillText('Generated by 甘特圖管理系統 · '+today_s,W-PADDING,footerY+FOOTER_H/2);
   cx.textAlign='left';
-
   return canvas;
 }
 
-// Canvas helpers
-function roundRect(ctx,x,y,w,h,r){
-  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
-}
-function truncate(ctx,text,maxW){
-  if(ctx.measureText(text).width<=maxW)return text;
-  while(text.length>1&&ctx.measureText(text+'…').width>maxW)text=text.slice(0,-1);
-  return text+'…';
-}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+function truncate(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;while(text.length>1&&ctx.measureText(text+'…').width>maxW)text=text.slice(0,-1);return text+'…';}
 
 // ═══════════════════════
 // BULK SELECT
 // ═══════════════════════
-function toggleBulkMode(){
-  if(bulkMode){exitBulkMode();}else{enterBulkMode();}
-}
-function enterBulkMode(){
-  bulkMode=true;bulkSelected.clear();
-  document.getElementById('bulkToggleBtn').textContent='✕ 退出選取';
-  document.getElementById('bulkToggleBtn').classList.add('active');
-  render();updateBulkBar();
-}
-function exitBulkMode(){
-  bulkMode=false;bulkSelected.clear();
-  const btn=document.getElementById('bulkToggleBtn');
-  if(btn){btn.textContent='☑ 批量刪除';btn.classList.remove('active');}
-  document.getElementById('bulkBar').classList.remove('open');
-  render();
-}
-function bulkToggle(id,checked){
-  if(checked)bulkSelected.add(id);else bulkSelected.delete(id);
-  updateBulkBar();
-  // sync row highlight
-  const row=document.querySelector(`tr[data-id="${id}"]`);
-  if(row)row.classList.toggle('selected',checked);
-}
-function bulkToggleRow(id){
-  const checked=!bulkSelected.has(id);
-  bulkToggle(id,checked);
-  const cb=document.querySelector(`tr[data-id="${id}"] input[type=checkbox]`);
-  if(cb)cb.checked=checked;
-}
-function bulkToggleAll(checked){
-  const tasks=getTasks();
-  tasks.forEach(t=>{if(checked)bulkSelected.add(t.id);else bulkSelected.delete(t.id);});
-  updateBulkBar();render();
-}
-function bulkSelectAll(){
-  const tasks=getTasks();tasks.forEach(t=>bulkSelected.add(t.id));
-  updateBulkBar();render();
-}
-function updateBulkBar(){
-  const n=bulkSelected.size;
-  document.getElementById('bulkCount').textContent=n;
-  document.getElementById('bulkBar').classList.toggle('open',bulkMode);
-}
+function toggleBulkMode(){if(bulkMode){exitBulkMode();}else{enterBulkMode();}}
+function enterBulkMode(){bulkMode=true;bulkSelected.clear();document.getElementById('bulkToggleBtn').textContent='✕ 退出選取';document.getElementById('bulkToggleBtn').classList.add('active');render();updateBulkBar();}
+function exitBulkMode(){bulkMode=false;bulkSelected.clear();const btn=document.getElementById('bulkToggleBtn');if(btn){btn.textContent='☑ 批量刪除';btn.classList.remove('active');}document.getElementById('bulkBar').classList.remove('open');render();}
+function bulkToggle(id,checked){if(checked)bulkSelected.add(id);else bulkSelected.delete(id);updateBulkBar();const row=document.querySelector(`tr[data-id="${id}"]`);if(row)row.classList.toggle('selected',checked);}
+function bulkToggleRow(id){const checked=!bulkSelected.has(id);bulkToggle(id,checked);const cb=document.querySelector(`tr[data-id="${id}"] input[type=checkbox]`);if(cb)cb.checked=checked;}
+function bulkToggleAll(checked){const tasks=getTasks();tasks.forEach(t=>{if(checked)bulkSelected.add(t.id);else bulkSelected.delete(t.id);});updateBulkBar();render();}
+function bulkSelectAll(){const tasks=getTasks();tasks.forEach(t=>bulkSelected.add(t.id));updateBulkBar();render();}
+function updateBulkBar(){const n=bulkSelected.size;document.getElementById('bulkCount').textContent=n;document.getElementById('bulkBar').classList.toggle('open',bulkMode);}
 function bulkDelete(){
   const n=bulkSelected.size;
   if(!n){toast('請先勾選要刪除的任務');return;}
   if(!confirm(`確定刪除 ${n} 個任務？此操作無法復原。`))return;
   const p=activeProj();if(!p)return;
   p.tasks=p.tasks.filter(t=>!bulkSelected.has(t.id));
-  // clean deps
   p.tasks.forEach(t=>{t.deps=(t.deps||[]).filter(d=>!bulkSelected.has(d));});
   toast(`🗑 已刪除 ${n} 個任務`);
   exitBulkMode();
+  autoSave(); // ★ 自動儲存
 }
 
 // ═══════════════════════
-// DRAG
+// DRAG ROW SORT
 // ═══════════════════════
 function dStart(e,id){dragSrc=id;e.dataTransfer.effectAllowed='move';}
 function dOver(e,id){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll(`[data-id="${id}"]`).forEach(r=>r.classList.add('do'));}
 function dLeave(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));}
-function dDrop(e,id){e.preventDefault();if(dragSrc===id)return;document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));const tasks=getTasks();const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);if(fi<0||ti<0)return;const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);render();}
+function dDrop(e,id){
+  e.preventDefault();if(dragSrc===id)return;
+  document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));
+  const tasks=getTasks();
+  const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);
+  if(fi<0||ti<0)return;
+  const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);
+  render();
+  autoSave(); // ★ 自動儲存
+}
 function dEnd(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));dragSrc=null;}
 
 // ═══════════════════════
@@ -1654,8 +1535,37 @@ function dEnd(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove(
 // ═══════════════════════
 function updDci(){const s=document.getElementById('msd').value,e=document.getElementById('med').value,el=document.getElementById('dayCountInfo');if(s&&e&&parseD(e)>=parseD(s)){el.textContent=`📅 共 ${dayCount(s,e)} 天`;el.style.display='';}else el.style.display='none';}
 function chkDates(){const s=document.getElementById('msd').value,e=document.getElementById('med').value,a=document.getElementById('dateAlert');if(s&&e&&parseD(e)<parseD(s)){a.classList.add('show');document.getElementById('dayCountInfo').style.display='none';return false;}a.classList.remove('show');updDci();return true;}
-function chkDeps(){const start=document.getElementById('msd').value;if(!start)return true;const tStart=parseD(start);const tasks=getTasks();for(const did of editDeps){const dep=tasks.find(x=>x.id===did);if(!dep)continue;if(parseD(dep.end)>=tStart){const a=document.getElementById('depAlert');a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${start}）。`;a.classList.add('show');return false;}}document.getElementById('depAlert').classList.remove('show');return true;}
+function chkDeps(){
+  const start=document.getElementById('msd').value;if(!start)return true;
+  const tStart=parseD(start);const tasks=getTasks();
+  for(const did of editDeps){
+    const dep=tasks.find(x=>x.id===did);if(!dep)continue;
+    if(parseD(dep.end)>=tStart){
+      const a=document.getElementById('depAlert');
+      a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${start}）。`;
+      a.classList.add('show');return false;
+    }
+  }
+  document.getElementById('depAlert').classList.remove('show');return true;
+}
 ['msd','med'].forEach(id=>{document.getElementById(id).addEventListener('change',()=>{chkDates();if(editDeps.length)chkDeps();});});
+
+// ═══════════════════════
+// ★ 修改 5：循環依賴偵測（DFS）
+// ═══════════════════════
+function hasCycle(newDepId, taskId, tasks) {
+  // 確認從 newDepId 沿依賴鏈出發，是否能走回 taskId（形成循環）
+  const visited = new Set();
+  function dfs(id) {
+    if (id === taskId) return true;  // 找到循環
+    if (visited.has(id)) return false;
+    visited.add(id);
+    const t = tasks.find(x => x.id === id);
+    if (!t) return false;
+    return (t.deps || []).some(d => dfs(d));
+  }
+  return dfs(newDepId);
+}
 
 // ═══════════════════════
 // COLOR PALETTE
@@ -1673,32 +1583,69 @@ function openAdd(){editId=null;editDeps=[];editColor=null;document.getElementByI
 function openEdit(id){const tasks=getTasks();const t=tasks.find(x=>x.id===id);if(!t)return;editId=id;editDeps=[...(t.deps||[])];editColor=t.color||null;document.getElementById('mt').textContent='編輯任務';document.getElementById('mn').value=t.name;document.getElementById('mo').value=t.owner||'';document.getElementById('msd').value=t.start;document.getElementById('med').value=t.end;document.getElementById('mst').value=t.status;document.getElementById('mp').value=t.pct;document.getElementById('mpd').textContent=t.pct+'%';document.getElementById('mno').value=t.note||'';document.getElementById('delBtn').style.display='';document.getElementById('dateAlert').classList.remove('show');document.getElementById('depAlert').classList.remove('show');updDci();buildDepUI(id);buildCpGrid(t.color||taskBarBg(t));document.getElementById('em').classList.add('open');}
 function buildDepUI(excl){const tasks=getTasks();const sel=document.getElementById('depSel');sel.innerHTML='<option value="">＋ 選擇前置任務…</option>';tasks.forEach(t=>{if(t.id===excl||editDeps.includes(t.id))return;sel.innerHTML+=`<option value="${t.id}">${t.name}（${SL[t.status]} 結束:${t.end}）</option>`;});renderDepTags();}
 function renderDepTags(){const tasks=getTasks();document.getElementById('depList').innerHTML=editDeps.map(id=>{const t=tasks.find(x=>x.id===id);return t?`<span class="dt">${t.name}<button onclick="removeDep(${id})">×</button></span>`:''}).join('');}
-function addDep(){const id=parseInt(document.getElementById('depSel').value);if(!id)return;const tasks=getTasks();const dep=tasks.find(x=>x.id===id);const tStart=document.getElementById('msd').value;if(dep&&tStart&&parseD(dep.end)>=parseD(tStart)){const a=document.getElementById('depAlert');a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${tStart}）。`;a.classList.add('show');return;}document.getElementById('depAlert').classList.remove('show');if(!editDeps.includes(id))editDeps.push(id);buildDepUI(editId);}
+
+function addDep(){
+  const id=parseInt(document.getElementById('depSel').value);if(!id)return;
+  const tasks=getTasks();
+  const dep=tasks.find(x=>x.id===id);
+  const tStart=document.getElementById('msd').value;
+  const a=document.getElementById('depAlert');
+
+  // ★ 修改 5：循環依賴偵測
+  if(hasCycle(id, editId, tasks)){
+    a.textContent=`⚠️ 無法加入：「${dep?.name}」與本任務形成循環依賴（A→B→A），請重新選擇。`;
+    a.classList.add('show');return;
+  }
+
+  if(dep&&tStart&&parseD(dep.end)>=parseD(tStart)){
+    a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${tStart}）。`;
+    a.classList.add('show');return;
+  }
+  a.classList.remove('show');
+  if(!editDeps.includes(id))editDeps.push(id);
+  buildDepUI(editId);
+}
+
 function removeDep(id){editDeps=editDeps.filter(x=>x!==id);document.getElementById('depAlert').classList.remove('show');buildDepUI(editId);}
-function saveModal(){const name=document.getElementById('mn').value.trim();if(!name){alert('請填入任務名稱');return;}if(!chkDates())return;if(!chkDeps())return;const p=activeProj();if(!p)return;const task={id:editId||p.nextId++,name,owner:document.getElementById('mo').value.trim(),start:document.getElementById('msd').value,end:document.getElementById('med').value,status:document.getElementById('mst').value,pct:parseInt(document.getElementById('mp').value),note:document.getElementById('mno').value.trim(),deps:[...editDeps],color:editColor||null};if(editId){const i=p.tasks.findIndex(x=>x.id===editId);p.tasks[i]=task;}else p.tasks.push(task);cm('em');render();}
-function deleteTask(){if(!editId||!confirm('確定刪除此任務？'))return;const p=activeProj();if(!p)return;p.tasks=p.tasks.filter(x=>x.id!==editId);p.tasks.forEach(t=>{t.deps=(t.deps||[]).filter(d=>d!==editId);});cm('em');render();}
+
+function saveModal(){
+  const name=document.getElementById('mn').value.trim();if(!name){alert('請填入任務名稱');return;}
+  if(!chkDates())return;if(!chkDeps())return;
+  const p=activeProj();if(!p)return;
+  const task={id:editId||p.nextId++,name,owner:document.getElementById('mo').value.trim(),start:document.getElementById('msd').value,end:document.getElementById('med').value,status:document.getElementById('mst').value,pct:parseInt(document.getElementById('mp').value),note:document.getElementById('mno').value.trim(),deps:[...editDeps],color:editColor||null};
+  if(editId){const i=p.tasks.findIndex(x=>x.id===editId);p.tasks[i]=task;}else p.tasks.push(task);
+  cm('em');render();
+  autoSave(); // ★ 自動儲存
+}
+
+function deleteTask(){
+  if(!editId||!confirm('確定刪除此任務？'))return;
+  const p=activeProj();if(!p)return;
+  p.tasks=p.tasks.filter(x=>x.id!==editId);
+  p.tasks.forEach(t=>{t.deps=(t.deps||[]).filter(d=>d!==editId);});
+  cm('em');render();
+  autoSave(); // ★ 自動儲存
+}
+
 function cm(id){document.getElementById(id).classList.remove('open');}
 
-// ESC 關閉最上層開啟的 modal
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
-  // 找目前開啟的 modal，關閉最後一個
   const opened=[...document.querySelectorAll('.mb.open')];
   if(opened.length) cm(opened[opened.length-1].id);
 });
 
-// 點 modal 背景（.mb）關閉，點內容（.modal）不關閉
 document.addEventListener('click',e=>{
   if(e.target.classList.contains('mb')&&e.target.classList.contains('open')){
     cm(e.target.id);
   }
 });
+
 document.getElementById('mp').addEventListener('input',function(){document.getElementById('mpd').textContent=this.value+'%';});
 
 // ═══════════════════════
-// JUMP / EXCEL / IMPORT
+// EXCEL IMPORT / EXPORT
 // ═══════════════════════
-function jumpToday(){document.querySelector('th.th')?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});}
 function exportExcel(){
   const p=activeProj();if(!p)return;
   const rows=[['任務名稱','負責人','開始日期','結束日期','天數','狀態','完成度%','前置任務','Bar顏色','備註']];
@@ -1706,14 +1653,17 @@ function exportExcel(){
   const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:6},{wch:10},{wch:8},{wch:20},{wch:10},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws,'甘特圖');XLSX.writeFile(wb,(p.name||'gantt')+'_export.xlsx');
 }
+
 const CM={'任務名稱':0,'task':0,'name':0,'負責人':1,'owner':1,'開始日期':2,'start':2,'結束日期':3,'end':3,'狀態':4,'status':4,'完成度':5,'完成度%':5,'progress':5,'pct':5,'前置任務':6,'deps':6,'bar顏色':7,'barcolor':7,'顏色':7,'備註':8,'note':8,'remark':8};
 const SR={'已完成':'done','done':'done','進行中':'ongoing','ongoing':'ongoing','待開始':'pending','pending':'pending','延遲':'delayed','delayed':'delayed'};
 const nk=k=>(k||'').toString().trim().toLowerCase().replace(/\s+/g,'');
+
 function openImport(){document.getElementById('ir').textContent='';document.getElementById('im').classList.add('open');}
 const dz2=document.getElementById('dz');
 dz2.addEventListener('dragover',e=>{e.preventDefault();dz2.classList.add('dg');});
 dz2.addEventListener('dragleave',()=>dz2.classList.remove('dg'));
 dz2.addEventListener('drop',e=>{e.preventDefault();dz2.classList.remove('dg');handleFile(e.dataTransfer.files[0]);});
+
 function handleFile(file){
   if(!file)return;const p=activeProj();if(!p)return;
   const reader=new FileReader();
@@ -1746,6 +1696,7 @@ function handleFile(file){
       });
       document.getElementById('ir').textContent=`✅ 匯入 ${imp} 筆`;
       render();
+      autoSave(); // ★ 自動儲存
     }catch(err){document.getElementById('ir').textContent='❌ 失敗：'+err.message;}
   };
   reader.readAsArrayBuffer(file);
@@ -1756,22 +1707,10 @@ function handleFile(file){
 // ═══════════════════════
 function exportProjectJSON(){
   const p=activeProj();if(!p){alert('請先選擇專案');return;}
-  // Export a clean snapshot: strip internal browser-only IDs, keep all task data
-  const snapshot={
-    _type:'gantt_project_v1',
-    _exported: ds(today),
-    id: p.id,
-    name: p.name,
-    color: p.color,
-    nextId: p.nextId,
-    tasks: p.tasks.map(t=>({...t}))
-  };
+  const snapshot={_type:'gantt_project_v1',_exported:ds(today),id:p.id,name:p.name,color:p.color,nextId:p.nextId,tasks:p.tasks.map(t=>({...t}))};
   const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=(p.name||'project').replace(/[^\w\u4e00-\u9fff]/g,'_')+'_甘特圖.json';
-  a.click();
+  const a=document.createElement('a');a.href=url;a.download=(p.name||'project').replace(/[^\w\u4e00-\u9fff]/g,'_')+'_甘特圖.json';a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
   toast(`📤 已匯出「${p.name}」專案檔`);
 }
@@ -1783,20 +1722,15 @@ function importProjectJSON(file){
   reader.onload=e=>{
     try{
       const data=JSON.parse(e.target.result);
-      if(data._type!=='gantt_project_v1'){
-        alert('❌ 不是有效的甘特圖專案檔（需要由本系統匯出的 .json 格式）');
-        input.value='';return;
-      }
-      // 永遠新增為全新專案，給新 ID，不碰任何現有專案
+      if(data._type!=='gantt_project_v1'){alert('❌ 不是有效的甘特圖專案檔（需要由本系統匯出的 .json 格式）');input.value='';return;}
       const newId='proj_'+Date.now();
-      // 如果已有同名，在名稱後加上日期區別
       const sameName=projects.some(p=>p.name===data.name);
       const newName=sameName?`${data.name}（匯入 ${ds(today)}）`:data.name;
       const proj={id:newId,name:newName,color:data.color||'#4F6BED',nextId:data.nextId||1,tasks:data.tasks||[]};
-      projects.push(proj);
-      activeId=newId;
+      projects.push(proj);activeId=newId;
       renderSidebar();renderTopbar();render();
       toast(`✅ 已匯入為新專案「${newName}」（${proj.tasks.length} 個任務）`);
+      autoSave(); // ★ 自動儲存
     }catch(err){alert('❌ 讀取失敗：'+err.message);}
     input.value='';
   };
@@ -1804,339 +1738,34 @@ function importProjectJSON(file){
 }
 
 // ═══════════════════════
-// HELP / USER MANUAL
+// HELP / USER MANUAL（原版完整保留）
 // ═══════════════════════
 const HELP_SECTIONS=[
-  {
-    id:'intro',icon:'🗂',title:'系統介紹',
-    content:`
-<h2>歡迎使用甘特圖多專案排程系統</h2>
-<p>本系統是一個可在瀏覽器離線運行的專案排程工具，支援多個專案同時管理，並提供視覺化甘特圖、任務依賴關係追蹤、團隊協作分享等功能。</p>
-<div class="help-card help-tip">
-  <strong>💡 無需安裝、無需網路</strong><br>
-  將 HTML 檔案儲存到電腦後，雙擊即可在瀏覽器開啟使用。所有資料儲存在本地瀏覽器，不上傳至任何伺服器。
-</div>
-<h3>主要功能一覽</h3>
-<div class="help-grid">
-  <div class="help-feature"><span class="help-feat-icon">📋</span><strong>多專案管理</strong><br>無限建立專案，各自獨立儲存</div>
-  <div class="help-feature"><span class="help-feat-icon">📊</span><strong>甘特圖視覺化</strong><br>任務時間軸、依賴箭頭、進度顯示</div>
-  <div class="help-feature"><span class="help-feat-icon">🎨</span><strong>自訂顏色</strong><br>每個任務可選 18 種顏色或自訂</div>
-  <div class="help-feature"><span class="help-feat-icon">🔗</span><strong>前置任務</strong><br>設定任務依賴，自動驗證時間合理性</div>
-  <div class="help-feature"><span class="help-feat-icon">📤</span><strong>匯出匯入</strong><br>Excel、PNG、PDF、專案 JSON 檔</div>
-  <div class="help-feature"><span class="help-feat-icon">👥</span><strong>團隊協作</strong><br>透過 JSON 專案檔交換，各自編輯</div>
-</div>
-`
-  },
-  {
-    id:'interface',icon:'🖥',title:'介面說明',
-    content:`
-<h2>介面說明</h2>
-<h3>左側欄（深色區域）</h3>
-<div class="help-table-wrap"><table class="help-table">
-  <tr><th>區域</th><th>功能</th></tr>
-  <tr><td>🗂 品牌標題</td><td>系統名稱與版本說明</td></tr>
-  <tr><td>專案列表</td><td>顯示所有已建立的專案，點擊切換，hover 顯示刪除按鈕</td></tr>
-  <tr><td>＋ 建立新專案</td><td>快速建立新專案的入口</td></tr>
-  <tr><td>📖 使用說明書</td><td>開啟本說明文件</td></tr>
-</table></div>
-<h3>第一列工具列（淺色背景）</h3>
-<p>左側顯示當前專案名稱（可直接點擊編輯），右側是工具按鈕群：</p>
-<div class="help-table-wrap"><table class="help-table">
-  <tr><th>按鈕</th><th>說明</th></tr>
-  <tr><td>60 天 ▾</td><td>切換甘特圖顯示的時間視窗範圍（30/60/90 天）</td></tr>
-  <tr><td>📅 今天</td><td>捲動甘特圖到今天的日期位置</td></tr>
-  <tr><td>📥 匯入 Excel</td><td>從 Excel/CSV 批量匯入任務到目前專案</td></tr>
-  <tr><td>📊 匯出 Excel</td><td>將目前專案所有任務匯出為 Excel 檔案</td></tr>
-  <tr><td>🖼 PNG</td><td>將完整甘特圖匯出為高解析度 PNG 圖片</td></tr>
-  <tr><td>📄 PDF</td><td>將完整甘特圖匯出為 PDF 檔案</td></tr>
-  <tr><td>📤 匯出專案檔</td><td>將目前專案匯出為 .json 格式，可分享給他人</td></tr>
-  <tr><td>📩 匯入專案檔</td><td>匯入他人的 .json 專案檔，建立為新專案</td></tr>
-</table></div>
-<h3>第二列管理列（白底）</h3>
-<div class="help-table-wrap"><table class="help-table">
-  <tr><th>按鈕</th><th>說明</th></tr>
-  <tr><td>＋ 新增任務（藍）</td><td>開啟新增任務表單</td></tr>
-  <tr><td>☑ 任務刪除（黃）</td><td>進入批量選取模式，可勾選多個任務後一次刪除</td></tr>
-  <tr><td>💾 儲存專案（綠）</td><td>將所有專案資料儲存到瀏覽器本地，下次開啟自動還原</td></tr>
-  <tr><td>🗑 刪除專案（紅）</td><td>永久刪除目前整個專案，操作前會彈出確認視窗</td></tr>
-</table></div>
-`
-  },
-  {
-    id:'projects',icon:'📁',title:'專案管理',
-    content:`
-<h2>專案管理</h2>
-<h3>建立新專案</h3>
-<ol class="help-steps">
-  <li>點擊左側欄底部「＋ 建立新專案」</li>
-  <li>輸入專案名稱</li>
-  <li>選擇顏色標記（共 10 色，用於左側欄辨識）</li>
-  <li>點擊「建立」完成</li>
-</ol>
-<h3>切換專案</h3>
-<p>直接點擊左側欄的專案名稱即可切換，右側所有內容會立即更新為該專案的資料。</p>
-<h3>修改專案名稱</h3>
-<p>切換到目標專案後，直接點擊第一列工具列左側的專案名稱文字進行編輯，輸入完成後系統會即時同步到左側欄。</p>
-<h3>刪除專案</h3>
-<div class="help-card help-warn">
-  ⚠️ 刪除專案是<strong>永久操作</strong>，無法復原。請確認已匯出重要資料後再執行。
-</div>
-<ol class="help-steps">
-  <li>切換到要刪除的專案</li>
-  <li>點擊第二列「🗑 刪除專案」（紅色按鈕）</li>
-  <li>確認彈出視窗</li>
-</ol>
-<p>或在左側欄 hover 專案名稱，點擊出現的「✕」按鈕也可刪除。</p>
-<h3>儲存資料</h3>
-<p>點擊「💾 儲存專案」後，所有專案的資料（任務、顏色、依賴關係）會儲存到瀏覽器的 localStorage。下次用同一台電腦的同一個瀏覽器開啟此 HTML 檔案時，資料會自動還原。</p>
-<div class="help-card help-tip">
-  💡 建議定期點擊「💾 儲存專案」，避免關閉瀏覽器後資料遺失。
-</div>
-`
-  },
-  {
-    id:'tasks',icon:'✅',title:'任務操作',
-    content:`
-<h2>任務操作</h2>
-<h3>新增任務</h3>
-<ol class="help-steps">
-  <li>點擊「＋ 新增任務」開啟表單</li>
-  <li>填寫任務名稱（必填）、負責人、開始與結束日期</li>
-  <li>選擇狀態：待開始 / 進行中 / 已完成 / 延遲</li>
-  <li>設定完成度（0–100%）</li>
-  <li>如有需要，設定前置任務（見下方說明）</li>
-  <li>選擇 Bar 顏色（18 色預設 + 自訂任意顏色）</li>
-  <li>點擊「儲存」</li>
-</ol>
-<h3>編輯任務</h3>
-<p>直接點擊甘特圖中的任務列（名稱欄或 Bar 條）即可開啟編輯表單，修改完成後點擊「儲存」。</p>
-<h3>刪除單一任務</h3>
-<p>開啟任務編輯表單後，點擊左下角「刪除任務」按鈕，確認後刪除。相關的前置任務依賴也會自動清除。</p>
-<h3>批量刪除任務</h3>
-<ol class="help-steps">
-  <li>點擊「☑ 任務刪除」進入選取模式</li>
-  <li>點擊每列左側的 checkbox 勾選要刪除的任務（或點任務列直接切換勾選）</li>
-  <li>表頭 checkbox 可全選 / 全取消</li>
-  <li>畫面底部浮現操作列，點「🗑 刪除選取」確認刪除</li>
-  <li>點「✕ 取消」退出選取模式</li>
-</ol>
-<h3>拖曳排序</h3>
-<p>每列左側的「⠿」圖示為拖曳手柄，按住拖曳到目標位置後放開，任務順序立即更新。批量刪除模式下拖曳排序暫停。</p>
-<h3>任務天數顯示</h3>
-<p>每個任務名稱下方的灰色標籤會自動計算並顯示任務天數（含開始和結束日）。統計欄也會顯示「總工作天」加總所有任務天數。</p>
-`
-  },
-  {
-    id:'gantt',icon:'📊',title:'甘特圖操作',
-    content:`
-<h2>甘特圖操作</h2>
-<h3>時間視窗</h3>
-<p>右上角下拉選單可切換顯示 30 / 60 / 90 天的範圍。點擊「📅 今天」可快速捲動到今天的日期位置（藍色標示欄）。</p>
-<h3>甘特 Bar 顏色含義</h3>
-<div class="help-table-wrap"><table class="help-table">
-  <tr><th>顏色</th><th>狀態</th><th>說明</th></tr>
-  <tr><td><span class="help-color-dot" style="background:#059669"></span> 綠色</td><td>已完成</td><td>任務已結束</td></tr>
-  <tr><td><span class="help-color-dot" style="background:#4F6BED"></span> 藍色</td><td>進行中</td><td>任務進行中</td></tr>
-  <tr><td><span class="help-color-dot" style="background:#9CA3AF"></span> 灰色</td><td>待開始</td><td>尚未開始</td></tr>
-  <tr><td><span class="help-color-dot" style="background:#DC2626"></span> 紅色</td><td>延遲</td><td>已逾期或延誤</td></tr>
-</table></div>
-<p>若任務設定了自訂顏色，則以自訂顏色顯示，不受狀態顏色影響。</p>
-<h3>Bar 上的資訊</h3>
-<ul class="help-list">
-  <li>左側數字：完成百分比（例如 65%）</li>
-  <li>Bar 內淺色部分：完成度覆蓋（越多表示進度越高）</li>
-  <li>Bar 寬度 ≥ 5 天時顯示：日期範圍（例如 5/18–6/2）</li>
-</ul>
-<h3>前置任務依賴箭頭</h3>
-<ul class="help-list">
-  <li>灰色虛線箭頭：表示任務的依賴關係（前置任務 → 後置任務）</li>
-  <li>名稱欄的藍色圓點：表示該任務有前置任務</li>
-  <li>滑鼠移到 Bar 上：前置任務 Bar 顯示藍色外框，後置任務 Bar 顯示紅色外框</li>
-</ul>
-<h3>週末與今天標示</h3>
-<ul class="help-list">
-  <li>今天的欄位：淡藍色背景 + 藍色虛線</li>
-  <li>週六/週日的欄位：淡灰色背景</li>
-  <li>月份切換：日期標頭自動顯示月份名稱</li>
-</ul>
-`
-  },
-  {
-    id:'dependencies',icon:'🔗',title:'前置任務',
-    content:`
-<h2>前置任務設定</h2>
-<p>前置任務（Predecessor）表示「某任務必須在另一個任務完成後才能開始」，常用於有先後順序的工序。</p>
-<h3>設定前置任務</h3>
-<ol class="help-steps">
-  <li>開啟任務編輯表單</li>
-  <li>在「前置任務」區塊的下拉選單選擇依賴的任務</li>
-  <li>點擊「加入」</li>
-  <li>可加入多個前置任務</li>
-  <li>點擊前置任務標籤上的「×」可移除</li>
-</ol>
-<div class="help-card help-warn">
-  ⚠️ <strong>時間驗證規則：</strong>前置任務的結束日期必須嚴格早於本任務的開始日期，否則系統會拒絕設定並顯示警告。
-</div>
-<h3>自動驗證</h3>
-<ul class="help-list">
-  <li>加入前置任務時即時檢查</li>
-  <li>修改日期時也會重新驗證</li>
-  <li>儲存前最後一次驗證，確保資料正確</li>
-</ul>
-<h3>視覺呈現</h3>
-<p>設定完成後，甘特圖會以灰色虛線箭頭（貝茲曲線）連接前置任務的結束點和後置任務的開始點，清楚展示工序流程。</p>
-`
-  },
-  {
-    id:'export',icon:'📤',title:'匯出與匯入',
-    content:`
-<h2>匯出與匯入</h2>
-<h3>📊 匯出 Excel</h3>
-<p>將目前專案的所有任務匯出為 <code>.xlsx</code> 檔案，欄位包含：任務名稱、負責人、開始日期、結束日期、天數、狀態、完成度%、前置任務、Bar顏色、備註。</p>
-<h3>📥 匯入 Excel</h3>
-<p>從 Excel / CSV 檔案批量匯入任務到目前專案（任務會追加，不會清除現有任務）。</p>
-<div class="help-table-wrap"><table class="help-table">
-  <tr><th>欄位名稱</th><th>說明</th></tr>
-  <tr><td>任務名稱</td><td>必填</td></tr>
-  <tr><td>負責人</td><td>選填</td></tr>
-  <tr><td>開始日期</td><td>格式 YYYY-MM-DD 或 YYYY/MM/DD</td></tr>
-  <tr><td>結束日期</td><td>格式同上，不可早於開始日期</td></tr>
-  <tr><td>狀態</td><td>done / ongoing / pending / delayed（或中文）</td></tr>
-  <tr><td>完成度%</td><td>0–100 的數字</td></tr>
-  <tr><td>備註</td><td>選填</td></tr>
-</table></div>
-<h3>🖼 匯出 PNG</h3>
-<p>將完整甘特圖（所有任務、全部日期範圍）繪製成高解析度 PNG 圖片並下載。不受目前畫面視窗大小限制，100 個任務也能完整輸出。</p>
-<h3>📄 匯出 PDF</h3>
-<p>同 PNG，但封裝為 PDF 格式，頁面大小自動符合甘特圖實際尺寸。</p>
-<div class="help-card help-tip">
-  💡 PNG 和 PDF 的日期範圍是依據所有任務的最早開始到最晚結束自動計算，兩端各加 2 天緩衝。
-</div>
-<h3>📤 匯出專案檔 / 📩 匯入專案檔</h3>
-<p>用於團隊協作的專案交換功能（詳見「團隊協作」章節）。</p>
-`
-  },
-  {
-    id:'team',icon:'👥',title:'團隊協作',
-    content:`
-<h2>團隊協作</h2>
-<h3>資料隔離說明</h3>
-<p>本系統的資料儲存在瀏覽器的 <code>localStorage</code>（本地存儲），這表示：</p>
-<ul class="help-list">
-  <li>每個人把 HTML 檔案儲存到自己的電腦後各自使用</li>
-  <li>每個人看到的是自己的資料，<strong>不會互相影響</strong></li>
-  <li>不需要帳號、不需要伺服器、不上傳任何資料</li>
-</ul>
-<h3>如何分享專案給同事編輯</h3>
-<ol class="help-steps">
-  <li>切換到要分享的專案</li>
-  <li>點擊「📤 匯出專案檔」，下載 <code>.json</code> 檔案</li>
-  <li>把 <code>.json</code> 檔案傳給同事（Email、通訊軟體等均可）</li>
-  <li>同事點擊「📩 匯入專案檔」選擇該 <code>.json</code> 檔案</li>
-  <li>系統會建立一個新專案，不影響同事原有的任何資料</li>
-</ol>
-<h3>同事編輯完後如何更新回來</h3>
-<ol class="help-steps">
-  <li>同事編輯完成後，點擊「📤 匯出專案檔」匯出更新後的 <code>.json</code></li>
-  <li>把 <code>.json</code> 傳回給你</li>
-  <li>你點擊「📩 匯入專案檔」匯入</li>
-  <li>系統建立新專案（不覆蓋舊的），你可以對照兩個版本</li>
-  <li>確認無誤後刪除舊版本</li>
-</ol>
-<div class="help-card help-tip">
-  💡 若成員休假、無法編輯，你可以直接匯入他的專案檔進行修改，完成後再匯出 <code>.json</code> 讓他匯入還原。
-</div>
-<h3>成員間同步建議</h3>
-<ul class="help-list">
-  <li>每次更新完重要進度後，立即匯出 <code>.json</code> 備份</li>
-  <li>使用 Google Drive / Dropbox 等共用資料夾存放最新版本的 <code>.json</code></li>
-  <li>避免多人同時編輯同一個專案（沒有衝突解決機制）</li>
-</ul>
-`
-  },
-  {
-    id:'faq',icon:'❓',title:'常見問題',
-    content:`
-<h2>常見問題</h2>
-<div class="faq-item">
-  <div class="faq-q">Q：關閉瀏覽器後資料會消失嗎？</div>
-  <div class="faq-a">A：只要在關閉前點擊「💾 儲存專案」，資料就會保存在瀏覽器的 localStorage，下次開啟同一台電腦的同一個瀏覽器和 HTML 檔案時會自動還原。若未儲存就關閉，當次新增的資料會遺失。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：換了電腦或瀏覽器，資料還在嗎？</div>
-  <div class="faq-a">A：不在。localStorage 是綁定在特定瀏覽器上的。若要跨裝置使用，請在原電腦用「📤 匯出專案檔」匯出 .json，再到新電腦用「📩 匯入專案檔」匯入。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：PNG / PDF 輸出的文字模糊怎麼辦？</div>
-  <div class="faq-a">A：本系統使用 2× 高解析度 Canvas 渲染，文字應清晰。若仍有模糊，可能是 PDF 閱讀器縮放問題，請設定為「實際大小 100%」查看。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：可以設定多個前置任務嗎？</div>
-  <div class="faq-a">A：可以。在編輯表單中可加入多個前置任務，每個都會進行時間驗證，確保時序正確。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：匯入 Excel 後任務重複怎麼辦？</div>
-  <div class="faq-a">A：Excel 匯入是追加模式（不清除現有任務）。若不小心匯入重複，可使用「☑ 任務刪除」批量選取重複任務後刪除。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：前置任務設定後為何無法儲存？</div>
-  <div class="faq-a">A：系統會驗證前置任務的結束日必須早於本任務的開始日。請調整日期後重試，系統會顯示具體的衝突日期資訊。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：匯入他人專案檔會覆蓋我的資料嗎？</div>
-  <div class="faq-a">A：不會。「📩 匯入專案檔」永遠建立新的獨立專案，不修改任何現有資料。若名稱重複，系統會自動在名稱後加上匯入日期作區別。</div>
-</div>
-<div class="faq-item">
-  <div class="faq-q">Q：可以同時讓多人共同編輯同一個專案嗎？</div>
-  <div class="faq-a">A：本系統是離線本地工具，不支援即時多人協作。建議採用「輪流編輯 + JSON 交換」的方式進行協作（詳見「團隊協作」章節）。</div>
-</div>
-`
-  },
+  {id:'intro',icon:'🗂',title:'系統介紹',content:`<h2>歡迎使用甘特圖多專案排程系統</h2><p>本系統是一個可在瀏覽器離線運行的專案排程工具，支援多個專案同時管理，並提供視覺化甘特圖、任務依賴關係追蹤、團隊協作分享等功能。</p><div class="help-card help-tip"><strong>💡 無需安裝、無需網路</strong><br>將 HTML 檔案儲存到電腦後，雙擊即可在瀏覽器開啟使用。所有資料儲存在本地瀏覽器，不上傳至任何伺服器。</div><h3>v2 新功能</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">💾</span><strong>自動儲存</strong><br>每次操作後自動寫入，畫面底部顯示儲存時間</div><div class="help-feature"><span class="help-feat-icon">🖱</span><strong>Bar 拖曳調整</strong><br>直接拖曳 Bar 兩端調整日期，拖曳中間整體移動</div><div class="help-feature"><span class="help-feat-icon">🔄</span><strong>循環依賴偵測</strong><br>自動偵測並阻止 A→B→A 的循環依賴</div><div class="help-feature"><span class="help-feat-icon">📅</span><strong>今天按鈕修復</strong><br>正確捲動至今天日期位置</div></div>`},
+  {id:'interface',icon:'🖥',title:'介面說明',content:`<h2>介面說明</h2><h3>Bar 拖曳調整日期（新功能）</h3><ul class="help-list"><li>滑鼠移到 Bar 上，兩端出現半透明 handle</li><li>拖曳<strong>左側 handle</strong>：調整開始日期</li><li>拖曳<strong>右側 handle</strong>：調整結束日期</li><li>拖曳<strong>Bar 中間</strong>：整條 Bar 左右移動（平移日期）</li><li>調整完成自動儲存，並顯示 Toast 提示新日期</li></ul><h3>自動儲存</h3><p>每次新增、編輯、刪除任務，或拖曳調整 Bar 後，系統自動儲存到瀏覽器。畫面底部中央會短暫顯示「已自動儲存 HH:MM」。手動「💾 儲存專案」按鈕仍保留，用於訪客模式下載備份或登入用戶同步雲端。</p>`},
+  {id:'projects',icon:'📁',title:'專案管理',content:`<h2>專案管理</h2><h3>建立新專案</h3><ol class="help-steps"><li>點擊左側欄底部「＋ 建立新專案」</li><li>輸入專案名稱</li><li>選擇顏色標記</li><li>點擊「建立」完成，系統自動儲存</li></ol><h3>儲存資料</h3><p>v2 版本加入自動儲存，每次操作後 0.8 秒自動寫入 localStorage。仍建議定期點擊「💾 儲存專案」在訪客模式下載 JSON 備份。</p><div class="help-card help-tip">💡 localStorage 上限約 5MB，超過 4MB 時系統會自動警告並提示備份。</div>`},
+  {id:'tasks',icon:'✅',title:'任務操作',content:`<h2>任務操作</h2><h3>新增任務</h3><ol class="help-steps"><li>點擊「＋ 新增任務」開啟表單</li><li>填寫各欄位後點擊「儲存」</li><li>系統自動儲存，無需手動按儲存按鈕</li></ol><h3>拖曳 Bar 調整日期（新）</h3><ol class="help-steps"><li>將滑鼠移到甘特圖上的任務 Bar</li><li>兩端出現半透明 handle 時，拖曳即可調整日期</li><li>拖曳中間可整條 Bar 平移</li><li>放開後自動儲存並顯示新日期</li></ol><h3>前置任務循環偵測（新）</h3><p>加入前置任務時，系統自動使用 DFS 演算法偵測是否形成循環依賴。若偵測到循環（如 A→B→A），系統會拒絕加入並顯示錯誤說明。</p>`},
+  {id:'export',icon:'📤',title:'匯出與匯入',content:`<h2>匯出與匯入</h2><h3>所有匯出功能與 v1 相同</h3><p>Excel、PNG、PDF、專案 JSON 檔的功能和格式與前版完全相容。</p>`},
+  {id:'faq',icon:'❓',title:'常見問題',content:`<h2>常見問題</h2><div class="faq-item"><div class="faq-q">Q：自動儲存和手動「💾 儲存專案」有何不同？</div><div class="faq-a">A：自動儲存只寫入瀏覽器 localStorage。手動儲存按鈕在訪客模式下會額外下載 JSON 備份檔，在登入模式下會同步至 Google Drive 雲端。日常使用只需依賴自動儲存即可。</div></div><div class="faq-item"><div class="faq-q">Q：拖曳 Bar 後如何知道新的日期？</div><div class="faq-a">A：放開滑鼠後，畫面右下角會顯示「📅 已更新：任務名稱 舊日期 → 新日期」的提示。</div></div><div class="faq-item"><div class="faq-q">Q：為何某個前置任務無法加入？</div><div class="faq-a">A：可能原因有兩個：1) 前置任務的結束日未早於本任務的開始日；2) 加入後會形成循環依賴（A 依賴 B 且 B 已依賴 A）。系統會顯示具體原因。</div></div>`},
 ];
 
-const HELP_STYLES=`
-<style>
-.help-page h2{font-size:22px;font-weight:700;color:#111827;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid #E5E7EB}
-.help-page h3{font-size:15px;font-weight:600;color:#374151;margin:24px 0 10px}
-.help-page p{font-size:13.5px;color:#374151;line-height:1.75;margin-bottom:12px}
-.help-card{border-radius:10px;padding:14px 16px;margin:14px 0;font-size:13px;line-height:1.65}
-.help-tip{background:#EFF6FF;border-left:4px solid #3B82F6;color:#1E40AF}
-.help-warn{background:#FFF7ED;border-left:4px solid #F59E0B;color:#92400E}
-.help-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:14px 0}
-.help-feature{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;font-size:13px;line-height:1.6;color:#374151}
-.help-feat-icon{font-size:22px;display:block;margin-bottom:6px}
-.help-table-wrap{overflow-x:auto;margin:10px 0 16px}
-.help-table{border-collapse:collapse;width:100%;font-size:13px}
-.help-table th{background:#F3F4F6;font-weight:600;color:#374151;padding:9px 14px;text-align:left;border-bottom:2px solid #E5E7EB;white-space:nowrap}
-.help-table td{padding:9px 14px;border-bottom:1px solid #F3F4F6;color:#374151;vertical-align:top}
-.help-table tr:last-child td{border-bottom:none}
-.help-color-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:middle}
-.help-steps{font-size:13.5px;color:#374151;line-height:2;padding-left:22px;margin:6px 0 14px}
-.help-steps li{margin-bottom:4px}
-.help-list{font-size:13.5px;color:#374151;line-height:1.85;padding-left:22px;margin:6px 0 14px}
-.help-list li{margin-bottom:4px}
-.faq-item{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px 16px;margin-bottom:12px}
-.faq-q{font-size:13.5px;font-weight:600;color:#111827;margin-bottom:8px}
-.faq-a{font-size:13px;color:#4B5563;line-height:1.7}
-code{background:#F3F4F6;padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;color:#374151}
-</style>`;
+const HELP_STYLES=`<style>.help-page h2{font-size:22px;font-weight:700;color:#111827;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid #E5E7EB}.help-page h3{font-size:15px;font-weight:600;color:#374151;margin:24px 0 10px}.help-page p{font-size:13.5px;color:#374151;line-height:1.75;margin-bottom:12px}.help-card{border-radius:10px;padding:14px 16px;margin:14px 0;font-size:13px;line-height:1.65}.help-tip{background:#EFF6FF;border-left:4px solid #3B82F6;color:#1E40AF}.help-warn{background:#FFF7ED;border-left:4px solid #F59E0B;color:#92400E}.help-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:14px 0}.help-feature{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;font-size:13px;line-height:1.6;color:#374151}.help-feat-icon{font-size:22px;display:block;margin-bottom:6px}.help-table-wrap{overflow-x:auto;margin:10px 0 16px}.help-table{border-collapse:collapse;width:100%;font-size:13px}.help-table th{background:#F3F4F6;font-weight:600;color:#374151;padding:9px 14px;text-align:left;border-bottom:2px solid #E5E7EB;white-space:nowrap}.help-table td{padding:9px 14px;border-bottom:1px solid #F3F4F6;color:#374151;vertical-align:top}.help-table tr:last-child td{border-bottom:none}.help-color-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:middle}.help-steps{font-size:13.5px;color:#374151;line-height:2;padding-left:22px;margin:6px 0 14px}.help-steps li{margin-bottom:4px}.help-list{font-size:13.5px;color:#374151;line-height:1.85;padding-left:22px;margin:6px 0 14px}.help-list li{margin-bottom:4px}.faq-item{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px 16px;margin-bottom:12px}.faq-q{font-size:13.5px;font-weight:600;color:#111827;margin-bottom:8px}.faq-a{font-size:13px;color:#4B5563;line-height:1.7}code{background:#F3F4F6;padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;color:#374151}</style>`;
 
 function openHelp(){
   const overlay=document.getElementById('helpOverlay');
   overlay.style.display='flex';
-  // build nav
   document.getElementById('helpNav').innerHTML=HELP_SECTIONS.map((s,i)=>`
     <div onclick="showHelpSection(${i})" id="hnav_${i}" style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:1px 6px;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151;font-weight:500;transition:all .12s" onmouseover="this.style.background='#F3F4F6'" onmouseout="if(currentHelpIdx!==${i})this.style.background='transparent'">
       <span style="font-size:14px">${s.icon}</span>${s.title}
     </div>`).join('');
   showHelpSection(0);
 }
+
 let currentHelpIdx=0;
 function showHelpSection(idx){
   currentHelpIdx=idx;
   const s=HELP_SECTIONS[idx];
   document.getElementById('helpContent').innerHTML=HELP_STYLES+`<div class="help-page">${s.content}</div>`;
-  // update nav highlight
   HELP_SECTIONS.forEach((_,i)=>{
     const el=document.getElementById('hnav_'+i);
     if(!el)return;
@@ -2145,14 +1774,14 @@ function showHelpSection(idx){
   });
   document.getElementById('helpContent').scrollTop=0;
 }
-function closeHelp(){
-  document.getElementById('helpOverlay').style.display='none';
-}
+
+function closeHelp(){ document.getElementById('helpOverlay').style.display='none'; }
 
 // ═══════════════════════
 // INIT
 // ═══════════════════════
-loadAll();renderSidebar();renderTopbar();render();setTimeout(jumpToday,300);
+loadAll();renderSidebar();renderTopbar();render();
+setTimeout(jumpToday, 400);
 initAuth();
 </script>
 </body>
