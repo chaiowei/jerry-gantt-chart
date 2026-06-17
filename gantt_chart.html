@@ -224,6 +224,22 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 @keyframes spin{to{transform:rotate(360deg)}}
 .export-msg{font-size:14px;font-weight:500;color:var(--tx)}
 .export-sub{font-size:12px;color:var(--tx2);margin-top:4px}
+
+/* ── Share mode: hide edit-only controls ── */
+body.share-mode #topPrimaryActions{display:none!important}
+body.share-mode [onclick*="openImport"]{display:none!important}
+body.share-mode [onclick*="exportExcel"]{display:none!important}
+body.share-mode [onclick*="saveBaseline"]{display:none!important}
+body.share-mode [onclick*="exportProjectJSON"]{display:none!important}
+body.share-mode [onclick*="jsonFileInput"]{display:none!important}
+body.share-mode [onclick*="generateShareLink"]{display:none!important}
+body.share-mode [onclick*="openShareModal"]{display:none!important}
+body.share-mode .sb-new-btn{display:none!important}
+body.share-mode .sb-footer{display:none!important}
+body.share-mode #loginModal{display:none!important}
+body.share-mode .bar-resize-left,body.share-mode .bar-resize-right{display:none!important;pointer-events:none!important}
+body.share-mode .share-mode-badge{display:inline-flex!important}
+.share-mode-badge{display:none;align-items:center;padding:3px 10px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:20px;font-size:11px;font-weight:600;gap:5px}
 </style>
 </head>
 <body>
@@ -320,6 +336,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <input class="proj-title-input" id="projTitleInput" value="選擇或建立專案" readonly>
           <span class="proj-badge" id="projBadge" style="display:none"></span>
+          <span class="share-mode-badge">👁 唯讀分享</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <select class="ctrl" id="viewRange" onchange="render()">
@@ -343,7 +360,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
           <div class="tb-sep"></div>
           <button class="btn" onclick="exportImage('png')">🖼 PNG</button>
           <button class="btn o" onclick="exportImage('pdf')">📄 PDF</button>
-          <button class="btn" onclick="exportShareHTML()" title="匯出可分享的唯讀互動HTML頁面">📋 分享頁</button>
+          <button class="btn" onclick="generateShareLink()" title="產生唯讀分享連結（任何人可用瀏覽器開啟）">🔗 分享連結</button>
           <div class="tb-sep"></div>
           <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="exportProjectJSON()">📤 匯出專案檔</button>
           <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="document.getElementById('jsonFileInput').click()">📩 匯入專案檔</button>
@@ -1061,7 +1078,7 @@ function renderTopbar(){
     empty.style.display='flex';gantt.style.display='none';
     exitBulkMode();return;
   }
-  if(ti){ti.value=p.name;ti.readOnly=false;}
+  if(ti){ti.value=p.name;ti.readOnly=!!window.SHARE_MODE;if(window.SHARE_MODE){ti.style.pointerEvents='none';ti.style.cursor='default';}}
   if(badge){badge.textContent=p.tasks.length+' 個任務';badge.style.display='';}
   pa.style.display='flex';ta.style.display='flex';
   if(emptyRow)emptyRow.style.display='none';
@@ -1241,7 +1258,7 @@ function render(){
     const level = getTaskLevel(t, allTasks);
     const isGroup = t.type === 'group';
     const isMilestone = t.type === 'milestone';
-    const drag=!bulkMode?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
+    const drag=(!bulkMode&&!window.SHARE_MODE)?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
     const detailHidden = taskDetailHidden.has(t.id);
     const rowClsNames=[isSelected?'selected':'',detailHidden?'compact':''].filter(Boolean).join(' ');
     const rowCls=`data-id="${t.id}" class="${rowClsNames}"`;
@@ -1744,101 +1761,100 @@ function drawGanttCanvas(p){
   return canvas;
 }
 // ═══════════════════════
-// Export Read-only Share HTML
+// Share Link (URL-hash based, read-only)
 // ═══════════════════════
-function exportShareHTML(){
-  const p=activeProj();
-  if(!p||!p.tasks.length){alert('此專案沒有任務可匯出');return;}
-
-  // Serialize current full project state (deep copy)
-  const projData=JSON.stringify(p);
-  const hiddenIds=JSON.stringify([...taskDetailHidden]);
-  const statsHidden=statsCollapsed?'true':'false';
-  const allDetailCol=allDetailCollapsed?'true':'false';
-
-  // Grab the full HTML source (same code, same CSS, same layout as editor)
-  const src='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
-
-  // CSS to hide edit-only controls in share mode
-  const shareCSS=`
-<style id="share-mode-css">
-body.share-mode #topPrimaryActions { display:none !important; }
-body.share-mode [onclick*="openImport"] { display:none !important; }
-body.share-mode [onclick*="exportExcel"] { display:none !important; }
-body.share-mode [onclick*="saveBaseline"] { display:none !important; }
-body.share-mode [onclick*="exportProjectJSON"] { display:none !important; }
-body.share-mode [onclick*="jsonFileInput"] { display:none !important; }
-body.share-mode [onclick*="exportShareHTML"] { display:none !important; }
-body.share-mode [onclick*="openShareModal"] { display:none !important; }
-body.share-mode .sb-new-btn { display:none !important; }
-body.share-mode .sb-footer { display:none !important; }
-body.share-mode #loginModal { display:none !important; }
-body.share-mode .modal-overlay { display:none !important; }
-body.share-mode .gantt-table-body-left .cell-name { cursor:default !important; }
-</style>`;
-
-  // JS override: inject before the INIT block
-  const shareInit=`
-// ═══════════════ SHARE MODE OVERRIDE ═══════════════
-window.SHARE_MODE=true;
-
-// Pre-inject project data (bypass localStorage)
-const _SHARE_PROJ=${projData};
-const _SHARE_HIDDEN=new Set(${hiddenIds});
-const _SHARE_STATS_HIDDEN=${statsHidden};
-const _SHARE_ALL_DETAIL=${allDetailCol};
-
-// Override loadAll to use injected data only
-loadAll=function(){
-  projects=[JSON.parse(JSON.stringify(_SHARE_PROJ))];
-  activeId=_SHARE_PROJ.id;
-  try{migrateProjects();}catch(e){}
-};
-
-// Disable all edit/save/auth functions
-['openAdd','openTaskModal','openEdit','deleteTask','saveAll','confirmDeleteProject',
- 'toggleBulkMode','openImport','importProjectJSON','exportProjectJSON',
- 'openShareModal','newProject','saveBaseline','openLoginModal','checkLogin'].forEach(fn=>{
-  window[fn]=()=>{};
-});
-
-// Override initAuth — skip login modal, just set guest mode
-initAuth=function(){
-  isGuestMode=true;
-  applyLoginState();
-};
-
-// Apply share CSS & restore state after render
-document.body.classList.add('share-mode');
-_SHARE_HIDDEN.forEach(id=>taskDetailHidden.add(id));
-if(_SHARE_STATS_HIDDEN){statsCollapsed=true;const b=document.getElementById('statsBody');const br=document.getElementById('statsToggleBar');if(b)b.classList.add('closed');if(br)br.classList.add('closed');}
-if(_SHARE_ALL_DETAIL){allDetailCollapsed=true;const btn=document.getElementById('btnCollapseDetail');if(btn)btn.textContent='☰ 展開詳情';}
-
-// Disable drag-to-reorder on task rows
-document.addEventListener('dragstart',e=>e.preventDefault(),true);
-// ════════════════════════════════════════════════`;
-
-  // Replace the INIT block with share-mode init
-  const origInit='loadAll();renderSidebar();renderTopbar();render();\nsetTimeout(jumpToday, 400);\ninitAuth();';
-  const newInit=shareInit+'\nloadAll();renderSidebar();renderTopbar();render();\nsetTimeout(jumpToday,400);\ninitAuth();';
-
-  let out=src.replace(origInit, newInit);
-  // Inject CSS into <head>
-  out=out.replace('</head>', shareCSS+'\n</head>');
-
-  // Remove the share-mode-css if it already got duplicated from outerHTML
-  // (outerHTML won't have it since we inject dynamically, so this is safe)
-
-  const blob_content=out;
-  const filename=(p.name||'gantt')+'_分享.html';
-
-  // Use a download trick
-  const blob=new Blob([blob_content],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
-  toast('✅ 分享頁已下載 — 與編輯畫面完全一致的唯讀版本');
+async function compressToBase64(str){
+  const bytes=new TextEncoder().encode(str);
+  const cs=new CompressionStream('deflate-raw');
+  const w=cs.writable.getWriter();w.write(bytes);w.close();
+  const buf=await new Response(cs.readable).arrayBuffer();
+  const arr=new Uint8Array(buf);let bin='';
+  for(let i=0;i<arr.length;i++)bin+=String.fromCharCode(arr[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
+async function decompressFromBase64(b64){
+  const pad=b64.length%4?'='.repeat(4-b64.length%4):'';
+  const bin=atob(b64.replace(/-/g,'+').replace(/_/g,'/')+pad);
+  const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  const ds=new DecompressionStream('deflate-raw');
+  const w=ds.writable.getWriter();w.write(bytes);w.close();
+  const buf=await new Response(ds.readable).arrayBuffer();
+  return new TextDecoder().decode(buf);
+}
+
+async function generateShareLink(){
+  const p=activeProj();
+  if(!p||!p.tasks.length){alert('此專案沒有任務可分享');return;}
+  try{
+    const payload=JSON.stringify({p,h:[...taskDetailHidden],s:statsCollapsed,d:allDetailCollapsed});
+    const encoded=await compressToBase64(payload);
+    const base=window.location.href.split('#')[0];
+    const url=base+'#s='+encoded;
+    document.getElementById('shareLinkUrl').value=url;
+    const warn=document.getElementById('shareLinkWarn');
+    if(warn)warn.style.display=url.length>8000?'block':'none';
+    document.getElementById('shareLinkModal').classList.add('open');
+  }catch(e){alert('產生分享連結失敗：'+e.message);}
+}
+
+function copyShareLink(){
+  const inp=document.getElementById('shareLinkUrl');
+  inp.select();
+  navigator.clipboard.writeText(inp.value).then(()=>toast('✅ 連結已複製到剪貼簿'));
+}
+
+function applyShareModeUI(){
+  window.SHARE_MODE=true;
+  document.body.classList.add('share-mode');
+  // Disable edit functions
+  ['openAdd','openTaskModal','openEdit','openEdit','deleteTask','saveAll',
+   'confirmDeleteProject','toggleBulkMode','openImport','importProjectJSON',
+   'exportProjectJSON','openShareModal','newProject','saveBaseline','openLoginModal',
+   'checkLogin','generateShareLink','barClick'].forEach(fn=>{window[fn]=()=>{};});
+  // Disable bar resize & row drag
+  window.barResizeStart=()=>{};
+  window.dStart=()=>{};window.dOver=e=>e.preventDefault();
+  window.dDrop=()=>{};window.dEnd=()=>{};
+  // Make project name truly readonly
+  const ti=document.getElementById('projTitleInput');
+  if(ti){ti.readOnly=true;ti.style.pointerEvents='none';ti.style.cursor='default';}
+}
+
+async function loadShareFromHash(){
+  const encoded=window.location.hash.slice(3);
+  try{
+    const json=await decompressFromBase64(encoded);
+    const data=JSON.parse(json);
+    // Load project
+    projects=[data.p];activeId=data.p.id;
+    try{migrateProjects();}catch(e){}
+    // Restore UI state
+    if(data.h)data.h.forEach(id=>taskDetailHidden.add(id));
+    if(data.d){allDetailCollapsed=true;}
+    if(data.s){
+      statsCollapsed=true;
+      const sb=document.getElementById('statsBody');const stb=document.getElementById('statsToggleBar');
+      if(sb)sb.classList.add('closed');if(stb)stb.classList.add('closed');
+    }
+    applyShareModeUI();
+    isGuestMode=true;applyLoginState();
+    renderSidebar();renderTopbar();
+    // After renderTopbar may reset readOnly, re-enforce
+    const ti=document.getElementById('projTitleInput');
+    if(ti){ti.readOnly=true;ti.style.pointerEvents='none';ti.style.cursor='default';}
+    render();
+    setTimeout(jumpToday,400);
+  }catch(e){
+    console.error('Share link decode failed:',e);
+    alert('分享連結無效或已損壞，將載入本機資料。');
+    loadAll();renderSidebar();renderTopbar();render();
+    setTimeout(jumpToday,400);initAuth();
+  }
+}
+
+// Keep exportShareHTML as alias (no longer used by toolbar but may be called elsewhere)
+function exportShareHTML(){ generateShareLink(); }
+
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
 function truncate(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;while(text.length>1&&ctx.measureText(text+'…').width>maxW)text=text.slice(0,-1);return text+'…';}
 
@@ -2231,9 +2247,29 @@ function closeHelp(){ document.getElementById('helpOverlay').style.display='none
 // ═══════════════════════
 // INIT
 // ═══════════════════════
-loadAll();renderSidebar();renderTopbar();render();
-setTimeout(jumpToday, 400);
-initAuth();
+// Check for share link hash
+if(window.location.hash.startsWith('#s=')){
+  loadShareFromHash();
+}else{
+  loadAll();renderSidebar();renderTopbar();render();
+  setTimeout(jumpToday,400);
+  initAuth();
+}
 </script>
+
+<!-- Share Link Modal -->
+<div class="modal-overlay" id="shareLinkModal" onclick="if(event.target===this)cm('shareLinkModal')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><span class="modal-title">🔗 分享連結</span><button class="modal-close" onclick="cm('shareLinkModal')">✕</button></div>
+    <div style="padding:16px 20px 20px">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:12px">將以下連結傳送給他人，對方用瀏覽器開啟即可查看（唯讀）。連結包含完整專案資料，無需登入。</p>
+      <div style="display:flex;gap:8px">
+        <input id="shareLinkUrl" type="text" readonly style="flex:1;font-size:11px;padding:7px 10px;border:1px solid var(--bdr);border-radius:6px;background:var(--bg2);color:var(--tx);font-family:'DM Mono',monospace" onclick="this.select()">
+        <button class="btn a" onclick="copyShareLink()">複製</button>
+      </div>
+      <p id="shareLinkWarn" style="display:none;font-size:11px;color:#D97706;margin-top:8px">⚠️ 連結較長，建議透過訊息或 Email 傳送。</p>
+    </div>
+  </div>
+</div>
 </body>
 </html>
