@@ -1747,188 +1747,98 @@ function drawGanttCanvas(p){
 // Export Read-only Share HTML
 // ═══════════════════════
 function exportShareHTML(){
-  const p=activeProj();if(!p||!p.tasks.length){alert('此專案沒有任務可匯出');return;}
-  const tasks=getVisibleTasks(p.tasks);
-  const cpmRes=computeCPM(tasks);
-  const ROW_FULL=52,ROW_COMPACT=34;
-  const rh=t=>taskDetailHidden.has(t.id)?ROW_COMPACT:ROW_FULL;
+  const p=activeProj();
+  if(!p||!p.tasks.length){alert('此專案沒有任務可匯出');return;}
 
-  // Build left-panel rows HTML
-  let rowsL='', rowsR='';
-  const allS=tasks.map(t=>parseD(t.start)),allE=tasks.map(t=>parseD(t.end));
-  const minD=new Date(Math.min(...allS)),maxD=new Date(Math.max(...allE));
-  const vs=addD(minD,-2),ve=addD(maxD,2);
-  const days2=Math.round((ve-vs)/86400000)+1;
-  const COL_W2=28;
+  // Serialize current full project state (deep copy)
+  const projData=JSON.stringify(p);
+  const hiddenIds=JSON.stringify([...taskDetailHidden]);
+  const statsHidden=statsCollapsed?'true':'false';
+  const allDetailCol=allDetailCollapsed?'true':'false';
 
-  // Header dates
-  let hCells='<th style="width:280px;min-width:280px;text-align:left;padding:5px 12px;font-size:10px;font-weight:600;color:#6B7280;background:#F3F4F6;border-bottom:2px solid #E5E7EB">任務</th>';
-  let prevM=-1;
-  for(let i=0;i<days2;i++){
-    const d=addD(vs,i);const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
-    const m=d.getMonth();let lbl='';
-    if(m!==prevM){lbl=`${m+1}月`;prevM=m;}else if(d.getDay()===1||i===0)lbl=''+d.getDate();
-    const bg=isT?'rgba(79,107,237,.15)':isWk?'rgba(0,0,0,.02)':'#F3F4F6';
-    const color=isT?'#4F6BED':'#6B7280';const fw=isT?600:500;
-    hCells+=`<th style="width:${COL_W2}px;min-width:${COL_W2}px;background:${bg};color:${color};font-size:9px;font-weight:${fw};padding:5px 0;text-align:center;border-bottom:2px solid #E5E7EB;font-family:'DM Mono',monospace">${lbl}</th>`;
-  }
+  // Grab the full HTML source (same code, same CSS, same layout as editor)
+  const src='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 
-  tasks.forEach((t,ri)=>{
-    const rowH=rh(t);
-    const isCompact=taskDetailHidden.has(t.id);
-    const isCritical=cpmRes[t.id]?.critical||false;
-    const isMilestone=t.type==='milestone';
-    const isGroup=t.type==='group';
-    const level=getTaskLevel(t,p.tasks);
-    const bg=taskBarBg(t);
-    const dc=dayCount(t.start,t.end);
-    const meta=[t.owner,t.note].filter(Boolean).join(' · ');
-    const critDot=isCritical?`<span style="font-size:8px;color:#DC2626;vertical-align:middle;margin-right:3px">●</span>`:'';
-    const badgeCls={done:'background:#D1FAE5;color:#065F46',ongoing:'background:#E0E7FF;color:#3730A3',pending:'background:#F3F4F6;color:#6B7280',delayed:'background:#FEE2E2;color:#991B1B'};
-    const bc=badgeCls[t.status]||badgeCls.pending;
-    const bl=SL[t.status];
-    const rowBg=ri%2===1?'rgba(0,0,0,.018)':'#fff';
-    const critBorder=isCritical?'border-left:3px solid #DC2626':'';
-    const paddingL=12+(level>0?24:0);
-    const detailHtml=isCompact?'':
-      `<div style="font-size:10px;color:#6B7280;margin-top:3px;display:flex;align-items:center;gap:5px">
-        <span style="background:#E5E7EB;color:#4B5563;font-size:9px;font-weight:600;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace">${isMilestone?'里程碑':dc+'天'}</span>
-        ${meta?`<span style="font-size:10px;color:#9CA3AF">${meta}</span>`:''}
-      </div>`;
-    const collapseBtn=`<span onclick="toggleRow(${t.id})" title="${isCompact?'展開':'收合'}詳情" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;font-size:9px;color:#9CA3AF;cursor:pointer;border-radius:3px;flex-shrink:0" onmouseover="this.style.background='rgba(0,0,0,.06)'" onmouseout="this.style.background=''">${isCompact?'▶':'▽'}</span>`;
-    rowsL+=`<tr id="tr_${t.id}" style="height:${rowH}px">
-      <td style="padding:6px ${paddingL}px;background:${rowBg};${critBorder};border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle">
-        <div style="display:flex;align-items:center;gap:4px">
-          ${isGroup?`<span style="font-size:10px;color:#4F6BED;cursor:default">${t.collapsed?'▶':'▼'}</span>`:''}
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:${isCritical||isGroup?700:500};color:${isMilestone?'#7C3AED':'#111827'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${critDot}${isMilestone?'◆ ':''}${t.name}${isGroup?` (${p.tasks.filter(x=>x.parentId===t.id).length})`:''}</div>
-            ${detailHtml}
-          </div>
-          <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
-            <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;${bc}">${bl}</span>
-            ${collapseBtn}
-          </div>
-        </div>
-      </td>
-    </tr>`;
-    // Right side (gantt bar row)
-    let tds='';
-    const ts2=parseD(t.start),te2=parseD(t.end);
-    const so=Math.round((ts2-vs)/86400000),eo=Math.round((te2-vs)/86400000);
-    const cs2=Math.max(0,so),ce2=Math.min(days2-1,eo);
-    for(let i=0;i<days2;i++){
-      const d=addD(vs,i);const isT2=d.getTime()===today.getTime();const isWk2=d.getDay()===0||d.getDay()===6;
-      const isLast=addD(d,1).getDate()===1;
-      let cellBg=isT2?'rgba(79,107,237,.06)':isWk2?'rgba(0,0,0,.02)':rowBg;
-      let inner='';
-      if(i===cs2&&ce2>=0){
-        const span=ce2-cs2+1;
-        if(isMilestone){
-          inner=`<div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center"><div style="width:14px;height:14px;background:${bg};transform:rotate(45deg)"></div></div>`;
-        } else {
-          const bw=span*COL_W2-4;
-          const pctW=t.pct>0?Math.round(bw*t.pct/100):0;
-          const barTxt=t.pct>0?t.pct+'%':'';
-          const critStyle=isCritical?`box-shadow:0 0 0 2px #DC2626,0 2px 6px rgba(220,38,38,.3);`:'box-shadow:0 1px 4px rgba(0,0,0,.2);';
-          inner=`<div style="position:absolute;top:50%;transform:translateY(-50%);left:2px;width:${bw}px;height:20px;background:${bg};border-radius:5px;${critStyle}overflow:hidden;z-index:1">
-            ${pctW>0?`<div style="position:absolute;top:0;left:0;width:${pctW}px;height:100%;background:rgba(255,255,255,.22)"></div>`:''}
-            ${barTxt?`<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:600;color:rgba(255,255,255,.95)">${barTxt}</span>`:''}
-          </div>`;
-        }
-      }
-      tds+=`<td style="position:relative;width:${COL_W2}px;min-width:${COL_W2}px;height:${rowH}px;background:${cellBg};${isLast?'border-right:2px solid rgba(0,0,0,.1)':''};border-bottom:1px solid rgba(0,0,0,.05)">${inner}</td>`;
-    }
-    rowsR+=`<tr id="trr_${t.id}" style="height:${rowH}px">${tds}</tr>`;
-  });
+  // CSS to hide edit-only controls in share mode
+  const shareCSS=`
+<style id="share-mode-css">
+body.share-mode #topPrimaryActions { display:none !important; }
+body.share-mode [onclick*="openImport"] { display:none !important; }
+body.share-mode [onclick*="exportExcel"] { display:none !important; }
+body.share-mode [onclick*="saveBaseline"] { display:none !important; }
+body.share-mode [onclick*="exportProjectJSON"] { display:none !important; }
+body.share-mode [onclick*="jsonFileInput"] { display:none !important; }
+body.share-mode [onclick*="exportShareHTML"] { display:none !important; }
+body.share-mode [onclick*="openShareModal"] { display:none !important; }
+body.share-mode .sb-new-btn { display:none !important; }
+body.share-mode .sb-footer { display:none !important; }
+body.share-mode #loginModal { display:none !important; }
+body.share-mode .modal-overlay { display:none !important; }
+body.share-mode .gantt-table-body-left .cell-name { cursor:default !important; }
+</style>`;
 
-  // Today line overlay handled via CSS position
-  const html=`<!DOCTYPE html>
-<html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${p.name} — 甘特圖</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"DM Sans",system-ui,sans-serif;background:#F8F9FA;color:#111827}
-.header{background:#1E2235;color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px}
-.dot{width:16px;height:16px;border-radius:50%;background:${p.color||'#4F6BED'};flex-shrink:0}
-.title{font-size:18px;font-weight:600}
-.sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
-.toolbar{display:flex;align-items:center;gap:8px;padding:10px 20px;background:#fff;border-bottom:1px solid #E5E7EB;flex-wrap:wrap}
-.btn{padding:5px 12px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;font-family:inherit}
-.btn:hover{background:#F3F4F6}
-.gantt-wrap{display:flex;overflow:auto;border:1px solid #E5E7EB;border-radius:8px;background:#fff;margin:16px;flex:1}
-.gantt-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18)}
-.gantt-right{flex:1;overflow:auto}
-table{border-collapse:collapse}
-.leg{display:flex;align-items:center;gap:16px;padding:8px 20px 16px;font-size:11px;color:#6B7280;flex-wrap:wrap}
-.li{display:flex;align-items:center;gap:5px}
-.ld{width:12px;height:12px;border-radius:50%}
-</style>
-</head>
-<body>
-<div class="header"><div class="dot"></div><div><div class="title">${p.name}</div><div class="sub">${tasks.length} 個任務 ｜ 生成日期：${ds(today)} ｜ 唯讀分享版</div></div></div>
-<div class="toolbar">
-  <button class="btn" id="btnColD" onclick="toggleAllDetail()">☰ 收合詳情</button>
-  <span style="font-size:11px;color:#9CA3AF">唯讀模式 — 無法編輯任務</span>
-</div>
-<div style="display:flex;flex-direction:column;height:calc(100vh - 110px)">
-<div class="gantt-wrap" id="ganttWrap">
-  <div class="gantt-left" id="ganttLeft">
-    <table><thead><tr>${'<th style="width:280px;min-width:280px;text-align:left;padding:5px 12px;font-size:10px;font-weight:600;color:#6B7280;background:#F3F4F6;border-bottom:2px solid #E5E7EB">任務</th>'}</tr></thead><tbody id="tbLeft">${rowsL}</tbody></table>
-  </div>
-  <div class="gantt-right" id="ganttRight">
-    <table><thead><tr>${hCells.replace(hCells.split('</th>')[0]+'</th>','')}</tr></thead><tbody id="tbRight">${rowsR}</tbody></table>
-  </div>
-</div>
-<div class="leg">
-  <div class="li"><div class="ld" style="background:#059669"></div>已完成</div>
-  <div class="li"><div class="ld" style="background:#4F6BED"></div>進行中</div>
-  <div class="li"><div class="ld" style="background:#9CA3AF"></div>待開始</div>
-  <div class="li"><div class="ld" style="background:#DC2626"></div>延遲</div>
-  <div class="li"><span style="color:#DC2626;font-size:10px">●</span> 關鍵路徑</div>
-</div>
-</div>
-<script>
-const hiddenRows=new Set(${JSON.stringify([...taskDetailHidden])});
-let allCollapsed=hiddenRows.size>0;
-function syncRows(){
-  document.querySelectorAll('[id^="tr_"]').forEach(tr=>{
-    const id=parseInt(tr.id.replace('tr_',''));
-    const trr=document.getElementById('trr_'+id);
-    const isHidden=hiddenRows.has(id);
-    const h=isHidden?34:52;
-    tr.style.height=h+'px';
-    if(trr)trr.style.height=h+'px';
-    const btn=tr.querySelector('span[onclick]');
-    if(btn)btn.textContent=isHidden?'▶':'▽';
-    const det=tr.querySelector('div>div>div+div');
-    if(det)det.style.display=isHidden?'none':'';
-  });
-  document.getElementById('btnColD').textContent=allCollapsed?'☰ 展開詳情':'☰ 收合詳情';
-}
-function toggleRow(id){
-  if(hiddenRows.has(id))hiddenRows.delete(id);else hiddenRows.add(id);
-  syncRows();
-}
-function toggleAllDetail(){
-  allCollapsed=!allCollapsed;
-  ${JSON.stringify(tasks.map(t=>t.id))}.forEach(id=>{allCollapsed?hiddenRows.add(id):hiddenRows.delete(id);});
-  syncRows();
-}
-// Sync scroll between left and right
-const gl=document.getElementById('ganttLeft');
-const gr=document.getElementById('ganttRight');
-gr.addEventListener('scroll',()=>{gl.scrollTop=gr.scrollTop;});
-syncRows();
-<\/script>
-</body></html>`;
+  // JS override: inject before the INIT block
+  const shareInit=`
+// ═══════════════ SHARE MODE OVERRIDE ═══════════════
+window.SHARE_MODE=true;
 
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+// Pre-inject project data (bypass localStorage)
+const _SHARE_PROJ=${projData};
+const _SHARE_HIDDEN=new Set(${hiddenIds});
+const _SHARE_STATS_HIDDEN=${statsHidden};
+const _SHARE_ALL_DETAIL=${allDetailCol};
+
+// Override loadAll to use injected data only
+loadAll=function(){
+  projects=[JSON.parse(JSON.stringify(_SHARE_PROJ))];
+  activeId=_SHARE_PROJ.id;
+  try{migrateProjects();}catch(e){}
+};
+
+// Disable all edit/save/auth functions
+['openAdd','openTaskModal','openEdit','deleteTask','saveAll','confirmDeleteProject',
+ 'toggleBulkMode','openImport','importProjectJSON','exportProjectJSON',
+ 'openShareModal','newProject','saveBaseline','openLoginModal','checkLogin'].forEach(fn=>{
+  window[fn]=()=>{};
+});
+
+// Override initAuth — skip login modal, just set guest mode
+initAuth=function(){
+  isGuestMode=true;
+  applyLoginState();
+};
+
+// Apply share CSS & restore state after render
+document.body.classList.add('share-mode');
+_SHARE_HIDDEN.forEach(id=>taskDetailHidden.add(id));
+if(_SHARE_STATS_HIDDEN){statsCollapsed=true;const b=document.getElementById('statsBody');const br=document.getElementById('statsToggleBar');if(b)b.classList.add('closed');if(br)br.classList.add('closed');}
+if(_SHARE_ALL_DETAIL){allDetailCollapsed=true;const btn=document.getElementById('btnCollapseDetail');if(btn)btn.textContent='☰ 展開詳情';}
+
+// Disable drag-to-reorder on task rows
+document.addEventListener('dragstart',e=>e.preventDefault(),true);
+// ════════════════════════════════════════════════`;
+
+  // Replace the INIT block with share-mode init
+  const origInit='loadAll();renderSidebar();renderTopbar();render();\nsetTimeout(jumpToday, 400);\ninitAuth();';
+  const newInit=shareInit+'\nloadAll();renderSidebar();renderTopbar();render();\nsetTimeout(jumpToday,400);\ninitAuth();';
+
+  let out=src.replace(origInit, newInit);
+  // Inject CSS into <head>
+  out=out.replace('</head>', shareCSS+'\n</head>');
+
+  // Remove the share-mode-css if it already got duplicated from outerHTML
+  // (outerHTML won't have it since we inject dynamically, so this is safe)
+
+  const blob_content=out;
+  const filename=(p.name||'gantt')+'_分享.html';
+
+  // Use a download trick
+  const blob=new Blob([blob_content],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=(p.name||'gantt')+'_分享.html';a.click();
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),3000);
-  toast('✅ 分享頁已下載，可傳送給他人開啟');
+  toast('✅ 分享頁已下載 — 與編輯畫面完全一致的唯讀版本');
 }
-
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
 function truncate(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return text;while(text.length>1&&ctx.measureText(text+'…').width>maxW)text=text.slice(0,-1);return text+'…';}
 
