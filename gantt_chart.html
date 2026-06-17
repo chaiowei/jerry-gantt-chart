@@ -93,10 +93,22 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .empty-icon{font-size:48px;opacity:.4}
 .empty-title{font-size:18px;font-weight:600;color:var(--tx)}
 .empty-sub{font-size:13px;color:var(--tx2);text-align:center;line-height:1.6}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px}
+.stats-wrap{margin-bottom:12px}
+.stats-toggle-bar{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 0 4px 2px;color:var(--tx2);font-size:11px;font-weight:600}
+.stats-toggle-bar:hover{color:var(--tx)}
+.stats-toggle-bar .sti{font-size:10px;transition:transform .2s;display:inline-block}
+.stats-toggle-bar.closed .sti{transform:rotate(-90deg)}
+.stats-body{overflow:hidden;transition:max-height .25s ease,opacity .2s ease;max-height:200px;opacity:1}
+.stats-body.closed{max-height:0;opacity:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
 .stat{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:10px 12px}
 .sl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .sv{font-size:20px;font-weight:600}
+/* task detail (nm) collapse */
+.nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;transition:all .15s ease}
+.nm.nm-hidden{display:none}
+.detail-tog{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;font-size:9px;color:var(--tx3);cursor:pointer;flex-shrink:0;opacity:.6;border-radius:3px}
+.detail-tog:hover{opacity:1;background:rgba(0,0,0,.06)}
 .ca{color:var(--acc)}.cg{color:var(--done)}.cr{color:var(--del)}.co{color:#D97706}
 .mo-0{background:#EEF2FF;color:#3730A3}.mo-1{background:#F0FDF4;color:#166534}.mo-2{background:#FEF9C3;color:#854D0E}.mo-3{background:#FFF1F2;color:#9F1239}.mo-4{background:#ECFEFF;color:#155E75}.mo-5{background:#FFF7ED;color:#9A3412}.mo-6{background:#F5F3FF;color:#5B21B6}.mo-7{background:#FAFAFA;color:#374151}.mo-8{background:#F0FDFA;color:#115E59}.mo-9{background:#FDF2F8;color:#831843}.mo-10{background:#FFFBEB;color:#78350F}.mo-11{background:#EFF6FF;color:#1E40AF}
 .month-border{border-right:2px solid rgba(0,0,0,.18)!important}
@@ -119,6 +131,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .nc{padding:7px 12px;cursor:pointer;background:#fff;vertical-align:middle}
 .nc.critical-task{border-left:3px solid #DC2626}
 .gantt-table-body-left tbody tr,.gantt-table-body-right tbody tr{height:52px}
+.gantt-table-body-left tbody tr.compact,.gantt-table-body-right tbody tr.compact{height:34px}
+.gantt-table-body-left tbody tr.compact .bw,.gantt-table-body-right tbody tr.compact .bw{height:34px}
 .gantt-table-body-left tbody td,.gantt-table-body-right tbody td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
 .gantt-table-body-left tbody tr:last-child td,.gantt-table-body-right tbody tr:last-child td{border-bottom:none}
 .bar-resize-left,.bar-resize-right{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:10;border-radius:4px;background:rgba(255,255,255,.35);opacity:0;transition:opacity .15s}
@@ -152,7 +166,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .dh{color:var(--tx3);cursor:grab;font-size:16px;user-select:none;flex-shrink:0;margin-top:2px}
 .nt{flex:1;min-width:0}
 .nn{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
-.nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+/* .nm defined above with collapse support */
 .day-chip{display:inline-flex;align-items:center;background:#F3F4F6;color:var(--tx2);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;white-space:nowrap;font-family:'DM Mono',monospace;flex-shrink:0}
 .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0}
 .bd{background:var(--done-l);color:#065F46}.bo{background:var(--acc-l);color:var(--acc-d)}
@@ -322,6 +336,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
           <button class="btn" onclick="jumpToday()">📅 今天</button>
           <button class="btn" id="btnBaseline" onclick="toggleBaseline()" title="顯示/隱藏基準計畫">📌 基準</button>
           <button class="btn" onclick="saveBaseline()" title="儲存目前計畫為基準">💾 存基準</button>
+          <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" title="一鍵收合/展開所有任務詳情">☰ 收合詳情</button>
           <div class="tb-sep"></div>
           <button class="btn" onclick="openImport()">📥 匯入 Excel</button>
           <button class="btn g" onclick="exportExcel()">📊 匯出 Excel</button>
@@ -359,7 +374,15 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
       </div>
       <div id="ganttArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
         <div class="content-fixed">
-          <div class="stats" id="stats"></div>
+          <div class="stats-wrap">
+            <div class="stats-toggle-bar" id="statsToggleBar" onclick="toggleStatsPanel()" title="收合/展開統計列">
+              <span class="sti" id="statsToggleIcon">▼</span>
+              <span id="statsToggleLabel">統計資訊</span>
+            </div>
+            <div class="stats-body" id="statsBody">
+              <div class="stats" id="stats" style="padding-bottom:8px"></div>
+            </div>
+          </div>
         </div>
         <div class="gc" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin:0 20px 16px">
           <div class="gantt-head-row" id="ganttHeadRow">
@@ -768,6 +791,56 @@ function computeCPM(tasks) {
 }
 
 // ═══════════════════════
+// Stats panel collapse
+// ═══════════════════════
+let statsCollapsed = false;
+function toggleStatsPanel() {
+  statsCollapsed = !statsCollapsed;
+  const body = document.getElementById('statsBody');
+  const bar = document.getElementById('statsToggleBar');
+  const icon = document.getElementById('statsToggleIcon');
+  const label = document.getElementById('statsToggleLabel');
+  if (statsCollapsed) {
+    body.classList.add('closed');
+    bar.classList.add('closed');
+    label.textContent = '統計資訊（已收合）';
+  } else {
+    body.classList.remove('closed');
+    bar.classList.remove('closed');
+    label.textContent = '統計資訊';
+  }
+}
+
+// ═══════════════════════
+// Task detail row collapse
+// ═══════════════════════
+let allDetailCollapsed = false;
+const taskDetailHidden = new Set();
+
+function toggleAllTaskDetail() {
+  allDetailCollapsed = !allDetailCollapsed;
+  const p = activeProj(); if(!p) return;
+  if (allDetailCollapsed) {
+    p.tasks.forEach(t => taskDetailHidden.add(t.id));
+  } else {
+    taskDetailHidden.clear();
+  }
+  const btn = document.getElementById('btnCollapseDetail');
+  if (btn) btn.textContent = allDetailCollapsed ? '☰ 展開詳情' : '☰ 收合詳情';
+  render();
+}
+
+function toggleTaskDetail(id, evt) {
+  if (evt) evt.stopPropagation();
+  if (taskDetailHidden.has(id)) {
+    taskDetailHidden.delete(id);
+  } else {
+    taskDetailHidden.add(id);
+  }
+  render();
+}
+
+// ═══════════════════════
 // Feature 2: Baseline
 // ═══════════════════════
 let showBaseline = false;
@@ -1168,7 +1241,9 @@ function render(){
     const isGroup = t.type === 'group';
     const isMilestone = t.type === 'milestone';
     const drag=!bulkMode?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
-    const rowCls=`data-id="${t.id}"${isSelected?' class="selected"':''}`;
+    const detailHidden = taskDetailHidden.has(t.id);
+    const rowClsNames=[isSelected?'selected':'',detailHidden?'compact':''].filter(Boolean).join(' ');
+    const rowCls=`data-id="${t.id}" class="${rowClsNames}"`;
     const paddingLeft = level > 0 ? 24 : 0;
     const criticalClass = isCritical ? ' critical-task' : '';
 
@@ -1180,12 +1255,13 @@ function render(){
         ${isGroup ? `<span class="group-toggle" onclick="event.stopPropagation();toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>` : ''}
         <div class="nt">
           <div class="nn" style="color:${isMilestone?'#7C3AED':isCritical?'#DC2626':bg};font-weight:${isCritical||isGroup?'700':'500'}">${isMilestone?'◆ ':''}${t.name}${isGroup?` (${allTasks.filter(x=>x.parentId===t.id).length})`:''}</div>
-          <div class="nm"><span class="day-chip">${isMilestone?'里程碑':dc2+'天'}</span>${meta?`<span>${meta}</span>`:''}</div>
+          <div class="nm${detailHidden?' nm-hidden':''}"><span class="day-chip">${isMilestone?'里程碑':dc2+'天'}</span>${meta?`<span>${meta}</span>`:''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <div class="dep-dot${hasDep?' has':''}" title="${hasDep?'有前置任務':''}"></div>
           ${isCritical?`<span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:9px">關鍵</span>`:cpmResult[t.id]&&cpmResult[t.id].float>0?`<span style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace">浮時:${cpmResult[t.id].float}d</span>`:''}
           <span class="badge ${SC[t.status]}">${SL[t.status]}</span>
+          <span class="detail-tog" onclick="toggleTaskDetail(${t.id},event)" title="${detailHidden?'展開詳情':'收合詳情'}">${detailHidden?'▶':'▽'}</span>
         </div>
       </div>
     </td></tr>`;
