@@ -376,7 +376,15 @@ body{display:flex;flex-direction:column;overflow:hidden}
 #exportOverlay.open{display:flex}
 .export-box{background:#fff;border-radius:12px;padding:28px 36px;text-align:center;min-width:260px}
 .export-spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#4F6BED;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-@keyframes spin{to{transform:rotate(360deg)}}`;
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Color utilities (matches editor) ── */
+.ca{color:#4F6BED}.cg{color:#059669}.cr{color:#DC2626}.co{color:#D97706}
+/* ── Dep dot ── */
+.dep-dot{width:7px;height:7px;border-radius:50%;background:#9CA3AF;flex-shrink:0;transition:background .15s}
+.dep-dot.has{background:#4F6BED}
+/* ── Active view mode button ── */
+.active-view{background:rgba(255,255,255,.28)!important;color:#fff!important;border-color:rgba(255,255,255,.4)!important}`;
 
   const js = `
 var PROJ = ${projJson};
@@ -385,10 +393,10 @@ var STATS_COLLAPSED_INIT = ${statsCollapsedVal};
 var taskDetailHidden = new Set(DETAIL_HIDDEN_INIT);
 var allDetailCollapsed = DETAIL_HIDDEN_INIT.length > 0;
 var statsCollapsed = STATS_COLLAPSED_INIT;
+var viewMode = 'day';
 
 var today = new Date(); today.setHours(0,0,0,0);
 var BASE_DATE = new Date(2000,0,1);
-var COL_W = 28;
 var SL = {done:'已完成',ongoing:'進行中',pending:'待開始',delayed:'延遲'};
 var SC = {done:'bd',ongoing:'bo',pending:'bp',delayed:'bl'};
 var MN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -471,6 +479,15 @@ function toggleGroupCollapse(id){
   render();
 }
 
+function setViewMode(m){
+  viewMode=m;
+  ['Day','Week','Month'].forEach(function(x){
+    var b=document.getElementById('btnView'+x);
+    if(b)b.classList.toggle('active-view',x.toLowerCase()===m);
+  });
+  render();
+}
+
 // ── Row hover sync ──
 function rowHover(id,on){
   var rows=document.querySelectorAll('[data-id="'+id+'"]');
@@ -502,6 +519,8 @@ function render(){
     return;
   }
 
+  var COL_W=viewMode==='month'?60:viewMode==='week'?40:28;
+
   var allS=tasks.map(function(t){return parseD(t.start);});
   var allE=tasks.map(function(t){return parseD(t.end);});
   var vs=addD(new Date(Math.min.apply(null,allS)),-2);
@@ -512,26 +531,53 @@ function render(){
   var mg=[];
   for(var i=0;i<days;i++){
     var d=addD(vs,i),m=d.getMonth();
-    if(!mg.length||mg[mg.length-1].m!==m)mg.push({m:m,count:1});
+    if(!mg.length||mg[mg.length-1].m!==m)mg.push({m:m,start:i,count:1});
     else mg[mg.length-1].count++;
   }
 
   // Left header
   document.getElementById('ghL').innerHTML='<tr><th class="lth" rowspan="2">任務</th></tr><tr></tr>';
 
-  // Right header
+  // Right header — mirrors editor viewMode logic
   var rH='<tr>';
   mg.forEach(function(g){
-    rH+='<th colspan="'+g.count+'" style="text-align:center;font-size:11px;font-weight:700;padding:5px 4px;border-bottom:1px solid rgba(0,0,0,.08);border-right:2px solid rgba(0,0,0,.2);'+getMoStyle(g.m)+'">'+MN[g.m]+'</th>';
+    var moStyle=getMoStyle(g.m);
+    rH+='<th colspan="'+g.count+'" style="text-align:center;font-size:11px;font-weight:700;padding:5px 4px;border-bottom:1px solid rgba(0,0,0,.08);border-right:2px solid rgba(0,0,0,.2);'+moStyle+';min-width:'+(g.count*COL_W)+'px">'+MN[g.m]+'</th>';
   });
   rH+='</tr><tr>';
-  for(var i=0;i<days;i++){
-    var d=addD(vs,i);
-    var isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
-    var isLast=addD(d,1).getDate()===1;
-    var ts2=isT?'background:rgba(79,107,237,.18);color:#3451C7;font-weight:700':(isWk?'background:rgba(0,0,0,.04);color:#9CA3AF':getMoStyle(d.getMonth()));
-    var brd=isLast?';border-right:2px solid rgba(0,0,0,.2)':'';
-    rH+='<th class="dc" style="'+ts2+brd+'">'+d.getDate()+'</th>';
+  if(viewMode==='month'){
+    for(var i=0;i<days;i++){
+      var d=addD(vs,i);
+      var isLast=addD(d,1).getDate()===1;
+      var moStyle=getMoStyle(d.getMonth());
+      if(isLast||i===0){
+        rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+moStyle+(isLast?';border-right:2px solid rgba(0,0,0,.2)':'')+'">w'+Math.ceil(d.getDate()/7)+'</th>';
+      }else{
+        rH+='<th class="dc" style="min-width:'+COL_W+'px;width:'+COL_W+'px;padding:0;border:none;font-size:0"></th>';
+      }
+    }
+  }else if(viewMode==='week'){
+    for(var i=0;i<days;i++){
+      var d=addD(vs,i);
+      var isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
+      var isLast=addD(d,1).getDate()===1;
+      var todayStyle=isT?'background:rgba(79,107,237,.18);color:#3451C7;font-weight:700':'';
+      var wkStyle=isWk&&!isT?'background:rgba(0,0,0,.04);color:#9CA3AF':'';
+      var brd=isLast?'border-right:2px solid rgba(0,0,0,.2)':'';
+      var label=(d.getDay()===1||i===0)?d.getDate():'';
+      rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+label+'</th>';
+    }
+  }else{
+    // day view
+    for(var i=0;i<days;i++){
+      var d=addD(vs,i);
+      var isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
+      var isLast=addD(d,1).getDate()===1;
+      var todayStyle=isT?'background:rgba(79,107,237,.18);color:#3451C7;font-weight:700':'';
+      var wkStyle=isWk&&!isT?'background:rgba(0,0,0,.04);color:#9CA3AF':'';
+      var brd=isLast?'border-right:2px solid rgba(0,0,0,.2)':'';
+      rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+d.getDate()+'</th>';
+    }
   }
   rH+='</tr>';
   document.getElementById('ghR').innerHTML=rH;
@@ -550,7 +596,8 @@ function render(){
     var dc=dayCount(t.start,t.end);
     var depIds=getDepIds(t.deps||[]);
     var hasDep=depIds.length>0;
-    var meta=[t.owner,t.note].filter(Boolean).join(' · ');
+    var depNames=hasDep?depIds.map(function(id){var x=allTasks.find(function(a){return a.id===id;});return x?x.name:'';}).filter(Boolean).join('、'):'';
+    var meta=[t.owner,t.note,depNames?'← '+depNames:''].filter(Boolean).join(' · ');
     var isCritical=cpm[t.id]&&cpm[t.id].critical;
     var isGroup=t.type==='group';
     var isMilestone=t.type==='milestone';
@@ -576,6 +623,7 @@ function render(){
     lB+='</div>';
     lB+='</div>';
     lB+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
+    lB+='<div class="dep-dot'+(hasDep?' has':'')+'" title="'+(hasDep?'有前置任務':'')+'"></div>';
     lB+=critBadge+floatInfo;
     lB+='<span class="badge '+SC[t.status]+'">'+SL[t.status]+'</span>';
     lB+='<button class="detail-tog" onclick="toggleTaskDetail('+t.id+',event)" title="'+(detailHidden?'展開詳情':'收合詳情')+'">'+(detailHidden?'▶':'▽')+'</button>';
@@ -589,7 +637,7 @@ function render(){
       var isLast=addD(d,1).getDate()===1;
       var bkSty=isT?'background:rgba(79,107,237,.06)':(isWk?'background:rgba(0,0,0,.02)':'');
       var brd=isLast?';border-right:2px solid rgba(0,0,0,.12)':'';
-      rB+='<td class="bc" style="'+bkSty+brd+'">';
+      rB+='<td class="bc" style="'+bkSty+brd+';width:'+COL_W+'px;min-width:'+COL_W+'px">';
       if(isT)rB+='<div class="tl" style="background:#4F6BED"></div>';
       if(vis&&i===cs){
         var span=ce-cs+1;
@@ -661,12 +709,17 @@ function renderStats(){
   var allS=tasks.map(function(t){return parseD(t.start);});
   var allE=tasks.map(function(t){return parseD(t.end);});
   var spanDays=tasks.length?Math.round((new Date(Math.max.apply(null,allE))-new Date(Math.min.apply(null,allS)))/86400000)+1:0;
+  var cpmR=computeCPM(getVisibleTasks(tasks));
+  var criticalCount=Object.keys(cpmR).filter(function(k){return cpmR[k].critical;}).length;
+  var milestoneCount=tasks.filter(function(t){return t.type==='milestone';}).length;
   document.getElementById('statsGrid').innerHTML=
-    '<div class="stat"><div class="sl">總任務</div><div class="sv" style="color:#4F6BED">'+tasks.length+'</div></div>'+
-    '<div class="stat"><div class="sl">已完成</div><div class="sv" style="color:#059669">'+done+'</div></div>'+
-    '<div class="stat"><div class="sl">進行中</div><div class="sv" style="color:#4F6BED">'+ong+'</div></div>'+
-    '<div class="stat"><div class="sl">延遲中</div><div class="sv" style="color:#DC2626">'+del+'</div></div>'+
-    '<div class="stat"><div class="sl">整體完成度</div><div class="sv" style="color:#D97706">'+avg+'%</div></div>'+
+    '<div class="stat"><div class="sl">總任務</div><div class="sv ca">'+tasks.length+'</div></div>'+
+    '<div class="stat"><div class="sl">已完成</div><div class="sv cg">'+done+'</div></div>'+
+    '<div class="stat"><div class="sl">進行中</div><div class="sv ca">'+ong+'</div></div>'+
+    '<div class="stat"><div class="sl">延遲中</div><div class="sv cr">'+del+'</div></div>'+
+    '<div class="stat"><div class="sl">整體完成度</div><div class="sv co">'+avg+'%</div></div>'+
+    '<div class="stat"><div class="sl">關鍵路徑</div><div class="sv cr">'+criticalCount+'</div></div>'+
+    '<div class="stat"><div class="sl">里程碑</div><div class="sv" style="color:#7C3AED">'+milestoneCount+'</div></div>'+
     '<div class="stat"><div class="sl">專案總天數</div><div class="sv" style="color:#6B7280">'+spanDays+'天</div></div>';
 }
 
@@ -890,8 +943,12 @@ window.addEventListener('load',function(){
     + '</div>\n'
     // Topbar row2 (toolbar)
     + '<div class="topbar-row2">\n'
+    + '  <button class="btn active-view" id="btnViewDay" onclick="setViewMode(\'day\')" title="日視圖">日視圖</button>\n'
+    + '  <button class="btn" id="btnViewWeek" onclick="setViewMode(\'week\')" title="週視圖">週視圖</button>\n'
+    + '  <button class="btn" id="btnViewMonth" onclick="setViewMode(\'month\')" title="月視圖">月視圖</button>\n'
+    + '  <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 4px"></div>\n'
     + '  <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()">☰ 收合詳情</button>\n'
-    + '  <span style="font-size:11px;color:rgba(255,255,255,.4);margin-left:6px">分享 ID: ' + shareId + '</span>\n'
+    + '  <span style="font-size:11px;color:rgba(255,255,255,.4);margin-left:auto">分享 ID: ' + shareId + '</span>\n'
     + '</div>\n'
     + '</div>\n'
 
