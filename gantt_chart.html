@@ -277,22 +277,20 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
 <div class="mb" id="shareModal">
   <div class="modal" style="width:420px">
     <h3>🔗 分享此專案</h3>
-    <p style="font-size:13px;color:var(--tx2);margin-bottom:14px">產生可公開瀏覽的分享連結，任何人無需登入即可查看甘特圖。</p>
-    <div id="shareResult" style="display:none">
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:14px">產生可公開瀏覽的分享連結，任何人無需登入即可在 GitHub Pages 查看甘特圖。</p>
+    <div id="shareResult">
       <label>分享連結（點擊複製）</label>
       <div style="display:flex;gap:8px;margin-top:4px">
         <input id="shareUrl" type="text" readonly style="flex:1;font-size:12px;background:var(--bg);cursor:pointer" onclick="copyShareUrl()" title="點擊複製">
         <button class="btn a" onclick="copyShareUrl()" style="flex-shrink:0">複製</button>
       </div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:6px">分享連結為永久有效，包含完整互動式甘特圖與 PNG/PDF 下載功能</div>
+      <div id="shareWarn" style="display:none;font-size:11px;color:#B45309;background:#FFF7ED;border:1px solid #FCD34D;border-radius:6px;padding:8px 10px;margin-top:8px">⚠ 連結較長，部分通訊軟體可能截斷，建議直接貼到瀏覽器網址列開啟。</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:6px">連結包含完整甘特圖資料，任何人開啟即可查看（唯讀模式）</div>
     </div>
     <div id="shareLoading" style="display:none;text-align:center;padding:20px 0">
       <div class="export-spinner" style="margin:0 auto 10px"></div>
-      <div style="font-size:13px;color:var(--tx2)">正在上傳至雲端並生成連結...</div>
     </div>
-    <div id="shareActions">
-      <button class="btn a" style="width:100%;height:36px;justify-content:center;margin-top:8px" onclick="doCreateShare()">🔗 生成分享連結</button>
-    </div>
+    <div id="shareActions" style="display:none"></div>
     <div class="mbt"><button class="btn" onclick="cm('shareModal')">關閉</button></div>
   </div>
 </div>
@@ -359,7 +357,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
           <div class="tb-sep"></div>
           <button class="btn" onclick="exportImage('png')">🖼 PNG</button>
           <button class="btn o" onclick="exportImage('pdf')">📄 PDF</button>
-          <button class="btn" onclick="openShareModal()" title="透過 Google Apps Script 產生分享連結">🔗 分享連結</button>
+          <button class="btn" onclick="generateShareLink()" title="產生分享連結（GitHub Pages）">🔗 分享連結</button>
           <div class="tb-sep"></div>
           <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="exportProjectJSON()">📤 匯出專案檔</button>
           <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="document.getElementById('jsonFileInput').click()">📩 匯入專案檔</button>
@@ -1810,12 +1808,15 @@ async function generateShareLink(){
   try{
     const payload=JSON.stringify({p,h:[...taskDetailHidden],s:statsCollapsed,d:allDetailCollapsed});
     const encoded=await compressToBase64(payload);
-    const base=window.location.href.split('#')[0];
+    const base='https://chaiowei.github.io/jerry-gantt-chart/gantt_chart.html';
     const url=base+'#s='+encoded;
-    document.getElementById('shareLinkUrl').value=url;
-    const warn=document.getElementById('shareLinkWarn');
-    if(warn)warn.style.display=url.length>8000?'block':'none';
-    document.getElementById('shareLinkModal').classList.add('open');
+    document.getElementById('shareUrl').value=url;
+    const warn=document.getElementById('shareWarn');
+    if(warn)warn.style.display=url.length>4000?'block':'none';
+    document.getElementById('shareLoading').style.display='none';
+    document.getElementById('shareActions').style.display='none';
+    document.getElementById('shareResult').style.display='block';
+    document.getElementById('shareModal').classList.add('open');
   }catch(e){alert('產生分享連結失敗：'+e.message);}
 }
 
