@@ -316,31 +316,25 @@ body{display:flex;flex-direction:column;overflow:hidden}
 
 /* ── Gantt container ── */
 .gc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;flex:1}
-.gantt-head-row{display:flex;flex-shrink:0;border-bottom:2px solid rgba(0,0,0,.12)}
-.gantt-head-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:#F3F4F6}
-.gantt-head-right{flex:1;overflow:hidden;background:#F3F4F6}
-.gantt-body-row{display:flex;flex:1;overflow:hidden}
-.gantt-body-left{flex-shrink:0;overflow:hidden;border-right:2px solid rgba(0,0,0,.18);background:var(--surf)}
-.gantt-body-right{flex:1;overflow:auto}
-.gantt-table-head-left,.gantt-table-body-left{border-collapse:collapse;width:100%}
-.gantt-table-head-right,.gantt-table-body-right{border-collapse:collapse}
-.gantt-table-head-left th,.gantt-table-head-right th{background:#F3F4F6;font-size:10px;font-weight:600;padding:5px 8px;border-bottom:1px solid rgba(0,0,0,.08);white-space:nowrap;text-transform:uppercase;letter-spacing:.4px}
-.gantt-table-head-right th.dc{text-align:center;padding:4px 1px;min-width:28px;width:28px;font-size:9px;font-weight:500}
-.lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle}
+.gantt-outer{flex:1;overflow:auto;position:relative}
+.gantt-main-table{border-collapse:collapse;position:relative}
+.gantt-main-table thead th{background:#F3F4F6;font-size:10px;font-weight:600;padding:5px 8px;border-bottom:1px solid rgba(0,0,0,.08);white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:2}
+.gantt-main-table thead th.dc{text-align:center;padding:4px 1px;min-width:28px;width:28px;font-size:9px;font-weight:500}
+.lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:sticky;top:0;left:0;z-index:4;min-width:220px;width:220px}
 .mo-0{background:#EEF2FF;color:#3730A3}.mo-1{background:#F0FDF4;color:#166534}.mo-2{background:#FEF9C3;color:#854D0E}.mo-3{background:#FFF1F2;color:#9F1239}.mo-4{background:#ECFEFF;color:#155E75}.mo-5{background:#FFF7ED;color:#9A3412}.mo-6{background:#F5F3FF;color:#5B21B6}.mo-7{background:#FAFAFA;color:#374151}.mo-8{background:#F0FDFA;color:#115E59}.mo-9{background:#FDF2F8;color:#831843}.mo-10{background:#FFFBEB;color:#78350F}.mo-11{background:#EFF6FF;color:#1E40AF}
 
 /* ── Table body rows ── */
-.gantt-table-body-left tbody tr,.gantt-table-body-right tbody tr{height:62px}
-.gantt-table-body-left tbody tr.compact,.gantt-table-body-right tbody tr.compact{height:34px}
-.gantt-table-body-left tbody tr.compact .bw,.gantt-table-body-right tbody tr.compact .bw{height:34px}
-.gantt-table-body-left tbody td,.gantt-table-body-right tbody td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
-.gantt-table-body-left tbody tr:last-child td,.gantt-table-body-right tbody tr:last-child td{border-bottom:none}
+.gantt-main-table tbody tr{height:62px}
+.gantt-main-table tbody tr.compact{height:34px}
+.gantt-main-table tbody tr.compact .bw{height:34px}
+.gantt-main-table tbody td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
+.gantt-main-table tbody tr:last-child td{border-bottom:none}
 
 /* ── Task name cell ── */
-.nc{padding:7px 12px;background:#fff;vertical-align:middle}
+.nc{padding:7px 12px;background:#fff;vertical-align:middle;position:sticky;left:0;z-index:1;min-width:220px;width:220px}
 .nc.critical-task{border-left:3px solid #DC2626}
-.gantt-table-body-left tbody tr:hover .nc{background:#F0F4FF}
-.gantt-table-body-right tbody tr:hover td{background:rgba(79,107,237,.025)}
+.gantt-main-table tbody tr:hover .nc{background:#F0F4FF}
+.gantt-main-table tbody tr:hover td{background:rgba(79,107,237,.025)}
 .ni{display:flex;align-items:flex-start;gap:7px}
 .nt{flex:1;min-width:0}
 .nn{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
@@ -384,7 +378,10 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .dep-dot{width:7px;height:7px;border-radius:50%;background:#9CA3AF;flex-shrink:0;transition:background .15s}
 .dep-dot.has{background:#4F6BED}
 /* ── Active view mode button ── */
-.active-view{background:rgba(255,255,255,.28)!important;color:#fff!important;border-color:rgba(255,255,255,.4)!important}`;
+.active-view{background:rgba(255,255,255,.28)!important;color:#fff!important;border-color:rgba(255,255,255,.4)!important}
+/* ── Column resizer ── */
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;background:transparent}
+.col-resizer:hover,.col-resizer.dragging{background:#4F6BED;opacity:.4}`;
 
   const js = `
 var PROJ = ${projJson};
@@ -394,6 +391,7 @@ var taskDetailHidden = new Set(DETAIL_HIDDEN_INIT);
 var allDetailCollapsed = DETAIL_HIDDEN_INIT.length > 0;
 var statsCollapsed = STATS_COLLAPSED_INIT;
 var viewMode = 'day';
+var _nameW = 220;
 
 var today = new Date(); today.setHours(0,0,0,0);
 var BASE_DATE = new Date(2000,0,1);
@@ -498,14 +496,9 @@ function rowHover(id,on){
   });
 }
 
-// ── Scroll sync ──
-function syncScroll(el){
-  document.getElementById('gHR').scrollLeft=el.scrollLeft;
-  document.getElementById('gBL').scrollTop=el.scrollTop;
-}
-function syncScrollLeft(el){
-  document.getElementById('gBR').scrollTop=el.scrollTop;
-}
+// ── Scroll sync (no-op: single-table sticky layout handles scroll natively) ──
+function syncScroll(el){}
+function syncScrollLeft(el){}
 
 // ── Main render ──
 function render(){
@@ -514,8 +507,8 @@ function render(){
   var cpm=computeCPM(tasks);
 
   if(!tasks.length){
-    document.getElementById('gbL').innerHTML='<tr><td style="padding:20px;color:#9CA3AF">無任務</td></tr>';
-    document.getElementById('gbR').innerHTML='';
+    document.getElementById('ghMain').innerHTML='';
+    document.getElementById('gbMain').innerHTML='<tr><td style="padding:20px;color:#9CA3AF">無任務</td></tr>';
     return;
   }
 
@@ -535,25 +528,22 @@ function render(){
     else mg[mg.length-1].count++;
   }
 
-  // Left header
-  document.getElementById('ghL').innerHTML='<tr><th class="lth" rowspan="2">任務</th></tr><tr></tr>';
-
-  // Right header — mirrors editor viewMode logic
-  var rH='<tr>';
+  // Single table header — row1: sticky task-name th (rowspan=2) + month groups; row2: day numbers
+  var hH='<tr><th class="lth" rowspan="2">任務<div class="col-resizer" id="colResizer"></div></th>';
   mg.forEach(function(g){
     var moStyle=getMoStyle(g.m);
-    rH+='<th colspan="'+g.count+'" style="text-align:center;font-size:11px;font-weight:700;padding:5px 4px;border-bottom:1px solid rgba(0,0,0,.08);border-right:2px solid rgba(0,0,0,.2);'+moStyle+';min-width:'+(g.count*COL_W)+'px">'+MN[g.m]+'</th>';
+    hH+='<th colspan="'+g.count+'" style="text-align:center;font-size:11px;font-weight:700;padding:5px 4px;border-bottom:1px solid rgba(0,0,0,.08);border-right:2px solid rgba(0,0,0,.2);'+moStyle+';min-width:'+(g.count*COL_W)+'px">'+MN[g.m]+'</th>';
   });
-  rH+='</tr><tr>';
+  hH+='</tr><tr>';
   if(viewMode==='month'){
     for(var i=0;i<days;i++){
       var d=addD(vs,i);
       var isLast=addD(d,1).getDate()===1;
       var moStyle=getMoStyle(d.getMonth());
       if(isLast||i===0){
-        rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+moStyle+(isLast?';border-right:2px solid rgba(0,0,0,.2)':'')+'">w'+Math.ceil(d.getDate()/7)+'</th>';
+        hH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+moStyle+(isLast?';border-right:2px solid rgba(0,0,0,.2)':'')+'">w'+Math.ceil(d.getDate()/7)+'</th>';
       }else{
-        rH+='<th class="dc" style="min-width:'+COL_W+'px;width:'+COL_W+'px;padding:0;border:none;font-size:0"></th>';
+        hH+='<th class="dc" style="min-width:'+COL_W+'px;width:'+COL_W+'px;padding:0;border:none;font-size:0"></th>';
       }
     }
   }else if(viewMode==='week'){
@@ -565,10 +555,9 @@ function render(){
       var wkStyle=isWk&&!isT?'background:rgba(0,0,0,.04);color:#9CA3AF':'';
       var brd=isLast?'border-right:2px solid rgba(0,0,0,.2)':'';
       var label=(d.getDay()===1||i===0)?d.getDate():'';
-      rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+label+'</th>';
+      hH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+label+'</th>';
     }
   }else{
-    // day view
     for(var i=0;i<days;i++){
       var d=addD(vs,i);
       var isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
@@ -576,18 +565,14 @@ function render(){
       var todayStyle=isT?'background:rgba(79,107,237,.18);color:#3451C7;font-weight:700':'';
       var wkStyle=isWk&&!isT?'background:rgba(0,0,0,.04);color:#9CA3AF':'';
       var brd=isLast?'border-right:2px solid rgba(0,0,0,.2)':'';
-      rH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+d.getDate()+'</th>';
+      hH+='<th class="dc" style="font-size:9px;padding:4px 1px;min-width:'+COL_W+'px;width:'+COL_W+'px;'+(todayStyle||wkStyle)+';'+brd+'">'+d.getDate()+'</th>';
     }
   }
-  rH+='</tr>';
-  document.getElementById('ghR').innerHTML=rH;
+  hH+='</tr>';
+  document.getElementById('ghMain').innerHTML=hH;
 
-  // Sync left column width
-  var leftW=document.getElementById('gHL').querySelector('table').offsetWidth;
-  document.getElementById('gBL').querySelector('table').style.width=leftW+'px';
-
-  // Body
-  var lB='',rB='';
+  // Body — single table, nc cell sticky-left then bar cells
+  var tB='';
   tasks.forEach(function(t){
     var ts2=parseD(t.start),te2=parseD(t.end);
     var so=Math.round((ts2-vs)/86400000),eo=Math.round((te2-vs)/86400000);
@@ -611,34 +596,34 @@ function render(){
     var critBadge=isCritical?'<span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:9px">關鍵</span>':'';
     var critDot=isCritical?'<span style="font-size:8px;color:#DC2626;vertical-align:middle;margin-right:2px">●</span>':'';
 
-    lB+='<tr data-id="'+t.id+'" class="'+compactClass.trim()+'" onmouseenter="rowHover('+t.id+',true)" onmouseleave="rowHover('+t.id+',false)">';
-    lB+='<td class="nc'+critClass+'" style="padding-left:'+paddingLeft+'px">';
-    lB+='<div class="ni">';
-    if(isGroup){lB+='<span class="group-toggle" onclick="event.stopPropagation();toggleGroupCollapse('+t.id+')" title="'+(t.collapsed?'展開':'摺疊')+'">'+(t.collapsed?'▶':'▼')+'</span>';}
-    lB+='<div class="nt">';
-    lB+='<div class="nn" style="color:'+(isMilestone?'#7C3AED':bg)+';font-weight:'+(isCritical||isGroup?'700':'500')+'">'+(isMilestone?'◆ ':'')+critDot+t.name+(isGroup?' ('+childCount+')':'')+'</div>';
-    lB+='<div class="nm'+(detailHidden?' nm-hidden':'')+'">';
-    lB+='<span class="day-chip">'+(isMilestone?'里程碑':dc+'天')+'</span>';
-    if(meta)lB+='<span>'+meta+'</span>';
-    lB+='</div>';
-    lB+='</div>';
-    lB+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
-    lB+='<div class="dep-dot'+(hasDep?' has':'')+'" title="'+(hasDep?'有前置任務':'')+'"></div>';
-    lB+=critBadge+floatInfo;
-    lB+='<span class="badge '+SC[t.status]+'">'+SL[t.status]+'</span>';
-    lB+='<button class="detail-tog" onclick="toggleTaskDetail('+t.id+',event)" title="'+(detailHidden?'展開詳情':'收合詳情')+'">'+(detailHidden?'▶':'▽')+'</button>';
-    lB+='</div>';
-    lB+='</div></td></tr>';
-
-    rB+='<tr data-id="'+t.id+'" class="'+compactClass.trim()+'" onmouseenter="rowHover('+t.id+',true)" onmouseleave="rowHover('+t.id+',false)">';
+    tB+='<tr data-id="'+t.id+'" class="'+compactClass.trim()+'" onmouseenter="rowHover('+t.id+',true)" onmouseleave="rowHover('+t.id+',false)">';
+    // Task name cell (sticky left)
+    tB+='<td class="nc'+critClass+'" style="padding-left:'+paddingLeft+'px">';
+    tB+='<div class="ni">';
+    if(isGroup){tB+='<span class="group-toggle" onclick="event.stopPropagation();toggleGroupCollapse('+t.id+')" title="'+(t.collapsed?'展開':'摺疊')+'">'+(t.collapsed?'▶':'▼')+'</span>';}
+    tB+='<div class="nt">';
+    tB+='<div class="nn" style="color:'+(isMilestone?'#7C3AED':bg)+';font-weight:'+(isCritical||isGroup?'700':'500')+'">'+(isMilestone?'◆ ':'')+critDot+t.name+(isGroup?' ('+childCount+')':'')+'</div>';
+    tB+='<div class="nm'+(detailHidden?' nm-hidden':'')+'">';
+    tB+='<span class="day-chip">'+(isMilestone?'里程碑':dc+'天')+'</span>';
+    if(meta)tB+='<span>'+meta+'</span>';
+    tB+='</div>';
+    tB+='</div>';
+    tB+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
+    tB+='<div class="dep-dot'+(hasDep?' has':'')+'" title="'+(hasDep?'有前置任務':'')+'"></div>';
+    tB+=critBadge+floatInfo;
+    tB+='<span class="badge '+SC[t.status]+'">'+SL[t.status]+'</span>';
+    tB+='<button class="detail-tog" onclick="toggleTaskDetail('+t.id+',event)" title="'+(detailHidden?'展開詳情':'收合詳情')+'">'+(detailHidden?'▶':'▽')+'</button>';
+    tB+='</div>';
+    tB+='</div></td>';
+    // Bar cells
     for(var i=0;i<days;i++){
       var d=addD(vs,i);
       var isT=d.getTime()===today.getTime(),isWk=d.getDay()===0||d.getDay()===6;
       var isLast=addD(d,1).getDate()===1;
       var bkSty=isT?'background:rgba(79,107,237,.06)':(isWk?'background:rgba(0,0,0,.02)':'');
       var brd=isLast?';border-right:2px solid rgba(0,0,0,.12)':'';
-      rB+='<td class="bc" style="'+bkSty+brd+';width:'+COL_W+'px;min-width:'+COL_W+'px">';
-      if(isT)rB+='<div class="tl" style="background:#4F6BED"></div>';
+      tB+='<td class="bc" style="'+bkSty+brd+';width:'+COL_W+'px;min-width:'+COL_W+'px">';
+      if(isT)tB+='<div class="tl" style="background:#4F6BED"></div>';
       if(vis&&i===cs){
         var span=ce-cs+1;
         var barW=isMilestone?26:span*COL_W-4;
@@ -647,21 +632,19 @@ function render(){
         var innerText='';
         if(!isMilestone&&span>=3)innerText=''+t.pct+'% <span class="bd2">'+fmt(t.start)+'–'+fmt(t.end)+'</span>';
         else if(!isMilestone&&span===2)innerText=''+t.pct+'%';
-        rB+='<div class="bw"><div class="bar'+critBarClass+msBarClass+'" style="left:2px;width:'+barW+'px;background:'+bg+'">';
-        rB+='<div class="bp2" style="width:'+t.pct+'%"></div>';
-        rB+='<span class="bl2">'+innerText+'</span>';
-        rB+='</div></div>';
+        tB+='<div class="bw"><div class="bar'+critBarClass+msBarClass+'" style="left:2px;width:'+barW+'px;background:'+bg+'">';
+        tB+='<div class="bp2" style="width:'+t.pct+'%"></div>';
+        tB+='<span class="bl2">'+innerText+'</span>';
+        tB+='</div></div>';
       }
-      rB+='</td>';
+      tB+='</td>';
     }
-    rB+='</tr>';
+    tB+='</tr>';
   });
 
-  document.getElementById('gbL').innerHTML=lB;
-  document.getElementById('gbR').innerHTML=rB;
+  document.getElementById('gbMain').innerHTML=tB;
 
-  // Dependency arrows SVG
-  var wrap=document.getElementById('gBR');
+  // Dependency arrows SVG — positioned inside single table, offset by name column width
   var totalW=days*COL_W,totalH=0;
   var rowYMap={};
   tasks.forEach(function(t){
@@ -670,7 +653,7 @@ function render(){
   });
   var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('width',totalW);svg.setAttribute('height',totalH);
-  svg.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:4;overflow:visible';
+  svg.style.cssText='position:absolute;top:52px;left:'+_nameW+'px;pointer-events:none;z-index:3;overflow:visible';
   var mid='da'+Date.now();
   svg.innerHTML='<defs><marker id="'+mid+'" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6B7280"/></marker></defs>';
   tasks.forEach(function(t){
@@ -695,8 +678,43 @@ function render(){
       svg.appendChild(path);
     });
   });
-  var tbl=wrap.querySelector('table');
+  var tbl=document.querySelector('.gantt-main-table');
   if(tbl){tbl.style.position='relative';var oldSvg=tbl.querySelector('svg');if(oldSvg)oldSvg.remove();tbl.appendChild(svg);}
+  initColResizer();
+}
+
+function applyColW(w){
+  _nameW=Math.max(120,Math.min(500,w));
+  var W=_nameW+'px';
+  document.querySelectorAll('.lth,.nc').forEach(function(c){c.style.width=W;c.style.minWidth=W;});
+  // Update SVG left offset to match name column width
+  var svg=document.querySelector('.gantt-main-table>svg');
+  if(svg)svg.style.left=W;
+}
+
+function initColResizer(){
+  var el=document.getElementById('colResizer');if(!el)return;
+  el.replaceWith(el.cloneNode(true));
+  var el2=document.getElementById('colResizer');if(!el2)return;
+  var startX=0,startW=0;
+  el2.addEventListener('mousedown',function(e){
+    startX=e.clientX;
+    var lth=document.querySelector('.lth');
+    startW=lth?lth.offsetWidth:_nameW;
+    el2.classList.add('dragging');
+    document.body.style.cursor='col-resize';
+    document.body.style.userSelect='none';
+    e.preventDefault();
+    document.addEventListener('mousemove',onDrag);
+    document.addEventListener('mouseup',onUp,{once:true});
+  });
+  function onDrag(e){applyColW(startW+(e.clientX-startX));}
+  function onUp(){
+    document.body.style.cursor='';
+    document.body.style.userSelect='';
+    var r=document.getElementById('colResizer');if(r)r.classList.remove('dragging');
+    document.removeEventListener('mousemove',onDrag);
+  }
 }
 
 // ── Stats render ──
@@ -755,23 +773,43 @@ function drawGanttCanvas(){
   cx.fillStyle='#fff';cx.font='600 18px "DM Sans",sans-serif';cx.textBaseline='middle';
   cx.fillText(PROJ.name,PAD+40,TITLE_H/2-6);
   cx.font='400 11px "DM Sans",sans-serif';cx.fillStyle='rgba(255,255,255,.55)';
-  cx.fillText(tasks.length+' 個任務 | '+minS2+' 至 '+maxE2+' | 生成日期：'+today_s,PAD+40,TITLE_H/2+10);
+  cx.fillText(tasks.length+' 個任務 ｜ '+minS2+' 至 '+maxE2+' ｜ 生成日期：'+today_s,PAD+40,TITLE_H/2+10);
   cx.fillStyle=PROJ.color||'#4F6BED';cx.beginPath();cx.arc(PAD+12,TITLE_H/2,8,0,Math.PI*2);cx.fill();
+  // Two-row header: row1=month groups (colored), row2=day numbers
+  var HEAD1_H=24,HEAD2_H=28; // total HEAD_H=52, unchanged
+  var MO_BG_C=['#EEF2FF','#F0FDF4','#FEF9C3','#FFF1F2','#ECFEFF','#FFF7ED','#F5F3FF','#FAFAFA','#F0FDFA','#FDF2F8','#FFFBEB','#EFF6FF'];
+  var MO_COL_C=['#3730A3','#166534','#854D0E','#9F1239','#155E75','#9A3412','#5B21B6','#374151','#115E59','#831843','#78350F','#1E40AF'];
+  // Build month groups array for canvas
+  var cMG=[];
+  for(var gi=0;gi<days;gi++){var gd=addD(vs,gi),gm=gd.getMonth();if(!cMG.length||cMG[cMG.length-1].m!==gm)cMG.push({m:gm,start:gi,count:1});else cMG[cMG.length-1].count++;}
   cx.fillStyle='#F3F4F6';cx.fillRect(0,TITLE_H,W,HEAD_H);
   cx.fillStyle='#6B7280';cx.font='600 10px "DM Sans",sans-serif';cx.textBaseline='middle';
   cx.fillText('任務',PAD+12,TITLE_H+HEAD_H/2);
-  var prevMonth=-1;
+  // Row 1: per-month colored bands + month name
+  cMG.forEach(function(g){
+    var gx=X(g.start),gw=g.count*COL_W;
+    cx.fillStyle=MO_BG_C[g.m];cx.fillRect(gx,TITLE_H,gw,HEAD1_H);
+    cx.fillStyle=MO_COL_C[g.m];cx.font='700 10px "DM Sans",sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText((g.m+1)+'月',gx+gw/2,TITLE_H+HEAD1_H/2);cx.textAlign='left';
+    // Right-edge month divider line
+    cx.strokeStyle=MO_COL_C[g.m];cx.globalAlpha=0.4;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(gx+gw,TITLE_H);cx.lineTo(gx+gw,TITLE_H+HEAD_H);cx.stroke();
+    cx.globalAlpha=1;
+  });
+  // Row 2: day numbers with today/weekend highlighting
   for(var i=0;i<days;i++){
     var d2=addD(vs,i);var isT2=d2.getTime()===today.getTime();var isWk2=d2.getDay()===0||d2.getDay()===6;
     var x2=X(i);
-    if(isT2){cx.fillStyle='rgba(79,107,237,.15)';cx.fillRect(x2,TITLE_H,COL_W,HEAD_H);}
-    else if(isWk2){cx.fillStyle='rgba(0,0,0,.025)';cx.fillRect(x2,TITLE_H,COL_W,HEAD_H);}
-    var m2=d2.getMonth();var lbl='';
-    if(m2!==prevMonth){lbl=(m2+1)+'月';prevMonth=m2;}
-    else if(d2.getDay()===1||i===0)lbl=''+d2.getDate();
-    if(lbl){cx.fillStyle=isT2?'#4F6BED':'#6B7280';cx.font=(isT2?600:500)+' 9px "DM Mono",monospace';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(lbl,x2+COL_W/2,TITLE_H+HEAD_H/2);}
+    if(isT2){cx.fillStyle='rgba(79,107,237,.18)';cx.fillRect(x2,TITLE_H+HEAD1_H,COL_W,HEAD2_H);}
+    else if(isWk2){cx.fillStyle='rgba(0,0,0,.04)';cx.fillRect(x2,TITLE_H+HEAD1_H,COL_W,HEAD2_H);}
+    cx.fillStyle=isT2?'#3451C7':'#6B7280';cx.font=(isT2?'600':'400')+' 9px "DM Mono",monospace';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(d2.getDate()+'',x2+COL_W/2,TITLE_H+HEAD1_H+HEAD2_H/2);
   }
   cx.textAlign='left';
+  // Divider between month-name row and day-number row
+  cx.strokeStyle='rgba(0,0,0,.08)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(PAD+NAME_W,TITLE_H+HEAD1_H);cx.lineTo(W,TITLE_H+HEAD1_H);cx.stroke();
+  // Bottom of header
   cx.strokeStyle='#E5E7EB';cx.lineWidth=1;cx.beginPath();cx.moveTo(0,TITLE_H+HEAD_H);cx.lineTo(W,TITLE_H+HEAD_H);cx.stroke();
   var BC={done:{bg:'#D1FAE5',tx:'#065F46'},ongoing:{bg:'#E0E7FF',tx:'#3730A3'},pending:{bg:'#F3F4F6',tx:'#6B7280'},delayed:{bg:'#FEE2E2',tx:'#991B1B'}};
   tasks.forEach(function(t,ri){
@@ -827,6 +865,14 @@ function drawGanttCanvas(){
         if(showDate)barTxt+=(barTxt?' ':'')+fmt(t.start)+'–'+fmt(t.end);
         if(barTxt){cx.fillStyle='rgba(255,255,255,.95)';cx.font='600 10px "DM Sans",sans-serif';cx.textBaseline='middle';cx.fillText(trunc(cx,barTxt,bw3-12),bx3+8,barY+barH/2);}
       }
+    }
+  });
+  // Month separator vertical lines in body
+  cMG.forEach(function(g){
+    if(g.start>0){
+      var sepX=X(g.start);
+      cx.strokeStyle='rgba(0,0,0,.12)';cx.lineWidth=1;
+      cx.beginPath();cx.moveTo(sepX,TITLE_H+HEAD_H);cx.lineTo(sepX,TITLE_H+HEAD_H+totalTaskH);cx.stroke();
     }
   });
   if(todayOff>=0&&todayOff<days){
@@ -886,112 +932,4 @@ async function exportImg(format){
     }else{
       var jsPDF2=window.jspdf.jsPDF;
       var W2=canvas.width,H2=canvas.height,mmW=W2*0.264583,mmH=H2*0.264583;
-      var pdf=new jsPDF2({orientation:W2>H2?'landscape':'portrait',unit:'mm',format:[mmW,mmH]});
-      pdf.addImage(canvas.toDataURL('image/png',1.0),'PNG',0,0,mmW,mmH,undefined,'FAST');
-      pdf.save(PROJ.name+'_甘特圖.pdf');
-      document.getElementById('exportOverlay').classList.remove('open');
-    }
-  }catch(e){document.getElementById('exportOverlay').classList.remove('open');alert('匯出失敗：'+e.message);}
-}
-
-// ── Init ──
-window.addEventListener('load',function(){
-  // Header
-  document.getElementById('projDot').style.background=PROJ.color||'#4F6BED';
-  document.getElementById('projNameH').textContent=PROJ.name;
-  var cb=${createdByJson};
-  document.getElementById('projMeta').textContent='共 '+PROJ.tasks.length+' 個任務 · 分享於 ${createdAt}'+(cb?' · '+cb:'');
-  // Stats initial collapse state
-  if(STATS_COLLAPSED_INIT){
-    document.getElementById('statsBody').classList.add('closed');
-    document.getElementById('statsToggleBar').classList.add('closed');
-    document.getElementById('statsToggleLabel').textContent='統計資訊（已收合）';
-  }
-  // Collapse detail button
-  var btn=document.getElementById('btnCollapseDetail');
-  if(btn)btn.textContent=allDetailCollapsed?'☰ 展開詳情':'☰ 收合詳情';
-  renderStats();
-  render();
-});`;
-
-  const html = '<!DOCTYPE html>\n'
-    + '<html lang="zh-TW">\n<head>\n'
-    + '<meta charset="UTF-8">\n'
-    + '<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
-    + '<title>' + proj.name + ' — 甘特圖分享</title>\n'
-    + '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>\n'
-    + '<style>\n@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap\');\n'
-    + css + '\n</style>\n</head>\n<body>\n'
-
-    // Export overlay
-    + '<div id="exportOverlay"><div class="export-box"><div class="export-spinner"></div>'
-    + '<div style="font-size:14px;font-weight:500;color:#111">正在產生圖表...</div></div></div>\n'
-
-    // Topbar row1
-    + '<div class="topbar">\n'
-    + '<div class="topbar-row1">\n'
-    + '  <div class="tl-left">\n'
-    + '    <div class="pdot" id="projDot"></div>\n'
-    + '    <div class="proj-title" id="projNameH"></div>\n'
-    + '    <span class="proj-badge">🔒 唯讀模式</span>\n'
-    + '    <span class="pmeta" id="projMeta"></span>\n'
-    + '  </div>\n'
-    + '  <div class="tl-right">\n'
-    + '    <button class="btn g" onclick="exportImg(\'png\')">🖼️ PNG</button>\n'
-    + '    <button class="btn o" onclick="exportImg(\'pdf\')">📄 PDF</button>\n'
-    + '  </div>\n'
-    + '</div>\n'
-    // Topbar row2 (toolbar)
-    + '<div class="topbar-row2">\n'
-    + '  <button class="btn active-view" id="btnViewDay" onclick="setViewMode(\'day\')" title="日視圖">日視圖</button>\n'
-    + '  <button class="btn" id="btnViewWeek" onclick="setViewMode(\'week\')" title="週視圖">週視圖</button>\n'
-    + '  <button class="btn" id="btnViewMonth" onclick="setViewMode(\'month\')" title="月視圖">月視圖</button>\n'
-    + '  <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 4px"></div>\n'
-    + '  <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()">☰ 收合詳情</button>\n'
-    + '  <span style="font-size:11px;color:rgba(255,255,255,.4);margin-left:auto">分享 ID: ' + shareId + '</span>\n'
-    + '</div>\n'
-    + '</div>\n'
-
-    // Main content
-    + '<div class="main">\n'
-
-    // Stats panel
-    + '  <div class="stats-wrap">\n'
-    + '    <div class="stats-toggle-bar" id="statsToggleBar" onclick="toggleStatsPanel()">\n'
-    + '      <span class="sti" id="statsToggleIcon">▼</span>\n'
-    + '      <span id="statsToggleLabel">統計資訊</span>\n'
-    + '    </div>\n'
-    + '    <div class="stats-body" id="statsBody">\n'
-    + '      <div class="stats" id="statsGrid"></div>\n'
-    + '    </div>\n'
-    + '  </div>\n'
-
-    // Gantt chart
-    + '  <div class="gc">\n'
-    + '    <div class="gantt-head-row">\n'
-    + '      <div class="gantt-head-left" id="gHL" style="width:220px;min-width:220px">'
-    + '<table class="gantt-table-head-left"><thead id="ghL"></thead></table></div>\n'
-    + '      <div class="gantt-head-right" id="gHR" style="overflow:hidden">'
-    + '<table class="gantt-table-head-right"><thead id="ghR"></thead></table></div>\n'
-    + '    </div>\n'
-    + '    <div class="gantt-body-row">\n'
-    + '      <div class="gantt-body-left" id="gBL" style="width:220px;min-width:220px;overflow:hidden" onscroll="syncScrollLeft(this)">'
-    + '<table class="gantt-table-body-left"><tbody id="gbL"></tbody></table></div>\n'
-    + '      <div class="gantt-body-right" id="gBR" onscroll="syncScroll(this)" style="overflow:auto">'
-    + '<table class="gantt-table-body-right" style="position:relative"><tbody id="gbR"></tbody></table></div>\n'
-    + '    </div>\n'
-    + '    <div class="leg">\n'
-    + '      <div class="li"><div class="ld" style="background:#059669"></div>已完成</div>\n'
-    + '      <div class="li"><div class="ld" style="background:#4F6BED"></div>進行中</div>\n'
-    + '      <div class="li"><div class="ld" style="background:#9CA3AF"></div>待開始</div>\n'
-    + '      <div class="li"><div class="ld" style="background:#DC2626"></div>延遲</div>\n'
-    + '      <div class="li"><div class="ld" style="background:#DC2626;border-radius:50%"></div>關鍵路徑</div>\n'
-    + '      <div class="ln">唯讀分享</div>\n'
-    + '    </div>\n'
-    + '  </div>\n'
-    + '</div>\n'
-    + '<script>\n' + js + '\n<\/script>\n'
-    + '</body>\n</html>';
-
-  return html;
-}
+      var pdf=new jsPDF2({orientation:W2>H2?'landscape
