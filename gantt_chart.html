@@ -694,7 +694,7 @@ async function doCreateShare() {
   document.getElementById('shareActions').style.display = 'none';
   document.getElementById('shareLoading').style.display = 'block';
   try {
-    const res = await apiFetch('POST', null, { action:'createShare', username:currentUser.username, folderId:currentUser.folderId, projectId:p.id, projectData:p, shareType:'interactive' });
+    const res = await apiFetch('POST', null, { action:'createShare', username:currentUser.username, folderId:currentUser.folderId, projectId:p.id, projectData:p, shareType:'interactive', taskDetailHiddenIds:[...taskDetailHidden], statsCollapsed });
     document.getElementById('shareLoading').style.display = 'none';
     if (!res.ok) { toast('分享失敗：' + res.error); document.getElementById('shareActions').style.display='block'; return; }
     document.getElementById('shareUrl').value = res.shareUrl;
