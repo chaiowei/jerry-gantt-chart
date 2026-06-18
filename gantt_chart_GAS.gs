@@ -317,10 +317,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
 /* ── Gantt container ── */
 .gc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;flex:1}
 .gantt-outer{flex:1;overflow:auto;position:relative}
-.gantt-main-table{border-collapse:collapse;position:relative}
+/* border-separate+spacing:0 is required — border-collapse:collapse breaks position:sticky in Firefox/Safari */
+.gantt-main-table{border-collapse:separate;border-spacing:0;position:relative}
 .gantt-main-table thead th{background:#F3F4F6;font-size:10px;font-weight:600;padding:5px 8px;border-bottom:1px solid rgba(0,0,0,.08);white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:2}
 .gantt-main-table thead th.dc{text-align:center;padding:4px 1px;min-width:28px;width:28px;font-size:9px;font-weight:500}
-.lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:sticky;top:0;left:0;z-index:4;min-width:220px;width:220px}
+.lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:sticky;top:0;left:0;z-index:4;min-width:220px;width:220px;border-right:2px solid rgba(0,0,0,.18)}
 .mo-0{background:#EEF2FF;color:#3730A3}.mo-1{background:#F0FDF4;color:#166534}.mo-2{background:#FEF9C3;color:#854D0E}.mo-3{background:#FFF1F2;color:#9F1239}.mo-4{background:#ECFEFF;color:#155E75}.mo-5{background:#FFF7ED;color:#9A3412}.mo-6{background:#F5F3FF;color:#5B21B6}.mo-7{background:#FAFAFA;color:#374151}.mo-8{background:#F0FDFA;color:#115E59}.mo-9{background:#FDF2F8;color:#831843}.mo-10{background:#FFFBEB;color:#78350F}.mo-11{background:#EFF6FF;color:#1E40AF}
 
 /* ── Table body rows ── */
@@ -331,7 +332,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .gantt-main-table tbody tr:last-child td{border-bottom:none}
 
 /* ── Task name cell ── */
-.nc{padding:7px 12px;background:#fff;vertical-align:middle;position:sticky;left:0;z-index:1;min-width:220px;width:220px}
+.nc{padding:7px 12px;background:#fff;vertical-align:middle;position:sticky;left:0;z-index:1;min-width:220px;width:220px;border-right:2px solid rgba(0,0,0,.18)}
 .nc.critical-task{border-left:3px solid #DC2626}
 .gantt-main-table tbody tr:hover .nc{background:#F0F4FF}
 .gantt-main-table tbody tr:hover td{background:rgba(79,107,237,.025)}
@@ -653,7 +654,7 @@ function render(){
   });
   var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('width',totalW);svg.setAttribute('height',totalH);
-  svg.style.cssText='position:absolute;top:52px;left:'+_nameW+'px;pointer-events:none;z-index:3;overflow:visible';
+  svg.style.cssText='position:absolute;top:52px;left:'+_nameW+'px;pointer-events:none;z-index:0;overflow:visible';
   var mid='da'+Date.now();
   svg.innerHTML='<defs><marker id="'+mid+'" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6B7280"/></marker></defs>';
   tasks.forEach(function(t){
@@ -678,8 +679,9 @@ function render(){
       svg.appendChild(path);
     });
   });
-  var tbl=document.querySelector('.gantt-main-table');
-  if(tbl){tbl.style.position='relative';var oldSvg=tbl.querySelector('svg');if(oldSvg)oldSvg.remove();tbl.appendChild(svg);}
+  // Append SVG to gOuter (not table) — browsers may eject SVG from <table> per content model
+  var outerEl=document.getElementById('gOuter');
+  if(outerEl){var oldSvg=outerEl.querySelector(':scope>svg');if(oldSvg)oldSvg.remove();outerEl.appendChild(svg);}
   initColResizer();
 }
 
@@ -688,7 +690,7 @@ function applyColW(w){
   var W=_nameW+'px';
   document.querySelectorAll('.lth,.nc').forEach(function(c){c.style.width=W;c.style.minWidth=W;});
   // Update SVG left offset to match name column width
-  var svg=document.querySelector('.gantt-main-table>svg');
+  var svg=document.querySelector('#gOuter>svg');
   if(svg)svg.style.left=W;
 }
 
@@ -932,4 +934,102 @@ async function exportImg(format){
     }else{
       var jsPDF2=window.jspdf.jsPDF;
       var W2=canvas.width,H2=canvas.height,mmW=W2*0.264583,mmH=H2*0.264583;
-      var pdf=new jsPDF2({orientation:W2>H2?'landscape
+      var pdf=new jsPDF2({orientation:W2>H2?'landscape':'portrait',unit:'mm',format:[mmW,mmH]});
+      pdf.addImage(canvas.toDataURL('image/png',1.0),'PNG',0,0,mmW,mmH,undefined,'FAST');
+      pdf.save(PROJ.name+'_甘特圖.pdf');
+      document.getElementById('exportOverlay').classList.remove('open');
+    }
+  }catch(e){document.getElementById('exportOverlay').classList.remove('open');alert('匯出失敗：'+e.message);}
+}
+
+// ── Init ──
+window.addEventListener('load',function(){
+  // Header
+  document.getElementById('projDot').style.background=PROJ.color||'#4F6BED';
+  document.getElementById('projNameH').textContent=PROJ.name;
+  var cb=${createdByJson};
+  document.getElementById('projMeta').textContent='共 '+PROJ.tasks.length+' 個任務 · 分享於 ${createdAt}'+(cb?' · '+cb:'');
+  // Stats initial collapse state
+  if(STATS_COLLAPSED_INIT){
+    document.getElementById('statsBody').classList.add('closed');
+    document.getElementById('statsToggleBar').classList.add('closed');
+    document.getElementById('statsToggleLabel').textContent='統計資訊（已收合）';
+  }
+  // Collapse detail button
+  var btn=document.getElementById('btnCollapseDetail');
+  if(btn)btn.textContent=allDetailCollapsed?'☰ 展開詳情':'☰ 收合詳情';
+  renderStats();
+  render();
+});`;
+
+  const html = '<!DOCTYPE html>\n'
+    + '<html lang="zh-TW">\n<head>\n'
+    + '<meta charset="UTF-8">\n'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
+    + '<title>' + proj.name + ' — 甘特圖分享</title>\n'
+    + '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>\n'
+    + '<style>\n@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap\');\n'
+    + css + '\n</style>\n</head>\n<body>\n'
+
+    // Export overlay
+    + '<div id="exportOverlay"><div class="export-box"><div class="export-spinner"></div>'
+    + '<div style="font-size:14px;font-weight:500;color:#111">正在產生圖表...</div></div></div>\n'
+
+    // Topbar row1
+    + '<div class="topbar">\n'
+    + '<div class="topbar-row1">\n'
+    + '  <div class="tl-left">\n'
+    + '    <div class="pdot" id="projDot"></div>\n'
+    + '    <div class="proj-title" id="projNameH"></div>\n'
+    + '    <span class="proj-badge">🔒 唯讀模式</span>\n'
+    + '    <span class="pmeta" id="projMeta"></span>\n'
+    + '  </div>\n'
+    + '  <div class="tl-right">\n'
+    + '    <button class="btn g" onclick="exportImg(\'png\')">🖼️ PNG</button>\n'
+    + '    <button class="btn o" onclick="exportImg(\'pdf\')">📄 PDF</button>\n'
+    + '  </div>\n'
+    + '</div>\n'
+    // Topbar row2 (toolbar)
+    + '<div class="topbar-row2">\n'
+    + '  <button class="btn active-view" id="btnViewDay" onclick="setViewMode(\'day\')" title="日視圖">日視圖</button>\n'
+    + '  <button class="btn" id="btnViewWeek" onclick="setViewMode(\'week\')" title="週視圖">週視圖</button>\n'
+    + '  <button class="btn" id="btnViewMonth" onclick="setViewMode(\'month\')" title="月視圖">月視圖</button>\n'
+    + '  <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 4px"></div>\n'
+    + '  <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()">☰ 收合詳情</button>\n'
+    + '  <span style="font-size:11px;color:rgba(255,255,255,.4);margin-left:auto">分享 ID: ' + shareId + '</span>\n'
+    + '</div>\n'
+    + '</div>\n'
+
+    // Main content
+    + '<div class="main">\n'
+
+    // Stats panel
+    + '  <div class="stats-wrap">\n'
+    + '    <div class="stats-toggle-bar" id="statsToggleBar" onclick="toggleStatsPanel()">\n'
+    + '      <span class="sti" id="statsToggleIcon">▼</span>\n'
+    + '      <span id="statsToggleLabel">統計資訊</span>\n'
+    + '    </div>\n'
+    + '    <div class="stats-body" id="statsBody">\n'
+    + '      <div class="stats" id="statsGrid"></div>\n'
+    + '    </div>\n'
+    + '  </div>\n'
+
+    // Gantt chart
+    + '  <div class="gc">\n'
+    + '    <div class="gantt-outer" id="gOuter">'
+    + '<table class="gantt-main-table"><thead id="ghMain"></thead><tbody id="gbMain"></tbody></table></div>\n'
+    + '    <div class="leg">\n'
+    + '      <div class="li"><div class="ld" style="background:#059669"></div>已完成</div>\n'
+    + '      <div class="li"><div class="ld" style="background:#4F6BED"></div>進行中</div>\n'
+    + '      <div class="li"><div class="ld" style="background:#9CA3AF"></div>待開始</div>\n'
+    + '      <div class="li"><div class="ld" style="background:#DC2626"></div>延遲</div>\n'
+    + '      <div class="li"><div class="ld" style="background:#DC2626;border-radius:50%"></div>關鍵路徑</div>\n'
+    + '      <div class="ln">唯讀分享</div>\n'
+    + '    </div>\n'
+    + '  </div>\n'
+    + '</div>\n'
+    + '<script>\n' + js + '\n<\/script>\n'
+    + '</body>\n</html>';
+
+  return html;
+}
