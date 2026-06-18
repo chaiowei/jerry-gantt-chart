@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>專案甘特圖管理</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -228,15 +229,18 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 /* ── Share mode: hide edit-only controls ── */
 body.share-mode #topPrimaryActions{display:none!important}
 body.share-mode [onclick*="openImport"]{display:none!important}
-body.share-mode [onclick*="exportExcel"]{display:none!important}
 body.share-mode [onclick*="saveBaseline"]{display:none!important}
 body.share-mode [onclick*="exportProjectJSON"]{display:none!important}
 body.share-mode [onclick*="jsonFileInput"]{display:none!important}
 body.share-mode [onclick*="openShareModal"]{display:none!important}
+body.share-mode [onclick*="generateShareLink"]{display:none!important}
 body.share-mode .sb-new-btn{display:none!important}
 body.share-mode .sb-footer{display:none!important}
 body.share-mode #loginModal{display:none!important}
 body.share-mode .bar-resize-left,body.share-mode .bar-resize-right{display:none!important;pointer-events:none!important}
+body.share-mode .bar-move-cursor{pointer-events:none!important;cursor:default!important}
+body.share-mode .nc{cursor:default!important}
+body.share-mode .dh{display:none!important}
 body.share-mode .share-mode-badge{display:inline-flex!important}
 .share-mode-badge{display:none;align-items:center;padding:3px 10px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:20px;font-size:11px;font-weight:600;gap:5px}
 </style>
@@ -1363,6 +1367,7 @@ function barResizeStart(e, id, mode) {
 }
 
 function initBarDrag() {
+  if(window.SHARE_MODE) return;
   document.querySelectorAll('.bar.bar-move-cursor').forEach(el => {
     el.addEventListener('mousedown', function(e) {
       if (e.target.classList.contains('bar-resize-left') || e.target.classList.contains('bar-resize-right')) return;
@@ -1834,10 +1839,11 @@ function applyShareModeUI(){
    'confirmDeleteProject','toggleBulkMode','openImport','importProjectJSON',
    'exportProjectJSON','openShareModal','newProject','saveBaseline','openLoginModal',
    'checkLogin','barClick'].forEach(fn=>{window[fn]=()=>{};});
-  // Disable bar resize & row drag
+  // Disable bar resize, move & row drag
   window.barResizeStart=()=>{};
   window.dStart=()=>{};window.dOver=e=>e.preventDefault();
   window.dDrop=()=>{};window.dEnd=()=>{};
+  window.onBarDragMove=()=>{};window.onBarDragEnd=()=>{};
   // Make project name truly readonly
   const ti=document.getElementById('projTitleInput');
   if(ti){ti.readOnly=true;ti.style.pointerEvents='none';ti.style.cursor='default';}
@@ -2126,16 +2132,163 @@ document.getElementById('mp').addEventListener('input',function(){document.getEl
 // ═══════════════════════
 // EXCEL IMPORT / EXPORT
 // ═══════════════════════
-function exportExcel(){
-  const p=activeProj();if(!p)return;
-  const rows=[['任務名稱','負責人','開始日期','結束日期','天數','狀態','完成度%','前置任務','Bar顏色','備註']];
-  p.tasks.forEach(t=>{
-    const depIds=getDepIds(t.deps||[]);
-    const dn=depIds.map(id=>p.tasks.find(x=>x.id===id)?.name||'').filter(Boolean).join('、');
-    rows.push([t.name,t.owner||'',t.start,t.end,dayCount(t.start,t.end),SL[t.status],t.pct,dn,t.color||'',t.note||'']);
+async function exportExcel(){
+  const p=activeProj();if(!p||!p.tasks.length){alert('沒有任務可匯出');return;}
+  const tasks=p.tasks;
+
+  // ── Date range across all tasks ──
+  const minDs=tasks.reduce((m,t)=>t.start<m?t.start:m,tasks[0].start);
+  const maxDs=tasks.reduce((m,t)=>t.end>m?t.end:m,tasks[0].end);
+  const vs=parseD(minDs), ve=parseD(maxDs);
+  const totalDays=Math.round((ve-vs)/86400000)+1;
+  const dates=[];
+  for(let i=0;i<totalDays;i++) dates.push(addD(vs,i));
+
+  // ── Month groupings for header row ──
+  const monthGroups=[];
+  dates.forEach((d,i)=>{
+    const mk=d.getFullYear()*100+d.getMonth();
+    if(!monthGroups.length||monthGroups[monthGroups.length-1].key!==mk)
+      monthGroups.push({key:mk,month:d.getMonth(),startIdx:i,count:1});
+    else monthGroups[monthGroups.length-1].count++;
   });
-  const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:20},{wch:10},{wch:12},{wch:12},{wch:6},{wch:10},{wch:8},{wch:20},{wch:10},{wch:20}];
-  XLSX.utils.book_append_sheet(wb,ws,'甘特圖');XLSX.writeFile(wb,(p.name||'gantt')+'_export.xlsx');
+  const MN_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  // Column helper: column number → Excel letter(s)
+  const colLtr=n=>{let s='',c=n;while(c>0){s=String.fromCharCode(65+(c-1)%26)+s;c=Math.floor((c-1)/26);}return s;};
+
+  // Layout: row1=title, row2=months, row3=day#s, row4+=tasks
+  // Cols: A(1)=empty, B(2)=No., C(3)=任務名稱, D(4)=負責人, E(5)=DAYS, F(6)+= dates
+  const FC=5; // fixed cols count
+  const TASK_ROW_START=4;
+
+  const wb=new ExcelJS.Workbook();
+  wb.creator='甘特圖'; wb.created=new Date();
+  const ws=wb.addWorksheet('施工排程表');
+
+  // Column widths
+  ws.getColumn(1).width=3;
+  ws.getColumn(2).width=5;
+  ws.getColumn(3).width=42;
+  ws.getColumn(4).width=12;
+  ws.getColumn(5).width=5;
+  for(let i=0;i<totalDays;i++) ws.getColumn(FC+1+i).width=2.8;
+
+  // ── Row 1: Project title ──
+  ws.getRow(1).height=18;
+  const tCell=ws.getCell(1,3); tCell.value=p.name||'施工排程表';
+  tCell.font={bold:true,size:12}; tCell.alignment={vertical:'middle'};
+
+  // ── Row 2: Month headers ──
+  ws.getRow(2).height=15;
+  // header fill for fixed cols
+  [2,3,4,5].forEach(c=>{
+    const cell=ws.getCell(2,c);
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD6E4BC'}};
+    cell.border={bottom:{style:'medium'},right:{style:'thin'}};
+  });
+  ws.getCell(2,3).value='任務名稱'; ws.getCell(2,3).font={bold:true,size:9}; ws.getCell(2,3).alignment={vertical:'middle'};
+  ws.getCell(2,4).value='負責人';  ws.getCell(2,4).font={bold:true,size:9}; ws.getCell(2,4).alignment={vertical:'middle'};
+  ws.getCell(2,5).value='DAYS';    ws.getCell(2,5).font={bold:true,size:9}; ws.getCell(2,5).alignment={horizontal:'center',vertical:'middle'};
+  ws.getCell(2,5).border={bottom:{style:'medium'},right:{style:'medium'}};
+
+  monthGroups.forEach(g=>{
+    const startC=FC+1+g.startIdx, endC=startC+g.count-1;
+    const cell=ws.getCell(2,startC);
+    cell.value=MN_EN[g.month];
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.font={bold:true,size:9};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD6E4BC'}};
+    cell.border={bottom:{style:'medium'},right:{style:'medium'}};
+    if(g.count>1) ws.mergeCells(2,startC,2,endC);
+  });
+
+  // ── Row 3: Day number headers ──
+  ws.getRow(3).height=13;
+  ws.getCell(3,2).value='No.'; ws.getCell(3,2).alignment={horizontal:'center',vertical:'middle'}; ws.getCell(3,2).font={bold:true,size:9};
+  ws.getCell(3,2).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE2EFDA'}};
+  ws.getCell(3,2).border={bottom:{style:'medium'},right:{style:'thin'}};
+  [3,4].forEach(c=>{
+    ws.getCell(3,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE2EFDA'}};
+    ws.getCell(3,c).border={bottom:{style:'medium'},right:{style:'thin'}};
+  });
+  ws.getCell(3,5).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE2EFDA'}};
+  ws.getCell(3,5).border={bottom:{style:'medium'},right:{style:'medium'}};
+
+  dates.forEach((d,i)=>{
+    const c=FC+1+i;
+    const cell=ws.getCell(3,c);
+    cell.value=d.getDate();
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.font={size:7};
+    const isWk=d.getDay()===0||d.getDay()===6;
+    const isLastOfMo=addD(d,1).getDate()===1;
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:isWk?'FFBFBFBF':'FFE2EFDA'}};
+    cell.border={bottom:{style:'medium'},right:isLastOfMo?{style:'medium'}:{style:'hair'}};
+  });
+
+  // ── Rows 4+: Task rows ──
+  const barFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0070C0'}};
+  const emptyFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
+  const wkFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}};
+
+  const firstDateCol=colLtr(FC+1), lastDateCol=colLtr(FC+totalDays);
+
+  tasks.forEach((t,ri)=>{
+    const rn=TASK_ROW_START+ri;
+    ws.getRow(rn).height=13;
+    const ts=parseD(t.start), te=parseD(t.end);
+
+    // No.
+    const cNo=ws.getCell(rn,2);
+    cNo.value=ri+1; cNo.alignment={horizontal:'center',vertical:'middle'}; cNo.font={size:9};
+    cNo.border={right:{style:'thin'},bottom:{style:'hair'}};
+
+    // Task name
+    const cName=ws.getCell(rn,3);
+    cName.value=t.name; cName.alignment={vertical:'middle',wrapText:false}; cName.font={size:9};
+    cName.border={right:{style:'thin'},bottom:{style:'hair'}};
+
+    // Owner
+    const cOwner=ws.getCell(rn,4);
+    cOwner.value=t.owner||''; cOwner.alignment={vertical:'middle'}; cOwner.font={size:9};
+    cOwner.border={right:{style:'thin'},bottom:{style:'hair'}};
+
+    // DAYS formula
+    const cDays=ws.getCell(rn,5);
+    cDays.value={formula:`COUNTA(${firstDateCol}${rn}:${lastDateCol}${rn})`};
+    cDays.alignment={horizontal:'center',vertical:'middle'}; cDays.font={size:9};
+    cDays.border={right:{style:'medium'},bottom:{style:'hair'}};
+
+    // Date cells
+    dates.forEach((d,i)=>{
+      const c=FC+1+i;
+      const cell=ws.getCell(rn,c);
+      const active=d>=ts&&d<=te;
+      const isWk=d.getDay()===0||d.getDay()===6;
+      const isLastOfMo=addD(d,1).getDate()===1;
+      if(active){
+        cell.value=1;
+        cell.fill=barFill;
+        cell.font={size:7,color:{argb:'FFFFFFFF'}};
+      } else {
+        cell.fill=isWk?wkFill:emptyFill;
+      }
+      cell.alignment={horizontal:'center',vertical:'middle'};
+      cell.border={bottom:{style:'hair'},right:isLastOfMo?{style:'medium'}:{style:'hair'}};
+    });
+  });
+
+  // Freeze panes: freeze cols A-E and rows 1-3
+  ws.views=[{state:'frozen',xSplit:FC,ySplit:3,activeCell:colLtr(FC+1)+'4'}];
+
+  // ── Download ──
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=(p.name||'gantt')+'_排程.xlsx';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 const CM={'任務名稱':0,'task':0,'name':0,'負責人':1,'owner':1,'開始日期':2,'start':2,'結束日期':3,'end':3,'狀態':4,'status':4,'完成度':5,'完成度%':5,'progress':5,'pct':5,'前置任務':6,'deps':6,'bar顏色':7,'barcolor':7,'顏色':7,'備註':8,'note':8,'remark':8};
