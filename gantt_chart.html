@@ -2228,9 +2228,11 @@ async function exportExcel(){
   });
 
   // ── Rows 4+: Task rows ──
-  const barFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0070C0'}};
   const emptyFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
   const wkFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}};
+
+  // Convert #RRGGBB to ARGB string (FF prefix)
+  const hexArgb=hex=>'FF'+hex.replace('#','').toUpperCase().padStart(6,'0');
 
   const firstDateCol=colLtr(FC+1), lastDateCol=colLtr(FC+totalDays);
 
@@ -2238,6 +2240,11 @@ async function exportExcel(){
     const rn=TASK_ROW_START+ri;
     ws.getRow(rn).height=13;
     const ts=parseD(t.start), te=parseD(t.end);
+
+    // Per-task bar color (matches web app bar color)
+    const barHex=taskBarBg(t);
+    const barArgb=hexArgb(barHex);
+    const barFill={type:'pattern',pattern:'solid',fgColor:{argb:barArgb}};
 
     // No.
     const cNo=ws.getCell(rn,2);
@@ -2270,7 +2277,8 @@ async function exportExcel(){
       if(active){
         cell.value=1;
         cell.fill=barFill;
-        cell.font={size:7,color:{argb:'FFFFFFFF'}};
+        // Text same color as fill → visually invisible, still countable
+        cell.font={size:7,color:{argb:barArgb}};
       } else {
         cell.fill=isWk?wkFill:emptyFill;
       }
