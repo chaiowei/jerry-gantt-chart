@@ -553,7 +553,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
 // ═══════════════════════
 // ⚙️  設定區
 // ═══════════════════════
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQum3yLfpbS1RHIXVnGNGehEjfgXOFkjq60PgpD-bFybfMIP0kqQU4Vj23Ejz18lW-/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDHljQ9_oWm5-UlAZiROLSHtCovMnIFqm31S8LDBANSOyISTdO5gi4LyhSAMMNXRB-/exec';
 
 // ═══════════════════════
 // AUTH STATE
@@ -1614,21 +1614,37 @@ function drawGanttCanvas(p){
   cx.fillText(`${tasks.length} 個任務 ｜ ${minS} 至 ${maxE} ｜ 生成日期：${today_s}`,PADDING+40,TITLE_H/2+10);
   cx.fillStyle=p.color||'#4F6BED';cx.beginPath();cx.arc(PADDING+12,TITLE_H/2,8,0,Math.PI*2);cx.fill();
   // Header
+  // Two-row header: row1=month groups (colored), row2=day numbers
+  const HEAD1_H=24,HEAD2_H=28; // total HEAD_H=52, unchanged
+  const MO_BG_C=['#EEF2FF','#F0FDF4','#FEF9C3','#FFF1F2','#ECFEFF','#FFF7ED','#F5F3FF','#FAFAFA','#F0FDFA','#FDF2F8','#FFFBEB','#EFF6FF'];
+  const MO_COL_C=['#3730A3','#166534','#854D0E','#9F1239','#155E75','#9A3412','#5B21B6','#374151','#115E59','#831843','#78350F','#1E40AF'];
+  const cMG=[];
+  for(let gi=0;gi<days;gi++){const gd=addD(vs,gi),gm=gd.getMonth();if(!cMG.length||cMG[cMG.length-1].m!==gm)cMG.push({m:gm,start:gi,count:1});else cMG[cMG.length-1].count++;}
   cx.fillStyle='#F3F4F6';cx.fillRect(0,TITLE_H,W,HEAD_H);
   cx.fillStyle='#6B7280';cx.font=`600 10px "DM Sans",sans-serif`;cx.textBaseline='middle';
   cx.fillText('任務',PADDING+12,TITLE_H+HEAD_H/2);
-  let prevMonth=-1;
+  // Row 1: per-month colored bands + month name
+  cMG.forEach(g=>{
+    const gx=X(g.start),gw=g.count*COL_W;
+    cx.fillStyle=MO_BG_C[g.m];cx.fillRect(gx,TITLE_H,gw,HEAD1_H);
+    cx.fillStyle=MO_COL_C[g.m];cx.font=`700 10px "DM Sans",sans-serif`;cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(`${g.m+1}月`,gx+gw/2,TITLE_H+HEAD1_H/2);cx.textAlign='left';
+    cx.strokeStyle=MO_COL_C[g.m];cx.globalAlpha=0.4;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(gx+gw,TITLE_H);cx.lineTo(gx+gw,TITLE_H+HEAD_H);cx.stroke();
+    cx.globalAlpha=1;
+  });
+  // Row 2: day numbers with today/weekend highlighting
   for(let i=0;i<days;i++){
     const d=addD(vs,i);const isT=d.getTime()===today.getTime();const isWk=d.getDay()===0||d.getDay()===6;
     const x=X(i);
-    if(isT){cx.fillStyle='rgba(79,107,237,.15)';cx.fillRect(x,TITLE_H,COL_W,HEAD_H);}
-    else if(isWk){cx.fillStyle='rgba(0,0,0,.025)';cx.fillRect(x,TITLE_H,COL_W,HEAD_H);}
-    const m=d.getMonth();let lbl='';
-    if(m!==prevMonth){lbl=`${m+1}月`;prevMonth=m;}
-    else if(d.getDay()===1||i===0)lbl=''+d.getDate();
-    if(lbl){cx.fillStyle=isT?'#4F6BED':'#6B7280';cx.font=`${isT?600:500} 9px "DM Mono",monospace`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(lbl,x+COL_W/2,TITLE_H+HEAD_H/2);}
+    if(isT){cx.fillStyle='rgba(79,107,237,.18)';cx.fillRect(x,TITLE_H+HEAD1_H,COL_W,HEAD2_H);}
+    else if(isWk){cx.fillStyle='rgba(0,0,0,.04)';cx.fillRect(x,TITLE_H+HEAD1_H,COL_W,HEAD2_H);}
+    cx.fillStyle=isT?'#3451C7':'#6B7280';cx.font=`${isT?600:400} 9px "DM Mono",monospace`;cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(d.getDate()+'',x+COL_W/2,TITLE_H+HEAD1_H+HEAD2_H/2);
   }
   cx.textAlign='left';
+  cx.strokeStyle='rgba(0,0,0,.08)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(PADDING+NAME_W,TITLE_H+HEAD1_H);cx.lineTo(W,TITLE_H+HEAD1_H);cx.stroke();
   cx.strokeStyle='#E5E7EB';cx.lineWidth=1;
   cx.beginPath();cx.moveTo(0,TITLE_H+HEAD_H);cx.lineTo(W,TITLE_H+HEAD_H);cx.stroke();
   // Rows
@@ -1712,6 +1728,14 @@ function drawGanttCanvas(p){
         if(showDate2)barTxt+=(barTxt?' ':'')+fmt(t.start)+'–'+fmt(t.end);
         if(barTxt){cx.fillStyle='rgba(255,255,255,.95)';cx.font=`600 10px "DM Sans",sans-serif`;cx.textBaseline='middle';cx.fillText(truncate(cx,barTxt,bw3-12),bx3+8,barY+barH/2);}
       }
+    }
+  });
+  // Month separator vertical lines in body
+  cMG.forEach(g=>{
+    if(g.start>0){
+      const sepX=X(g.start);
+      cx.strokeStyle='rgba(0,0,0,.12)';cx.lineWidth=1;
+      cx.beginPath();cx.moveTo(sepX,TITLE_H+HEAD_H);cx.lineTo(sepX,TITLE_H+HEAD_H+totalTaskH);cx.stroke();
     }
   });
   // Today line
