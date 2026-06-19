@@ -88,6 +88,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .bulk-btn.cancel{background:rgba(255,255,255,.12);color:#fff}.bulk-btn.cancel:hover{background:rgba(255,255,255,.2)}
 .cb-cell{width:36px;text-align:center;border-right:none!important;cursor:default}
 .cb-cell input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--acc)}
+.num-cell{width:32px;min-width:32px;max-width:32px;text-align:center;font-size:10px;color:var(--tx3);font-weight:600;padding:0!important;border-right:1px solid var(--bdr);user-select:none;vertical-align:middle}
+.num-th{width:32px;min-width:32px;max-width:32px;text-align:center;font-size:10px;padding:4px 0;background:#F3F4F6;color:var(--tx3);font-weight:700}
 .tr.selected td{background:rgba(79,107,237,.06)!important}
 .tr.selected .nc{background:rgba(79,107,237,.08)!important}
 .content{flex:1;overflow-y:auto;overflow-x:visible;padding:16px 20px}
@@ -380,7 +382,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
         <button class="btn a" onclick="openAdd()">＋ 新增任務</button>
         <div class="tb-sep"></div>
-        <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()">☑ 任務刪除</button>
+        <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()">☑ 批次選取</button>
         <div class="tb-sep"></div>
         <button class="btn btn-save" onclick="saveAll()">💾 儲存專案</button>
         <button class="btn btn-del-proj" onclick="confirmDeleteProject()">🗑 刪除專案</button>
@@ -441,6 +443,8 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
   <span>已選取 <span class="bulk-count" id="bulkCount">0</span> 個任務</span>
   <div class="bulk-actions">
     <button class="bulk-btn" style="background:rgba(255,255,255,.12);color:#fff" onclick="bulkSelectAll()">全選</button>
+    <button class="bulk-btn" style="background:rgba(255,255,255,.12);color:#fff" onclick="bulkMoveUp()">▲ 上移</button>
+    <button class="bulk-btn" style="background:rgba(255,255,255,.12);color:#fff" onclick="bulkMoveDown()">▼ 下移</button>
     <button class="bulk-btn del" onclick="bulkDelete()">🗑 刪除選取</button>
     <button class="bulk-btn cancel" onclick="toggleBulkMode()">✕ 取消</button>
   </div>
@@ -491,13 +495,19 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <div class="pr"><input type="range" id="mp" min="0" max="100" step="5"><span id="mpd">0%</span></div>
     <label>前置任務（此任務開始前須完成）</label>
     <div class="dl" id="depList"></div>
-    <div class="dw" style="flex-wrap:wrap;gap:4px">
-      <select id="depSel" style="flex:1;min-width:120px"><option value="">＋ 選擇前置任務…</option></select>
+    <div class="dw" style="flex-wrap:wrap;gap:4px;align-items:flex-start">
+      <div style="position:relative;flex:1;min-width:160px">
+        <input id="depSearch" type="text" placeholder="🔍 搜尋前置任務…" autocomplete="off"
+          oninput="filterDepList(this.value)"
+          onfocus="filterDepList(this.value)"
+          onblur="setTimeout(()=>{const d=document.getElementById('depDropdown');if(d)d.style.display='none'},200)"
+          style="width:100%;height:30px;border:1px solid var(--bdr);border-radius:var(--r);padding:0 8px;font-size:12px;font-family:inherit;background:var(--bg);color:var(--tx1);box-sizing:border-box">
+        <div id="depDropdown" style="display:none;position:absolute;top:32px;left:0;right:0;max-height:180px;overflow-y:auto;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.18)"></div>
+      </div>
       <select id="newDepType" style="width:60px;height:30px;font-size:11px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg);font-family:inherit">
         <option value="FS">FS</option><option value="SS">SS</option><option value="FF">FF</option><option value="SF">SF</option>
       </select>
       <input id="newDepLag" type="number" value="0" min="-99" max="99" style="width:52px;height:30px;font-size:11px;border:1px solid var(--bdr);border-radius:var(--r);padding:0 6px;font-family:inherit" title="時間差(天)，正數=延後，負數=重疊">
-      <button class="btn" onclick="addDep()">加入</button>
     </div>
     <div class="alert" id="depAlert"></div>
     <label>Bar 顏色（此任務專屬）</label>
@@ -1189,7 +1199,7 @@ function render(){
   }
   const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
-  let lHead=`<tr><th class="lth" rowspan="2" style="position:relative;vertical-align:middle">
+  let lHead=`<tr><th class="num-th" rowspan="2">#</th><th class="lth" rowspan="2" style="position:relative;vertical-align:middle">
     任務
     <div class="col-resizer" id="colResizer"></div>
   </th></tr><tr></tr>`;
@@ -1269,18 +1279,22 @@ function render(){
     const level = getTaskLevel(t, allTasks);
     const isGroup = t.type === 'group';
     const isMilestone = t.type === 'milestone';
-    const drag=(!bulkMode&&!window.SHARE_MODE)?`draggable="true" ondragstart="dStart(event,${t.id})" ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})" ondragend="dEnd(event)"`:'';
+    // In bulk mode: only the ⠿ handle is draggable; row still receives dragover/drop for target highlighting
+    const rowDropHandlers=!window.SHARE_MODE?`ondragover="dOver(event,${t.id})" ondragleave="dLeave(event)" ondrop="dDrop(event,${t.id})"` :'';
+    const rowDragFull=(!bulkMode&&!window.SHARE_MODE)?`draggable="true" ondragstart="dStart(event,${t.id})" ondragend="dEnd(event)" ${rowDropHandlers}`:rowDropHandlers;
     const detailHidden = taskDetailHidden.has(t.id);
     const rowClsNames=[isSelected?'selected':'',detailHidden?'compact':''].filter(Boolean).join(' ');
     const rowCls=`data-id="${t.id}" class="${rowClsNames}"`;
     const paddingLeft = level > 0 ? 24 : 0;
     const criticalClass = isCritical ? ' critical-task' : '';
+    const handleDrag=(!window.SHARE_MODE&&bulkMode)?`draggable="true" ondragstart="dStart(event,${t.id})" ondragend="dEnd(event)"` :'';
 
-    lBody+=`<tr ${rowCls} ${drag} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
+    lBody+=`<tr ${rowCls} ${rowDragFull} onmouseenter="rowHover(${t.id},true)" onmouseleave="rowHover(${t.id},false)">`;
+    lBody+=`<td class="num-cell">${ri+1}</td>`;
     if(bulkMode) lBody+=`<td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" ${isSelected?'checked':''} onchange="bulkToggle(${t.id},this.checked)"></td>`;
     lBody+=`<td class="nc${criticalClass}" onclick="${bulkMode?`bulkToggleRow(${t.id})`:`openEdit(${t.id})`}" style="padding-left:${12+paddingLeft}px">
       <div class="ni">
-        <span class="dh" onclick="event.stopPropagation()" style="${bulkMode?'opacity:.3;cursor:default':''}">⠿</span>
+        <span class="dh" onclick="event.stopPropagation()" ${handleDrag}>⠿</span>
         ${isGroup ? `<span class="group-toggle" onclick="event.stopPropagation();toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>` : ''}
         <div class="nt">
           <div class="nn" style="color:${isMilestone?'#7C3AED':bg};font-weight:${isCritical||isGroup?'700':'500'}">${isMilestone?'◆ ':''}${isCritical?'<span style="font-size:8px;color:#DC2626;vertical-align:middle;margin-right:2px" title="關鍵任務">●</span>':''}${t.name}${isGroup?` (${allTasks.filter(x=>x.parentId===t.id).length})`:''}</div>
@@ -1921,7 +1935,23 @@ function truncate(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return tex
 // ═══════════════════════
 function toggleBulkMode(){if(bulkMode){exitBulkMode();}else{enterBulkMode();}}
 function enterBulkMode(){bulkMode=true;bulkSelected.clear();document.getElementById('bulkToggleBtn').textContent='✕ 退出選取';document.getElementById('bulkToggleBtn').classList.add('active');render();updateBulkBar();}
-function exitBulkMode(){bulkMode=false;bulkSelected.clear();const btn=document.getElementById('bulkToggleBtn');if(btn){btn.textContent='☑ 批量刪除';btn.classList.remove('active');}document.getElementById('bulkBar').classList.remove('open');render();}
+function exitBulkMode(){bulkMode=false;bulkSelected.clear();const btn=document.getElementById('bulkToggleBtn');if(btn){btn.textContent='☑ 批次選取';btn.classList.remove('active');}document.getElementById('bulkBar').classList.remove('open');render();}
+function bulkMoveUp(){
+  const p=activeProj();if(!p||!bulkSelected.size){toast('請先勾選要移動的任務');return;}
+  const tasks=p.tasks;
+  const idxs=[...bulkSelected].map(id=>tasks.findIndex(t=>t.id===id)).filter(i=>i>=0).sort((a,b)=>a-b);
+  if(idxs[0]===0)return;
+  idxs.forEach(i=>{const tmp=tasks[i];tasks[i]=tasks[i-1];tasks[i-1]=tmp;});
+  render();autoSave();
+}
+function bulkMoveDown(){
+  const p=activeProj();if(!p||!bulkSelected.size){toast('請先勾選要移動的任務');return;}
+  const tasks=p.tasks;
+  const idxs=[...bulkSelected].map(id=>tasks.findIndex(t=>t.id===id)).filter(i=>i>=0).sort((a,b)=>b-a);
+  if(idxs[0]===tasks.length-1)return;
+  idxs.forEach(i=>{const tmp=tasks[i];tasks[i]=tasks[i+1];tasks[i+1]=tmp;});
+  render();autoSave();
+}
 function bulkToggle(id,checked){if(checked)bulkSelected.add(id);else bulkSelected.delete(id);updateBulkBar();const row=document.querySelector(`tr[data-id="${id}"]`);if(row)row.classList.toggle('selected',checked);}
 function bulkToggleRow(id){const checked=!bulkSelected.has(id);bulkToggle(id,checked);const cb=document.querySelector(`tr[data-id="${id}"] input[type=checkbox]`);if(cb)cb.checked=checked;}
 function bulkToggleAll(checked){const tasks=getTasks();tasks.forEach(t=>{if(checked)bulkSelected.add(t.id);else bulkSelected.delete(t.id);});updateBulkBar();render();}
@@ -1950,10 +1980,21 @@ function dLeave(e){document.querySelectorAll('.do').forEach(r=>r.classList.remov
 function dDrop(e,id){
   e.preventDefault();if(dragSrc===id)return;
   document.querySelectorAll('.do').forEach(r=>r.classList.remove('do'));
-  const tasks=getTasks();
-  const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);
-  if(fi<0||ti<0)return;
-  const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);
+  const p=activeProj();if(!p)return;
+  const tasks=p.tasks;
+  if(bulkMode&&bulkSelected.size>0&&bulkSelected.has(dragSrc)){
+    // Move all selected tasks as a group to just after the drop target
+    const selected=tasks.filter(t=>bulkSelected.has(t.id));
+    const remaining=tasks.filter(t=>!bulkSelected.has(t.id));
+    let insertIdx=remaining.findIndex(t=>t.id===id);
+    insertIdx=insertIdx>=0?insertIdx+1:remaining.length;
+    remaining.splice(insertIdx,0,...selected);
+    p.tasks=remaining;
+  } else {
+    const fi=tasks.findIndex(t=>t.id===dragSrc),ti=tasks.findIndex(t=>t.id===id);
+    if(fi<0||ti<0)return;
+    const[m]=tasks.splice(fi,1);tasks.splice(ti,0,m);
+  }
   render();
   autoSave();
 }
@@ -2069,14 +2110,52 @@ function openEdit(id){
   document.getElementById('em').classList.add('open');
 }
 
+let _depPool=[];
 function buildDepUI(excl){
-  const tasks=getTasks();const sel=document.getElementById('depSel');
-  sel.innerHTML='<option value="">＋ 選擇前置任務…</option>';
-  const editDepIds = getDepIds(editDeps);
-  tasks.forEach(t=>{
-    if(t.id===excl||editDepIds.includes(t.id))return;
-    sel.innerHTML+=`<option value="${t.id}">${t.name}（${SL[t.status]} 結束:${t.end}）</option>`;
-  });
+  const tasks=getTasks();
+  const editDepIds=getDepIds(editDeps);
+  _depPool=tasks.filter(t=>t.id!==excl&&!editDepIds.includes(t.id));
+  const inp=document.getElementById('depSearch');
+  if(inp)inp.value='';
+  const dd=document.getElementById('depDropdown');
+  if(dd)dd.style.display='none';
+  renderDepTags();
+}
+function filterDepList(q){
+  const filtered=q?_depPool.filter(t=>t.name.toLowerCase().includes(q.toLowerCase())):_depPool;
+  const dd=document.getElementById('depDropdown');if(!dd)return;
+  if(!filtered.length){
+    dd.innerHTML=`<div style="padding:8px 12px;color:var(--tx3);font-size:12px">找不到符合的任務</div>`;
+  } else {
+    dd.innerHTML=filtered.map(t=>`<div onmousedown="selectAndAddDep(${t.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${t.name}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[t.status]} · 結束:${t.end}</span></div>`).join('');
+  }
+  dd.style.display='block';
+}
+function selectAndAddDep(id){
+  const tasks=getTasks();
+  const dep=tasks.find(x=>x.id===id);if(!dep)return;
+  const type=document.getElementById('newDepType').value||'FS';
+  const lag=parseInt(document.getElementById('newDepLag').value)||0;
+  const tStart=document.getElementById('msd').value;
+  const a=document.getElementById('depAlert');
+  if(hasCycle(id,editId,tasks)){
+    a.textContent=`⚠️ 無法加入：「${dep.name}」與本任務形成循環依賴，請重新選擇。`;
+    a.classList.add('show');return;
+  }
+  if(getDepIds(editDeps).includes(id)){
+    a.textContent=`⚠️「${dep.name}」已在前置任務清單中。`;
+    a.classList.add('show');return;
+  }
+  if(tStart&&parseD(dep.end)>=parseD(tStart)&&type==='FS'){
+    a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${tStart}）。`;
+    a.classList.add('show');return;
+  }
+  a.classList.remove('show');
+  editDeps.push({id,type,lag});
+  // Remove from pool
+  _depPool=_depPool.filter(t=>t.id!==id);
+  const inp=document.getElementById('depSearch');if(inp)inp.value='';
+  const dd=document.getElementById('depDropdown');if(dd)dd.style.display='none';
   renderDepTags();
 }
 
@@ -2089,27 +2168,13 @@ function renderDepTags(){
 }
 
 function addDep(){
-  const id=parseInt(document.getElementById('depSel').value);if(!id)return;
-  const tasks=getTasks();
-  const dep=tasks.find(x=>x.id===id);
-  const tStart=document.getElementById('msd').value;
-  const a=document.getElementById('depAlert');
-
-  if(hasCycle(id, editId, tasks)){
-    a.textContent=`⚠️ 無法加入：「${dep?.name}」與本任務形成循環依賴（A→B→A），請重新選擇。`;
-    a.classList.add('show');return;
-  }
-
-  if(dep&&tStart&&parseD(dep.end)>=parseD(tStart)){
-    a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${tStart}）。`;
-    a.classList.add('show');return;
-  }
-  a.classList.remove('show');
-  const editDepIds = getDepIds(editDeps);
-  const depType = (document.getElementById('newDepType')?.value) || 'FS';
-  const depLag = parseInt(document.getElementById('newDepLag')?.value) || 0;
-  if(!editDepIds.includes(id)) editDeps.push({id, type:depType, lag:depLag});
-  buildDepUI(editId);
+  // Now handled via selectAndAddDep() from dropdown click; kept for backward compat
+  const q=document.getElementById('depSearch')?.value.trim();
+  if(!q)return;
+  // Try to find an exact match in pool
+  const match=_depPool.find(t=>t.name===q)||_depPool.find(t=>t.name.toLowerCase().includes(q.toLowerCase()));
+  if(match)selectAndAddDep(match.id);
+  else{const a=document.getElementById('depAlert');a.textContent='⚠️ 請從下拉清單中選取任務。';a.classList.add('show');}
 }
 
 function removeDep(id){
