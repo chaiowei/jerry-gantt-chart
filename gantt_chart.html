@@ -1022,17 +1022,19 @@ function initColResizer(){
   if(newResizer) newResizer.addEventListener('mousedown', startResize);
 }
 
+const NUM_COL_W = 32; // # 項次欄固定寬度
 function applyColWidth(w){
   _colW = Math.max(140, Math.min(520, w));
   const W = _colW + 'px';
+  const CW = (_colW + NUM_COL_W) + 'px'; // 容器總寬 = 任務欄 + # 欄
   const headLeft  = document.getElementById('ganttHeadLeft');
   const bodyLeft  = document.getElementById('ganttBodyLeft');
-  if(headLeft)  { headLeft.style.width  = W; headLeft.style.minWidth  = W; }
-  if(bodyLeft)  { bodyLeft.style.width  = W; bodyLeft.style.minWidth  = W; }
+  if(headLeft)  { headLeft.style.width  = CW; headLeft.style.minWidth  = CW; }
+  if(bodyLeft)  { bodyLeft.style.width  = CW; bodyLeft.style.minWidth  = CW; }
   const tblHeadL = headLeft?.querySelector('table');
   const tblBodyL = bodyLeft?.querySelector('table');
-  if(tblHeadL) { tblHeadL.style.width = W; }
-  if(tblBodyL) { tblBodyL.style.width = W; }
+  if(tblHeadL) { tblHeadL.style.width = CW; }
+  if(tblBodyL) { tblBodyL.style.width = CW; }
   document.querySelectorAll('.lth').forEach(el=>{ el.style.width = W; el.style.minWidth = W; });
   document.querySelectorAll('.nc').forEach(el=>{  el.style.width = W; el.style.minWidth = W; });
 }
@@ -1483,7 +1485,16 @@ function syncRowHeights(){
 
 function rowHover(id,on){
   document.querySelectorAll(`[data-id="${id}"] td.nc`).forEach(td=>{ td.style.background=on?'#F0F4FF':''; });
-  document.querySelectorAll(`[data-id="${id}"] td.bc`).forEach(td=>{ if(!td.querySelector('.bar')) td.style.background=on?'rgba(79,107,237,.03)':''; });
+  document.querySelectorAll(`[data-id="${id}"] td.bc`).forEach(td=>{
+    if(!td.querySelector('.bar')){
+      if(on){
+        td.dataset.origBg=td.style.background; // 保留原本 inline 背景（假日/今日）
+        td.style.background='rgba(79,107,237,.03)';
+      } else {
+        td.style.background=td.dataset.origBg||''; // 還原原本背景
+      }
+    }
+  });
 }
 
 function syncScroll(el){
