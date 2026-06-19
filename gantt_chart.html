@@ -73,6 +73,7 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 .btn.a{background:var(--acc);color:#fff;border-color:var(--acc)}.btn.a:hover{background:var(--acc-d)}
 .btn.g{background:var(--done);color:#fff;border-color:var(--done)}.btn.g:hover{background:#047857}
 .btn.o{background:#D97706;color:#fff;border-color:#D97706}.btn.o:hover{background:#B45309}
+.btn.b{background:#3B82F6;color:#fff;border-color:#3B82F6}.btn.b:hover{background:#2563EB}
 .btn.danger{background:var(--del-l);color:var(--del);border-color:rgba(220,38,38,.2)}.btn.danger:hover{background:rgba(220,38,38,.15)}
 .btn.sel-mode{background:#FEF3C7;color:#92400E;border-color:#FDE68A;font-weight:600}.btn.sel-mode:hover{background:#FDE68A}
 .btn.active-view{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -357,9 +358,9 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
           <button class="btn" onclick="saveBaseline()" title="儲存目前計畫為基準">💾 存基準</button>
           <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" title="一鍵收合/展開所有任務詳情">☰ 收合詳情</button>
           <div class="tb-sep"></div>
-          <button class="btn" onclick="openImport()">📥 匯入 Excel</button>
+          <button class="btn b" onclick="openImport()">📥 匯入 Excel</button>
+          <button class="btn b" onclick="exportImportExcel()" title="匯出可重新匯入的簡單表格格式">📤 EXCEL</button>
           <button class="btn g" onclick="exportExcel()">📊 匯出 Excel</button>
-          <button class="btn" onclick="exportImportExcel()" title="匯出可重新匯入的簡單表格格式">📋 匯出匯入用</button>
           <div class="tb-sep"></div>
           <button class="btn" onclick="exportImage('png')">🖼 PNG</button>
           <button class="btn o" onclick="exportImage('pdf')">📄 PDF</button>
