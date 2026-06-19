@@ -2245,6 +2245,9 @@ async function exportExcel(){
     const barHex=taskBarBg(t);
     const barArgb=hexArgb(barHex);
     const barFill={type:'pattern',pattern:'solid',fgColor:{argb:barArgb}};
+    // Text color: milestone=purple, others=bar color (matches web app)
+    const textArgb=t.type==='milestone'?'FF7C3AED':barArgb;
+    const isGroup=t.type==='group';
 
     // No.
     const cNo=ws.getCell(rn,2);
@@ -2253,7 +2256,8 @@ async function exportExcel(){
 
     // Task name
     const cName=ws.getCell(rn,3);
-    cName.value=t.name; cName.alignment={vertical:'middle',wrapText:false}; cName.font={size:9};
+    cName.value=t.name; cName.alignment={vertical:'middle',wrapText:false};
+    cName.font={size:9,bold:isGroup,color:{argb:textArgb}};
     cName.border={right:{style:'thin'},bottom:{style:'hair'}};
 
     // Owner
