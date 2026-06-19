@@ -2072,7 +2072,8 @@ function openAdd(){
   });
   // Insert position dropdown (new task only)
   const insSel=document.getElementById('minsertPos');
-  const visTasks=getVisibleTasks(p.tasks);
+  const _ap=activeProj();
+  const visTasks=getVisibleTasks(_ap?_ap.tasks:[]);
   insSel.innerHTML='<option value="">加入到最末尾</option>';
   visTasks.forEach((t,i)=>{
     const indent=t.parentId?'　':'';
