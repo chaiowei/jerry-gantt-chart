@@ -1818,13 +1818,8 @@ async function generateShareLink(){
     const encoded=await compressToBase64(payload);
     const base='https://chaiowei.github.io/jerry-gantt-chart/gantt_chart.html';
     const url=base+'#s='+encoded;
-    document.getElementById('shareUrl').value=url;
-    const warn=document.getElementById('shareWarn');
-    if(warn)warn.style.display=url.length>4000?'block':'none';
-    document.getElementById('shareLoading').style.display='none';
-    document.getElementById('shareActions').style.display='none';
-    document.getElementById('shareResult').style.display='block';
-    document.getElementById('shareModal').classList.add('open');
+    await navigator.clipboard.writeText(url);
+    toast('✅ 分享連結已複製到剪貼簿');
   }catch(e){alert('產生分享連結失敗：'+e.message);}
 }
 
