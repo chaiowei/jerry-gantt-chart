@@ -229,6 +229,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 /* ── Share mode: hide edit-only controls ── */
 body.share-mode #topPrimaryActions{display:none!important}
 body.share-mode [onclick*="openImport"]{display:none!important}
+body.share-mode [onclick*="exportImportExcel"]{display:none!important}
 body.share-mode [onclick*="saveBaseline"]{display:none!important}
 body.share-mode [onclick*="exportProjectJSON"]{display:none!important}
 body.share-mode [onclick*="jsonFileInput"]{display:none!important}
@@ -358,6 +359,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
           <div class="tb-sep"></div>
           <button class="btn" onclick="openImport()">📥 匯入 Excel</button>
           <button class="btn g" onclick="exportExcel()">📊 匯出 Excel</button>
+          <button class="btn" onclick="exportImportExcel()" title="匯出可重新匯入的簡單表格格式">📋 匯出匯入用</button>
           <div class="tb-sep"></div>
           <button class="btn" onclick="exportImage('png')">🖼 PNG</button>
           <button class="btn o" onclick="exportImage('pdf')">📄 PDF</button>
@@ -2299,6 +2301,74 @@ async function exportExcel(){
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=(p.name||'gantt')+'_排程.xlsx';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+// ═══════════════════════
+// EXPORT FOR RE-IMPORT (simple table format)
+// ═══════════════════════
+async function exportImportExcel(){
+  const p=activeProj();if(!p||!p.tasks.length){alert('沒有任務可匯出');return;}
+  const SL_EXP={done:'已完成',ongoing:'進行中',pending:'待開始',delayed:'延遲'};
+  const wb=new ExcelJS.Workbook();
+  wb.creator='甘特圖'; wb.created=new Date();
+  const ws=wb.addWorksheet('任務清單');
+
+  // Header row
+  const headers=['任務名稱','負責人','開始日期','結束日期','狀態','完成度%','前置任務','Bar顏色','備註'];
+  const hRow=ws.addRow(headers);
+  hRow.eachCell(cell=>{
+    cell.font={bold:true,size:10};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD6E4BC'}};
+    cell.alignment={horizontal:'center',vertical:'middle'};
+    cell.border={bottom:{style:'medium'},right:{style:'thin'}};
+  });
+  ws.getRow(1).height=16;
+
+  // Column widths
+  [42,12,12,12,10,10,20,10,30].forEach((w,i)=>ws.getColumn(i+1).width=w);
+
+  // Data rows
+  const allTasks=p.tasks;
+  p.tasks.forEach(t=>{
+    // Build deps string: comma-separated task names
+    const depNames=normalizeDeps(t.deps).map(d=>{
+      const found=allTasks.find(x=>x.id===d.id);
+      return found?found.name:'';
+    }).filter(Boolean).join(',');
+
+    const row=ws.addRow([
+      t.name,
+      t.owner||'',
+      t.start,
+      t.end,
+      SL_EXP[t.status]||'待開始',
+      t.pct||0,
+      depNames,
+      t.color||'',
+      t.note||''
+    ]);
+    row.height=14;
+    row.eachCell({includeEmpty:true},(cell,col)=>{
+      cell.font={size:9};
+      cell.alignment={vertical:'middle'};
+      cell.border={bottom:{style:'hair'},right:{style:'thin'}};
+      // Highlight task name with bar color
+      if(col===1){
+        const hex=taskBarBg(t);
+        cell.font={size:9,color:{argb:'FF'+hex.replace('#','').toUpperCase()}};
+      }
+    });
+  });
+
+  // Freeze header row
+  ws.views=[{state:'frozen',ySplit:1,activeCell:'A2'}];
+
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=(p.name||'gantt')+'_任務清單.xlsx';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
