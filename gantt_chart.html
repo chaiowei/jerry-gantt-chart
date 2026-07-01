@@ -349,6 +349,10 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             <option value="60" selected>60 天</option>
             <option value="90">90 天</option>
             <option value="120">120 天</option>
+            <option value="180">180 天</option>
+            <option value="365">1 年</option>
+            <option value="545">18 個月</option>
+            <option value="730">2 年</option>
           </select>
           <div class="btn-group">
             <button class="btn" id="btnViewDay" onclick="setViewMode('day')" title="日視圖">日視圖</button>
@@ -742,7 +746,7 @@ const SC={done:'bd',ongoing:'bo',pending:'bp',delayed:'bl'};
 const PALETTE=['#4F6BED','#0EA5E9','#10B981','#84CC16','#F59E0B','#F97316','#EF4444','#F43F5E','#EC4899','#A855F7','#7C3AED','#6366F1','#06B6D4','#64748B','#92400E','#059669','#0284C7','#D97706'];
 const PROJ_COLORS=['#4F6BED','#10B981','#F59E0B','#EF4444','#A855F7','#F97316','#06B6D4','#EC4899','#64748B','#7C3AED'];
 
-let projects=[],activeId=null,editId=null,editDeps=[],editColor=null,dragSrc=null,newProjColor=PROJ_COLORS[0],pendingDeleteId=null;
+let projects=[],activeId=null,editId=null,editDeps=[],editColor=null,dragSrc=null,newProjColor=PROJ_COLORS[0],pendingDeleteId=null,_editDuration=0;
 let bulkMode=false,bulkSelected=new Set();
 const today=new Date(); today.setHours(0,0,0,0);
 const ds=d=>d.toISOString().slice(0,10);
@@ -2029,7 +2033,16 @@ function chkDeps(){
   }
   document.getElementById('depAlert').classList.remove('show');return true;
 }
-['msd','med'].forEach(id=>{document.getElementById(id).addEventListener('change',()=>{chkDates();if(editDeps.length)chkDeps();});});
+document.getElementById('msd').addEventListener('change',()=>{
+  const s=document.getElementById('msd').value,e=document.getElementById('med');
+  if(s&&_editDuration>0){e.value=ds(addD(parseD(s),_editDuration));}
+  chkDates();if(editDeps.length)chkDeps();
+});
+document.getElementById('med').addEventListener('change',()=>{
+  const s=document.getElementById('msd').value,e=document.getElementById('med').value;
+  if(s&&e&&parseD(e)>=parseD(s)){_editDuration=dayCount(s,e);}
+  chkDates();if(editDeps.length)chkDeps();
+});
 
 // ═══════════════════════
 // Cycle detection (DFS)
@@ -2060,7 +2073,7 @@ function updBP(hex){const p=document.getElementById('barPrev');p.style.backgroun
 // EDIT MODAL
 // ═══════════════════════
 function openAdd(){
-  editId=null;editDeps=[];editColor=null;
+  editId=null;editDeps=[];editColor=null;_editDuration=7;
   document.getElementById('mt').textContent='新增任務';
   ['mn','mo','mno'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('msd').value=ds(today);
@@ -2096,7 +2109,7 @@ function openAdd(){
 
 function openEdit(id){
   const tasks=getTasks();const t=tasks.find(x=>x.id===id);if(!t)return;
-  editId=id;editDeps=[...normalizeDeps(t.deps||[])];editColor=t.color||null;
+  editId=id;editDeps=[...normalizeDeps(t.deps||[])];editColor=t.color||null;_editDuration=dayCount(t.start,t.end);
   document.getElementById('mt').textContent='編輯任務';
   document.getElementById('mn').value=t.name;
   document.getElementById('mo').value=t.owner||'';
@@ -2158,9 +2171,11 @@ function selectAndAddDep(id){
     a.textContent=`⚠️「${dep.name}」已在前置任務清單中。`;
     a.classList.add('show');return;
   }
-  if(tStart&&parseD(dep.end)>=parseD(tStart)&&type==='FS'){
-    a.textContent=`⚠️ 前置任務「${dep.name}」結束日（${dep.end}）必須早於本任務開始日（${tStart}）。`;
-    a.classList.add('show');return;
+  if(type==='FS'&&dep.end){
+    const newStart=ds(addD(parseD(dep.end),1));
+    document.getElementById('msd').value=newStart;
+    document.getElementById('med').value=ds(addD(parseD(newStart),_editDuration));
+    chkDates();
   }
   a.classList.remove('show');
   editDeps.push({id,type,lag});
