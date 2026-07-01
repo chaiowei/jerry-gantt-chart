@@ -1538,6 +1538,7 @@ function render(){
   requestAnimationFrame(()=>{
     syncRowHeights();
     drawDepsDOM(vs,days,rowY,allTasks);
+    syncBodyPadding();
   });
   initColResizer();
   initBarDrag();
@@ -1640,6 +1641,15 @@ function onBarDragEnd(e) {
   setTimeout(() => { _barDrag = null; }, 50);
 }
 
+function syncBodyPadding(){
+  const br=document.getElementById('ganttBodyRight');
+  const bl=document.getElementById('ganttBodyLeft');
+  if(!br||!bl)return;
+  const sbH=br.offsetHeight-br.clientHeight; // horizontal scrollbar height
+  let sp=document.getElementById('leftScrollSpacer');
+  if(!sp){sp=document.createElement('div');sp.id='leftScrollSpacer';sp.style.width='100%';bl.appendChild(sp);}
+  sp.style.height=sbH+'px';
+}
 function syncRowHeights(){
   const lRows=document.querySelectorAll('#gbLeft tr');
   const rRows=document.querySelectorAll('#gbRight tr');
@@ -2830,6 +2840,7 @@ if(window.location.hash.startsWith('#s=')){
   initAuth();
 }
 applyI18n();applyToolBtnsState();
+window.addEventListener('resize',()=>{if(activeId)requestAnimationFrame(syncBodyPadding);});
 </script>
 
 </body>
