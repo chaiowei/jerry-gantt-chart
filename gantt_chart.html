@@ -16,7 +16,7 @@
   --pend:#6B7280;--pend-l:rgba(107,114,128,.1);
   --bg:#F0F2F8;--surf:#fff;--bdr:rgba(0,0,0,.08);
   --tx:#111827;--tx2:#6B7280;--tx3:#9CA3AF;
-  --sidebar:220px;--r:8px;--rl:12px;--bar-h:26px;
+  --sidebar:220px;--r:8px;--rl:12px;--bar-h:17px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;height:100%}
@@ -140,9 +140,9 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .lth{text-align:left;padding:9px 12px;background:#F3F4F6;vertical-align:middle;position:relative}
 .nc{padding:7px 12px;cursor:pointer;background:#fff;vertical-align:middle}
 .nc.critical-task{border-left:3px solid #DC2626}
-.gantt-table-body-left tbody tr,.gantt-table-body-right tbody tr{height:52px}
-.gantt-table-body-left tbody tr.compact,.gantt-table-body-right tbody tr.compact{height:34px}
-.gantt-table-body-left tbody tr.compact .bw,.gantt-table-body-right tbody tr.compact .bw{height:34px}
+.gantt-table-body-left tbody tr,.gantt-table-body-right tbody tr{height:35px}
+.gantt-table-body-left tbody tr.compact,.gantt-table-body-right tbody tr.compact{height:23px}
+.gantt-table-body-left tbody tr.compact .bw,.gantt-table-body-right tbody tr.compact .bw{height:23px}
 .gantt-table-body-left tbody td,.gantt-table-body-right tbody td{border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
 .gantt-table-body-left tbody tr:last-child td,.gantt-table-body-right tbody tr:last-child td{border-bottom:none}
 .bar-resize-left,.bar-resize-right{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:10;border-radius:4px;background:rgba(255,255,255,.35);opacity:0;transition:opacity .15s}
@@ -153,7 +153,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .bar-move-cursor:active{cursor:grabbing!important}
 .bar[data-label]:hover::after{content:attr(data-label);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1E2235;color:#fff;font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.25);}
 .bar[data-label]:hover::before{content:'';position:absolute;bottom:calc(100% + 1px);left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#1E2235;pointer-events:none;z-index:100;}
-.bw{position:relative;height:52px;display:flex;align-items:center}
+.bw{position:relative;height:35px;display:flex;align-items:center}
 .bar{height:var(--bar-h);border-radius:5px;position:absolute;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;transition:filter .12s,box-shadow .15s;box-shadow:0 1px 3px rgba(0,0,0,.14);color:#fff}
 .bar:hover{filter:brightness(.9)}
 .bar.hfrom{box-shadow:0 0 0 2.5px var(--acc),0 1px 3px rgba(0,0,0,.14)!important}
@@ -1645,7 +1645,7 @@ function syncRowHeights(){
   const rRows=document.querySelectorAll('#gbRight tr');
   lRows.forEach((lr,i)=>{
     if(!rRows[i])return;
-    const h=Math.max(lr.getBoundingClientRect().height,rRows[i].getBoundingClientRect().height,52);
+    const h=Math.max(lr.getBoundingClientRect().height,rRows[i].getBoundingClientRect().height,35);
     lr.style.height=h+'px'; rRows[i].style.height=h+'px';
   });
   const lH1=document.querySelector('#ghLeft tr:nth-child(1)');
@@ -1700,13 +1700,13 @@ function drawDepsDOM(vs,days,rowY,tasks){
   rowEntries.forEach(([id],i)=>{
     const tid=parseInt(id);
     rowTopY[tid]=cumY;
-    const h=rRows[i]?rRows[i].getBoundingClientRect().height:52;
+    const h=rRows[i]?rRows[i].getBoundingClientRect().height:35;
     cumY+=h;
   });
   const getRowMidY=id=>{
     if(rowTopY[id]===undefined)return undefined;
     const ri=rowY[id];
-    const h=rRows[ri]?rRows[ri].getBoundingClientRect().height:52;
+    const h=rRows[ri]?rRows[ri].getBoundingClientRect().height:35;
     return rowTopY[id]+h/2;
   };
 
@@ -1816,7 +1816,7 @@ function drawGanttCanvas(p){
   const tasks=getVisibleTasks(allTasks);
   if(!tasks.length)return document.createElement('canvas');
   const cpmRes=computeCPM(tasks);
-  const ROW_FULL=62,ROW_COMPACT=34;
+  const ROW_FULL=41,ROW_COMPACT=23;
   const rh=t=>taskDetailHidden.has(t.id)?ROW_COMPACT:ROW_FULL;
   const taskYMap={};let cumY=0;
   tasks.forEach(t=>{taskYMap[t.id]=cumY;cumY+=rh(t);});
