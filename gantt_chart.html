@@ -79,6 +79,12 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);
 .btn.active-view{background:var(--acc);color:#fff;border-color:var(--acc)}
 select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:1px solid var(--bdr);border-radius:var(--r);background:var(--surf);color:var(--tx);cursor:pointer}
 #autoSaveStatus{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--tx3);background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:3px 12px;pointer-events:none;opacity:0.45;transition:opacity .4s;z-index:50}
+.tools-toggle-btn{background:none;border:1px solid var(--bdr);border-radius:var(--r);padding:0 10px;cursor:pointer;font-size:12px;color:var(--tx2);height:30px;font-family:inherit;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:all .12s;flex-shrink:0}
+.tools-toggle-btn:hover{background:var(--bg);color:var(--tx)}
+.lang-sel{display:inline-flex;align-items:center;border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;height:30px;flex-shrink:0}
+.lang-btn{background:none;border:none;padding:0 9px;font-size:11px;font-family:inherit;cursor:pointer;height:100%;color:var(--tx2);font-weight:600;transition:all .12s}
+.lang-btn:hover{background:var(--bg)}
+.lang-btn.active{background:var(--acc);color:#fff}
 .bulk-bar{display:none;position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#1E2235;color:#fff;border-radius:var(--rl);padding:12px 20px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:100;align-items:center;gap:16px;font-size:13px;white-space:nowrap}
 .bulk-bar.open{display:flex}
 .bulk-count{font-weight:600;color:#93C5FD}
@@ -328,11 +334,11 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
         </div>
       </div>
     </div>
-    <div class="sb-section">我的專案</div>
+    <div class="sb-section" data-i18n="sb_projects">我的專案</div>
     <div class="sb-list" id="projList"></div>
     <div class="sb-footer" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px">
-      <button class="sb-new-btn" onclick="newProject()">＋ 建立新專案</button>
-      <button class="sb-footer-btn" onclick="openHelp()">📖 使用說明書</button>
+      <button class="sb-new-btn" onclick="newProject()" data-i18n="sb_newProj">＋ 建立新專案</button>
+      <button class="sb-footer-btn" onclick="openHelp()" data-i18n="sb_help">📖 使用說明書</button>
     </div>
   </aside>
   <div class="main">
@@ -343,39 +349,49 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
           <span class="proj-badge" id="projBadge" style="display:none"></span>
           <span class="share-mode-badge">👁 唯讀分享</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <select class="ctrl" id="viewRange" onchange="render()">
-            <option value="30">30 天</option>
-            <option value="60" selected>60 天</option>
-            <option value="90">90 天</option>
-            <option value="120">120 天</option>
-            <option value="180">180 天</option>
-            <option value="365">1 年</option>
-            <option value="545">18 個月</option>
-            <option value="730">2 年</option>
-          </select>
-          <div class="btn-group">
-            <button class="btn" id="btnViewDay" onclick="setViewMode('day')" title="日視圖">日視圖</button>
-            <button class="btn" id="btnViewWeek" onclick="setViewMode('week')" title="週視圖">週視圖</button>
-            <button class="btn" id="btnViewMonth" onclick="setViewMode('month')" title="月視圖">月視圖</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="tools-toggle-btn" id="toolsToggleBtn" onclick="toggleToolBtns()">⚙️ <span data-i18n="tb_tools">工具列</span> <span id="toolsToggleArrow">▾</span></button>
+          <div id="toolBtnsWrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <select class="ctrl" id="viewRange" onchange="render()">
+              <option value="30">30 天</option>
+              <option value="60" selected>60 天</option>
+              <option value="90">90 天</option>
+              <option value="120">120 天</option>
+              <option value="180">180 天</option>
+              <option value="365">1 年</option>
+              <option value="545">18 個月</option>
+              <option value="730">2 年</option>
+            </select>
+            <div class="btn-group">
+              <button class="btn" id="btnViewDay" onclick="setViewMode('day')" data-i18n="tb_day">日視圖</button>
+              <button class="btn" id="btnViewWeek" onclick="setViewMode('week')" data-i18n="tb_week">週視圖</button>
+              <button class="btn" id="btnViewMonth" onclick="setViewMode('month')" data-i18n="tb_month">月視圖</button>
+            </div>
+            <button class="btn" onclick="jumpToday()" data-i18n="tb_today">📅 今天</button>
+            <button class="btn" id="btnBaseline" onclick="toggleBaseline()" data-i18n="tb_baseline">📌 基準</button>
+            <button class="btn" onclick="saveBaseline()" data-i18n="tb_saveBaseline">💾 存基準</button>
+            <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" data-i18n="tb_collapse">☰ 收合詳情</button>
+            <div class="tb-sep"></div>
+            <button class="btn b" onclick="openImport()" data-i18n="tb_importExcel">📥 匯入 Excel</button>
+            <button class="btn b" onclick="exportImportExcel()" data-i18n="tb_exportTemplate">📤 EXCEL格式</button>
+            <button class="btn b" onclick="document.getElementById('mspFileInput').click()" data-i18n="tb_importMSP">📥 MS Project</button>
+            <input type="file" id="mspFileInput" accept=".xml" style="display:none" onchange="handleMSProjectImport(this)">
+            <div class="tb-sep"></div>
+            <button class="btn" onclick="exportImage('png')" data-i18n="tb_png">🖼 PNG</button>
+            <button class="btn o" onclick="exportImage('pdf')" data-i18n="tb_pdf">📄 PDF</button>
+            <button class="btn" onclick="generateShareLink()" data-i18n="tb_share">🔗 分享連結</button>
+            <button class="btn g" onclick="exportExcel()" data-i18n="tb_exportExcel">📊 匯出 Excel</button>
+            <div class="tb-sep"></div>
+            <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="exportProjectJSON()" data-i18n="tb_exportProj">📤 匯出專案檔</button>
+            <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="document.getElementById('jsonFileInput').click()" data-i18n="tb_importProj">📩 匯入專案檔</button>
+            <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importProjectJSON(this.files[0])">
+            <div class="tb-sep"></div>
           </div>
-          <button class="btn" onclick="jumpToday()">📅 今天</button>
-          <button class="btn" id="btnBaseline" onclick="toggleBaseline()" title="顯示/隱藏基準計畫">📌 基準</button>
-          <button class="btn" onclick="saveBaseline()" title="儲存目前計畫為基準">💾 存基準</button>
-          <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" title="一鍵收合/展開所有任務詳情">☰ 收合詳情</button>
-          <div class="tb-sep"></div>
-          <button class="btn b" onclick="openImport()">📥 匯入 Excel</button>
-          <button class="btn b" onclick="exportImportExcel()" title="匯出可重新匯入的簡單表格格式">📤 EXCEL格式</button>
-          <div class="tb-sep"></div>
-          <button class="btn" onclick="exportImage('png')">🖼 PNG</button>
-          <button class="btn o" onclick="exportImage('pdf')">📄 PDF</button>
-          <button class="btn" onclick="generateShareLink()" title="產生分享連結（GitHub Pages）">🔗 分享連結</button>
-          <button class="btn g" onclick="exportExcel()">📊 匯出 Excel</button>
-          <div class="tb-sep"></div>
-          <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="exportProjectJSON()">📤 匯出專案檔</button>
-          <button class="btn" style="background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE" onclick="document.getElementById('jsonFileInput').click()">📩 匯入專案檔</button>
-          <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importProjectJSON(this.files[0])">
-          <div class="tb-sep"></div>
+          <div class="lang-sel">
+            <button class="lang-btn active" id="langBtnZH" onclick="setUILang('zh')">繁中</button>
+            <button class="lang-btn" id="langBtnEN" onclick="setUILang('en')">EN</button>
+            <button class="lang-btn" id="langBtnTH" onclick="setUILang('th')">ไทย</button>
+          </div>
         </div>
       </div>
       <div class="topbar-row1" id="topEmptyRow" style="display:flex">
@@ -384,27 +400,27 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
         </div>
       </div>
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
-        <button class="btn a" onclick="openAdd()">＋ 新增任務</button>
+        <button class="btn a" onclick="openAdd()" data-i18n="btn_addTask">＋ 新增任務</button>
         <div class="tb-sep"></div>
-        <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()">☑ 批次選取</button>
+        <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()" data-i18n="btn_bulk">☑ 批次選取</button>
         <div class="tb-sep"></div>
-        <button class="btn btn-save" onclick="saveAll()">💾 儲存專案</button>
-        <button class="btn btn-del-proj" onclick="confirmDeleteProject()">🗑 刪除專案</button>
+        <button class="btn btn-save" onclick="saveAll()" data-i18n="btn_save">💾 儲存專案</button>
+        <button class="btn btn-del-proj" onclick="confirmDeleteProject()" data-i18n="btn_delProj">🗑 刪除專案</button>
       </div>
     </div>
     <div class="content" id="content">
       <div class="empty-state" id="emptyState">
         <div class="empty-icon">📋</div>
-        <div class="empty-title">尚無專案</div>
-        <div class="empty-sub">點擊左側「＋ 建立新專案」開始</div>
-        <button class="btn a" onclick="newProject()" style="margin-top:4px">＋ 建立第一個專案</button>
+        <div class="empty-title" data-i18n="empty_title">尚無專案</div>
+        <div class="empty-sub" data-i18n="empty_sub">點擊左側「＋ 建立新專案」開始</div>
+        <button class="btn a" onclick="newProject()" style="margin-top:4px" data-i18n="empty_btn">＋ 建立第一個專案</button>
       </div>
       <div id="ganttArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
         <div class="content-fixed">
           <div class="stats-wrap">
             <div class="stats-toggle-bar" id="statsToggleBar" onclick="toggleStatsPanel()" title="收合/展開統計列">
               <span class="sti" id="statsToggleIcon">▼</span>
-              <span id="statsToggleLabel">統計資訊</span>
+              <span id="statsToggleLabel" data-i18n="stats_toggle">統計資訊</span>
             </div>
             <div class="stats-body" id="statsBody">
               <div class="stats" id="stats" style="padding-bottom:8px"></div>
@@ -429,13 +445,13 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             </div>
           </div>
           <div class="leg">
-            <div class="li"><div class="ld" style="background:var(--done)"></div>已完成</div>
-            <div class="li"><div class="ld" style="background:var(--acc)"></div>進行中</div>
-            <div class="li"><div class="ld" style="background:var(--pend)"></div>待開始</div>
-            <div class="li"><div class="ld" style="background:var(--del)"></div>延遲</div>
-            <div class="li"><div class="ld" style="background:#DC2626;border:2px solid #DC2626"></div>關鍵任務</div>
-            <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--acc)"></div>有前置任務</div>
-            <div class="ln">⠿ 拖曳排序 ｜ 點任務列編輯 ｜ 拖曳 Bar 兩端調整日期</div>
+            <div class="li"><div class="ld" style="background:var(--done)"></div><span data-i18n="leg_done">已完成</span></div>
+            <div class="li"><div class="ld" style="background:var(--acc)"></div><span data-i18n="leg_ongoing">進行中</span></div>
+            <div class="li"><div class="ld" style="background:var(--pend)"></div><span data-i18n="leg_pending">待開始</span></div>
+            <div class="li"><div class="ld" style="background:var(--del)"></div><span data-i18n="leg_delayed">延遲</span></div>
+            <div class="li"><div class="ld" style="background:#DC2626;border:2px solid #DC2626"></div><span data-i18n="leg_critical">關鍵任務</span></div>
+            <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--acc)"></div><span data-i18n="leg_dep">有前置任務</span></div>
+            <div class="ln" data-i18n="leg_hint">⠿ 拖曳排序 ｜ 點任務列編輯 ｜ 拖曳 Bar 兩端調整日期</div>
           </div>
         </div>
       </div>
@@ -479,25 +495,25 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
 <div class="mb" id="em">
   <div class="modal">
     <h3 id="mt">編輯任務</h3>
-    <label>任務名稱 *</label><input id="mn" type="text" placeholder="必填">
-    <label>負責人</label><input id="mo" type="text" placeholder="e.g. 小明">
-    <label>任務類型</label>
+    <label data-i18n="lbl_name">任務名稱 *</label><input id="mn" type="text" placeholder="必填">
+    <label data-i18n="lbl_owner">負責人</label><input id="mo" type="text" placeholder="e.g. 小明">
+    <label data-i18n="lbl_type">任務類型</label>
     <select id="mtype">
-      <option value="task">一般任務</option>
-      <option value="milestone">里程碑</option>
-      <option value="group">群組（可摺疊）</option>
+      <option value="task" data-i18n="type_task">一般任務</option>
+      <option value="milestone" data-i18n="type_milestone">里程碑</option>
+      <option value="group" data-i18n="type_group">群組（可摺疊）</option>
     </select>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label>開始日期</label><input id="msd" type="date"></div>
-      <div><label>結束日期</label><input id="med" type="date"></div>
+      <div><label data-i18n="lbl_startDate">開始日期</label><input id="msd" type="date"></div>
+      <div><label data-i18n="lbl_endDate">結束日期</label><input id="med" type="date"></div>
     </div>
-    <div class="alert" id="dateAlert">⚠️ 結束日期不能早於開始日期。</div>
+    <div class="alert" id="dateAlert" data-i18n="date_alert">⚠️ 結束日期不能早於開始日期。</div>
     <div id="dayCountInfo" style="font-size:12px;color:var(--acc);margin-top:6px;font-weight:500;display:none"></div>
-    <label>狀態</label>
-    <select id="mst"><option value="pending">待開始</option><option value="ongoing">進行中</option><option value="done">已完成</option><option value="delayed">延遲</option></select>
-    <label>完成度</label>
+    <label data-i18n="lbl_status">狀態</label>
+    <select id="mst"><option value="pending" data-i18n="opt_pending">待開始</option><option value="ongoing" data-i18n="opt_ongoing">進行中</option><option value="done" data-i18n="opt_done">已完成</option><option value="delayed" data-i18n="opt_delayed">延遲</option></select>
+    <label data-i18n="lbl_pct">完成度</label>
     <div class="pr"><input type="range" id="mp" min="0" max="100" step="5"><span id="mpd">0%</span></div>
-    <label>前置任務（此任務開始前須完成）</label>
+    <label data-i18n="lbl_deps">前置任務（此任務開始前須完成）</label>
     <div class="dl" id="depList"></div>
     <div class="dw" style="flex-wrap:wrap;gap:4px;align-items:flex-start">
       <div style="position:relative;flex:1;min-width:160px">
@@ -514,7 +530,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       <input id="newDepLag" type="number" value="0" min="-99" max="99" style="width:52px;height:30px;font-size:11px;border:1px solid var(--bdr);border-radius:var(--r);padding:0 6px;font-family:inherit" title="時間差(天)，正數=延後，負數=重疊">
     </div>
     <div class="alert" id="depAlert"></div>
-    <label>Bar 顏色（此任務專屬）</label>
+    <label data-i18n="lbl_color">Bar 顏色（此任務專屬）</label>
     <div class="cp-grid" id="cpGrid"></div>
     <div class="cp-custom">
       <label>自訂</label>
@@ -522,21 +538,21 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       <input type="text" id="cpTxt" value="#4F6BED" onchange="onCustomColorText(this.value)" placeholder="#rrggbb">
     </div>
     <div class="bar-prev" id="barPrev">預覽</div>
-    <label>備註</label><input id="mno" type="text" placeholder="可留空">
+    <label data-i18n="lbl_note">備註</label><input id="mno" type="text" placeholder="可留空">
     <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
       <input type="checkbox" id="mcritical" style="width:16px;height:16px;accent-color:#DC2626;cursor:pointer">
-      <label for="mcritical" style="margin:0;cursor:pointer;color:#DC2626;font-weight:600">🔴 關鍵任務</label>
+      <label for="mcritical" style="margin:0;cursor:pointer;color:#DC2626;font-weight:600" data-i18n="lbl_critical">🔴 關鍵任務</label>
     </div>
-    <label>父群組（可選）</label>
-    <select id="mparent"><option value="">無（頂層任務）</option></select>
+    <label data-i18n="lbl_parent">父群組（可選）</label>
+    <select id="mparent"><option value="" data-i18n="opt_noParent">無（頂層任務）</option></select>
     <div id="insertPosRow" style="display:none">
-      <label>插入位置</label>
-      <select id="minsertPos"><option value="">加入到最末尾</option></select>
+      <label data-i18n="lbl_insertPos">插入位置</label>
+      <select id="minsertPos"><option value="" data-i18n="opt_insertEnd">加入到最末尾</option></select>
     </div>
     <div class="mbt">
-      <button class="btn btn-del" id="delBtn" onclick="deleteTask()" style="display:none">刪除任務</button>
-      <button class="btn" onclick="cm('em')">取消</button>
-      <button class="btn a" onclick="saveModal()">儲存</button>
+      <button class="btn btn-del" id="delBtn" onclick="deleteTask()" style="display:none" data-i18n="btn_delete">刪除任務</button>
+      <button class="btn" onclick="cm('em')" data-i18n="btn_cancel">取消</button>
+      <button class="btn a" onclick="saveModal()" data-i18n="btn_saveModal">儲存</button>
     </div>
   </div>
 </div>
@@ -739,9 +755,162 @@ function copyShareUrl() {
 }
 
 // ═══════════════════════
+// I18N
+// ═══════════════════════
+const TRANS={
+  zh:{
+    sl_done:'已完成',sl_ongoing:'進行中',sl_pending:'待開始',sl_delayed:'延遲',
+    tb_tools:'工具列',tb_day:'日視圖',tb_week:'週視圖',tb_month:'月視圖',
+    tb_today:'📅 今天',tb_baseline:'📌 基準',tb_saveBaseline:'💾 存基準',tb_collapse:'☰ 收合詳情',
+    tb_importExcel:'📥 匯入 Excel',tb_exportTemplate:'📤 EXCEL格式',tb_importMSP:'📥 MS Project',
+    tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 分享連結',tb_exportExcel:'📊 匯出 Excel',
+    tb_exportProj:'📤 匯出專案檔',tb_importProj:'📩 匯入專案檔',
+    btn_addTask:'＋ 新增任務',btn_bulk:'☑ 批次選取',btn_bulkActive:'✕ 退出選取',
+    btn_save:'💾 儲存專案',btn_delProj:'🗑 刪除專案',
+    sb_projects:'我的專案',sb_newProj:'＋ 建立新專案',sb_help:'📖 使用說明書',
+    modal_editTitle:'編輯任務',modal_addTitle:'新增任務',
+    lbl_name:'任務名稱 *',lbl_owner:'負責人',lbl_type:'任務類型',
+    type_task:'一般任務',type_milestone:'里程碑',type_group:'群組（可摺疊）',
+    lbl_startDate:'開始日期',lbl_endDate:'結束日期',lbl_status:'狀態',lbl_pct:'完成度',
+    opt_pending:'待開始',opt_ongoing:'進行中',opt_done:'已完成',opt_delayed:'延遲',
+    lbl_deps:'前置任務（此任務開始前須完成）',lbl_color:'Bar 顏色（此任務專屬）',
+    lbl_note:'備註',lbl_critical:'🔴 關鍵任務',lbl_parent:'父群組（可選）',
+    opt_noParent:'無（頂層任務）',lbl_insertPos:'插入位置',opt_insertEnd:'加入到最末尾',
+    btn_delete:'刪除任務',btn_cancel:'取消',btn_saveModal:'儲存',
+    leg_done:'已完成',leg_ongoing:'進行中',leg_pending:'待開始',leg_delayed:'延遲',
+    leg_critical:'關鍵任務',leg_dep:'有前置任務',
+    leg_hint:'⠿ 拖曳排序 ｜ 點任務列編輯 ｜ 拖曳 Bar 兩端調整日期',
+    empty_title:'尚無專案',empty_sub:'點擊左側「＋ 建立新專案」開始',empty_btn:'＋ 建立第一個專案',
+    stats_toggle:'統計資訊',date_alert:'⚠️ 結束日期不能早於開始日期。',
+    msp_success:'匯入成功',msp_fail:'匯入失敗',msp_noTasks:'找不到任務資料',
+  },
+  en:{
+    sl_done:'Done',sl_ongoing:'In Progress',sl_pending:'Pending',sl_delayed:'Delayed',
+    tb_tools:'Tools',tb_day:'Day',tb_week:'Week',tb_month:'Month',
+    tb_today:'📅 Today',tb_baseline:'📌 Baseline',tb_saveBaseline:'💾 Save Baseline',tb_collapse:'☰ Collapse',
+    tb_importExcel:'📥 Import Excel',tb_exportTemplate:'📤 Excel Template',tb_importMSP:'📥 MS Project',
+    tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 Share',tb_exportExcel:'📊 Export Excel',
+    tb_exportProj:'📤 Export Project',tb_importProj:'📩 Import Project',
+    btn_addTask:'＋ Add Task',btn_bulk:'☑ Bulk Select',btn_bulkActive:'✕ Exit Select',
+    btn_save:'💾 Save',btn_delProj:'🗑 Delete',
+    sb_projects:'Projects',sb_newProj:'＋ New Project',sb_help:'📖 Help',
+    modal_editTitle:'Edit Task',modal_addTitle:'Add Task',
+    lbl_name:'Task Name *',lbl_owner:'Owner',lbl_type:'Type',
+    type_task:'Task',type_milestone:'Milestone',type_group:'Group (collapsible)',
+    lbl_startDate:'Start Date',lbl_endDate:'End Date',lbl_status:'Status',lbl_pct:'Progress',
+    opt_pending:'Pending',opt_ongoing:'In Progress',opt_done:'Done',opt_delayed:'Delayed',
+    lbl_deps:'Predecessors (must finish before this starts)',lbl_color:'Bar Color (this task)',
+    lbl_note:'Notes',lbl_critical:'🔴 Critical Task',lbl_parent:'Parent Group (optional)',
+    opt_noParent:'None (top-level)',lbl_insertPos:'Insert Position',opt_insertEnd:'Append to end',
+    btn_delete:'Delete Task',btn_cancel:'Cancel',btn_saveModal:'Save',
+    leg_done:'Done',leg_ongoing:'In Progress',leg_pending:'Pending',leg_delayed:'Delayed',
+    leg_critical:'Critical',leg_dep:'Has Predecessor',
+    leg_hint:'⠿ Drag to sort | Click row to edit | Drag bar ends to adjust dates',
+    empty_title:'No Projects',empty_sub:'Click "+ New Project" on the left to start',empty_btn:'＋ Create First Project',
+    stats_toggle:'Statistics',date_alert:'⚠️ End date cannot be before start date.',
+    msp_success:'Import successful',msp_fail:'Import failed',msp_noTasks:'No tasks found',
+  },
+  th:{
+    sl_done:'เสร็จแล้ว',sl_ongoing:'กำลังดำเนินการ',sl_pending:'รอดำเนินการ',sl_delayed:'ล่าช้า',
+    tb_tools:'เครื่องมือ',tb_day:'วัน',tb_week:'สัปดาห์',tb_month:'เดือน',
+    tb_today:'📅 วันนี้',tb_baseline:'📌 แผนฐาน',tb_saveBaseline:'💾 บันทึกแผนฐาน',tb_collapse:'☰ ย่อรายละเอียด',
+    tb_importExcel:'📥 นำเข้า Excel',tb_exportTemplate:'📤 เทมเพลต Excel',tb_importMSP:'📥 MS Project',
+    tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 แชร์',tb_exportExcel:'📊 ส่งออก Excel',
+    tb_exportProj:'📤 ส่งออกโปรเจค',tb_importProj:'📩 นำเข้าโปรเจค',
+    btn_addTask:'＋ เพิ่มงาน',btn_bulk:'☑ เลือกหลายรายการ',btn_bulkActive:'✕ ออกจากการเลือก',
+    btn_save:'💾 บันทึก',btn_delProj:'🗑 ลบโปรเจค',
+    sb_projects:'โปรเจคของฉัน',sb_newProj:'＋ สร้างโปรเจคใหม่',sb_help:'📖 วิธีใช้',
+    modal_editTitle:'แก้ไขงาน',modal_addTitle:'เพิ่มงาน',
+    lbl_name:'ชื่องาน *',lbl_owner:'ผู้รับผิดชอบ',lbl_type:'ประเภท',
+    type_task:'งานทั่วไป',type_milestone:'ไมล์สโตน',type_group:'กลุ่ม (ย่อได้)',
+    lbl_startDate:'วันเริ่มต้น',lbl_endDate:'วันสิ้นสุด',lbl_status:'สถานะ',lbl_pct:'ความคืบหน้า',
+    opt_pending:'รอดำเนินการ',opt_ongoing:'กำลังดำเนินการ',opt_done:'เสร็จแล้ว',opt_delayed:'ล่าช้า',
+    lbl_deps:'งานก่อนหน้า (ต้องเสร็จก่อนงานนี้จะเริ่ม)',lbl_color:'สีแถบ (งานนี้)',
+    lbl_note:'หมายเหตุ',lbl_critical:'🔴 งานวิกฤต',lbl_parent:'กลุ่มหลัก (ไม่บังคับ)',
+    opt_noParent:'ไม่มี (ระดับบนสุด)',lbl_insertPos:'ตำแหน่งแทรก',opt_insertEnd:'ต่อท้าย',
+    btn_delete:'ลบงาน',btn_cancel:'ยกเลิก',btn_saveModal:'บันทึก',
+    leg_done:'เสร็จแล้ว',leg_ongoing:'กำลังดำเนินการ',leg_pending:'รอดำเนินการ',leg_delayed:'ล่าช้า',
+    leg_critical:'งานวิกฤต',leg_dep:'มีงานก่อนหน้า',
+    leg_hint:'⠿ ลากเพื่อเรียง | คลิกแถวเพื่อแก้ไข | ลากปลายแถบเพื่อปรับวัน',
+    empty_title:'ยังไม่มีโปรเจค',empty_sub:'คลิก "+ สร้างโปรเจคใหม่" ทางซ้ายเพื่อเริ่ม',empty_btn:'＋ สร้างโปรเจคแรก',
+    stats_toggle:'สถิติ',date_alert:'⚠️ วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น',
+    msp_success:'นำเข้าสำเร็จ',msp_fail:'นำเข้าล้มเหลว',msp_noTasks:'ไม่พบข้อมูลงาน',
+  }
+};
+function T(k){return(TRANS[uiLang]||TRANS.zh)[k]||k;}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=T(el.dataset.i18n);});
+  SL.done=T('sl_done');SL.ongoing=T('sl_ongoing');SL.pending=T('sl_pending');SL.delayed=T('sl_delayed');
+  const ids={zh:'langBtnZH',en:'langBtnEN',th:'langBtnTH'};
+  Object.values(ids).forEach(id=>{const b=document.getElementById(id);if(b)b.classList.remove('active');});
+  const ab=document.getElementById(ids[uiLang]);if(ab)ab.classList.add('active');
+  if(activeId)render();
+}
+function setUILang(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyI18n();}
+function toggleToolBtns(){
+  toolBtnsVisible=!toolBtnsVisible;
+  localStorage.setItem('toolBtnsVisible',toolBtnsVisible);
+  applyToolBtnsState();
+}
+function applyToolBtnsState(){
+  const w=document.getElementById('toolBtnsWrap');
+  const a=document.getElementById('toolsToggleArrow');
+  if(w)w.style.display=toolBtnsVisible?'flex':'none';
+  if(a)a.textContent=toolBtnsVisible?'▾':'▸';
+}
+// ─── MS Project XML Import ───
+function importMSProjectXML(xmlText){
+  const doc=new DOMParser().parseFromString(xmlText,'text/xml');
+  const gEl=(el,tag)=>{const n=el.querySelector(tag);return n?n.textContent.trim():'';};
+  const resources={};
+  doc.querySelectorAll('Resource').forEach(r=>{const u=gEl(r,'UID'),n=gEl(r,'Name');if(u&&n&&u!=='0')resources[u]=n;});
+  const assignments={};
+  doc.querySelectorAll('Assignment').forEach(a=>{const t=gEl(a,'TaskUID'),r=gEl(a,'ResourceUID');if(t&&r&&resources[r]&&!assignments[t])assignments[t]=resources[r];});
+  const idMap={};let ourId=Date.now();const rawTasks=[];
+  doc.querySelectorAll('Task').forEach(t=>{
+    const uid=gEl(t,'UID');if(uid==='0')return;
+    const name=gEl(t,'Name');if(!name)return;
+    const startStr=gEl(t,'Start'),finishStr=gEl(t,'Finish');
+    if(!startStr||!finishStr)return;
+    const start=startStr.slice(0,10),end=finishStr.slice(0,10);
+    const pct=parseInt(gEl(t,'PercentComplete')||'0');
+    const isMilestone=gEl(t,'Milestone')==='1',isSummary=gEl(t,'Summary')==='1',isCritical=gEl(t,'Critical')==='1';
+    let type='task';if(isMilestone)type='milestone';else if(isSummary)type='group';
+    let status='pending';if(pct===100)status='done';else if(pct>0)status='ongoing';
+    const id=ourId++;idMap[uid]=id;
+    const predLinks=[];
+    t.querySelectorAll('PredecessorLink').forEach(pl=>{
+      const pUID=gEl(pl,'PredecessorUID');
+      const dtype=['FF','FS','SF','SS'][parseInt(gEl(pl,'Type')||'1')]||'FS';
+      const lag=Math.round(parseInt(gEl(pl,'LinkLag')||'0')/4800);
+      if(pUID&&pUID!=='0')predLinks.push({pUID,dtype,lag});
+    });
+    rawTasks.push({uid,id,name,owner:assignments[uid]||'',start,end,status,pct,type,critical:isCritical,note:gEl(t,'Notes'),deps:[],color:null,parentId:null,collapsed:false,_pl:predLinks});
+  });
+  rawTasks.forEach(t=>{t._pl.forEach(({pUID,dtype,lag})=>{if(idMap[pUID])t.deps.push({id:idMap[pUID],type:dtype,lag});});delete t._pl;delete t.uid;});
+  return rawTasks;
+}
+async function handleMSProjectImport(inp){
+  const file=inp.files[0];if(!file)return;
+  try{
+    const text=await file.text();
+    const tasks=importMSProjectXML(text);
+    if(!tasks.length){toast(T('msp_noTasks'),'err');inp.value='';return;}
+    const projName=file.name.replace(/\.xml$/i,'');
+    const newId=Date.now();
+    const newProj={id:newId,name:projName,color:PROJ_COLORS[projects.length%PROJ_COLORS.length],tasks,baseline:null};
+    projects.push(newProj);activeId=newId;
+    renderSidebar();renderTopbar();render();autoSave();
+    toast(`✅ ${T('msp_success')}：${tasks.length} 個任務`);
+  }catch(e){toast(`❌ ${T('msp_fail')}：${e.message}`,'err');}
+  inp.value='';
+}
+// ═══════════════════════
 // CONSTANTS & STATE
 // ═══════════════════════
-const SL={done:'已完成',ongoing:'進行中',pending:'待開始',delayed:'延遲'};
+let SL={done:'已完成',ongoing:'進行中',pending:'待開始',delayed:'延遲'};
+let uiLang=localStorage.getItem('uiLang')||'zh';
+let toolBtnsVisible=localStorage.getItem('toolBtnsVisible')!=='false';
 const SC={done:'bd',ongoing:'bo',pending:'bp',delayed:'bl'};
 const PALETTE=['#4F6BED','#0EA5E9','#10B981','#84CC16','#F59E0B','#F97316','#EF4444','#F43F5E','#EC4899','#A855F7','#7C3AED','#6366F1','#06B6D4','#64748B','#92400E','#059669','#0284C7','#D97706'];
 const PROJ_COLORS=['#4F6BED','#10B981','#F59E0B','#EF4444','#A855F7','#F97316','#06B6D4','#EC4899','#64748B','#7C3AED'];
@@ -1949,8 +2118,8 @@ function truncate(ctx,text,maxW){if(ctx.measureText(text).width<=maxW)return tex
 // BULK SELECT
 // ═══════════════════════
 function toggleBulkMode(){if(bulkMode){exitBulkMode();}else{enterBulkMode();}}
-function enterBulkMode(){bulkMode=true;bulkSelected.clear();document.getElementById('bulkToggleBtn').textContent='✕ 退出選取';document.getElementById('bulkToggleBtn').classList.add('active');render();updateBulkBar();}
-function exitBulkMode(){bulkMode=false;bulkSelected.clear();const btn=document.getElementById('bulkToggleBtn');if(btn){btn.textContent='☑ 批次選取';btn.classList.remove('active');}document.getElementById('bulkBar').classList.remove('open');render();}
+function enterBulkMode(){bulkMode=true;bulkSelected.clear();document.getElementById('bulkToggleBtn').textContent=T('btn_bulkActive');document.getElementById('bulkToggleBtn').classList.add('active');render();updateBulkBar();}
+function exitBulkMode(){bulkMode=false;bulkSelected.clear();const btn=document.getElementById('bulkToggleBtn');if(btn){btn.textContent=T('btn_bulk');btn.classList.remove('active');}document.getElementById('bulkBar').classList.remove('open');render();}
 function bulkMoveUp(){
   const p=activeProj();if(!p||!bulkSelected.size){toast('請先勾選要移動的任務');return;}
   const tasks=p.tasks;
@@ -2074,7 +2243,7 @@ function updBP(hex){const p=document.getElementById('barPrev');p.style.backgroun
 // ═══════════════════════
 function openAdd(){
   editId=null;editDeps=[];editColor=null;_editDuration=7;
-  document.getElementById('mt').textContent='新增任務';
+  document.getElementById('mt').textContent=T('modal_addTitle');
   ['mn','mo','mno'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('msd').value=ds(today);
   document.getElementById('med').value=ds(addD(today,7));
@@ -2110,7 +2279,7 @@ function openAdd(){
 function openEdit(id){
   const tasks=getTasks();const t=tasks.find(x=>x.id===id);if(!t)return;
   editId=id;editDeps=[...normalizeDeps(t.deps||[])];editColor=t.color||null;_editDuration=dayCount(t.start,t.end);
-  document.getElementById('mt').textContent='編輯任務';
+  document.getElementById('mt').textContent=T('modal_editTitle');
   document.getElementById('mn').value=t.name;
   document.getElementById('mo').value=t.owner||'';
   document.getElementById('msd').value=t.start;
@@ -2660,6 +2829,7 @@ if(window.location.hash.startsWith('#s=')){
   setTimeout(jumpToday,400);
   initAuth();
 }
+applyI18n();applyToolBtnsState();
 </script>
 
 </body>
