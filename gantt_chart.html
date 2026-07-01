@@ -918,7 +918,7 @@ const PROJ_COLORS=['#4F6BED','#10B981','#F59E0B','#EF4444','#A855F7','#F97316','
 let projects=[],activeId=null,editId=null,editDeps=[],editColor=null,dragSrc=null,newProjColor=PROJ_COLORS[0],pendingDeleteId=null,_editDuration=0;
 let bulkMode=false,bulkSelected=new Set();
 const today=new Date(); today.setHours(0,0,0,0);
-const ds=d=>d.toISOString().slice(0,10);
+const ds=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
 const parseD=s=>{if(!s)return today;const[y,m,d]=s.replace(/\//g,'-').split('-');return new Date(+y,+m-1,+d);};
 const fmt=s=>{const d=parseD(s);return`${d.getMonth()+1}/${d.getDate()}`;};
