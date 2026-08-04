@@ -237,23 +237,34 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 
 /* ── Table view (Excel-style editable grid) ── */
 .tv-wrap{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:auto;flex:1;margin:16px 20px 8px}
-.tv-table{border-collapse:collapse;width:100%;min-width:960px}
-.tv-table thead th{position:sticky;top:0;background:#F3F4F6;font-size:10px;font-weight:700;padding:8px 8px;border-bottom:2px solid rgba(0,0,0,.12);text-align:left;white-space:nowrap;z-index:2;text-transform:uppercase;letter-spacing:.4px}
-.tv-table tbody td{border-bottom:1px solid rgba(0,0,0,.06);padding:2px 4px;vertical-align:middle}
+.tv-table{border-collapse:collapse;width:100%;min-width:1000px;table-layout:fixed}
+.tv-table thead th{position:sticky;top:0;background:#F3F4F6;font-size:10px;font-weight:700;padding:8px 8px;border-bottom:2px solid rgba(0,0,0,.12);text-align:left;white-space:nowrap;z-index:2;text-transform:uppercase;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis}
+.tv-table tbody tr{height:var(--tv-row-h,34px)}
+.tv-table tbody td{border-bottom:1px solid rgba(0,0,0,.06);padding:2px 4px;vertical-align:middle;overflow:hidden}
 .tv-table tbody tr:hover td{background:rgba(79,107,237,.04)}
-.tv-table input[type=text],.tv-table input[type=date],.tv-table input[type=number],.tv-table select{width:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:6px 6px;border-radius:5px;color:var(--tx)}
+.tv-table input[type=text],.tv-table input[type=date],.tv-table input[type=number],.tv-table select{width:100%;height:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:0 6px;border-radius:5px;color:var(--tx)}
 .tv-table input:hover,.tv-table select:hover{border-color:var(--bdr)}
 .tv-table input:focus,.tv-table select:focus{outline:none;border-color:var(--acc);background:var(--surf);box-shadow:0 0 0 2px var(--acc-l)}
 .tv-table input[type=number]{width:100%}
-.tv-num{width:36px;min-width:36px;text-align:center;font-size:10px;color:var(--tx3);font-weight:600}
-.tv-color{display:flex;align-items:center;gap:5px}
+.tv-num{width:36px;min-width:36px;text-align:center;font-size:10px;color:var(--tx3);font-weight:600;position:relative}
+.tv-row-resizer{position:absolute;left:0;right:0;bottom:-3px;height:6px;cursor:row-resize;z-index:6}
+.tv-row-resizer:hover{background:rgba(79,107,237,.3)}
 .tv-swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0;border:1px solid rgba(0,0,0,.15)}
-.tv-actions{width:36px;text-align:center}
+.tv-actions{width:36px;min-width:36px;text-align:center}
 .tv-del-btn{border:none;background:none;color:var(--tx3);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:5px}
 .tv-del-btn:hover{background:var(--del-l);color:var(--del)}
 .tv-add-row{padding:10px 20px 16px}
-body.share-mode .tv-del-btn,body.share-mode .tv-add-row{display:none!important}
-body.share-mode .tv-table input,body.share-mode .tv-table select{pointer-events:none}
+.tv-chip-btn{width:100%;height:100%;text-align:left;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:0 8px;border-radius:5px;color:var(--tx);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.tv-chip-btn span{overflow:hidden;text-overflow:ellipsis}
+.tv-chip-btn:hover{border-color:var(--bdr);background:var(--bg)}
+.tv-chip-btn:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-l)}
+.tv-placeholder{color:var(--tx3);font-style:italic}
+.tv-status-cell{display:flex;align-items:center;gap:2px;height:100%}
+.tv-status-cell select.tv-auto{color:var(--tx2);font-style:italic}
+.tv-reset-status{border:none;background:none;cursor:pointer;font-size:12px;color:var(--acc);flex-shrink:0;padding:2px 5px;border-radius:4px;line-height:1}
+.tv-reset-status:hover{background:var(--acc-l)}
+body.share-mode .tv-del-btn,body.share-mode .tv-add-row,body.share-mode .tv-reset-status,body.share-mode .col-resizer,body.share-mode .tv-row-resizer{display:none!important}
+body.share-mode .tv-table input,body.share-mode .tv-table select,body.share-mode .tv-chip-btn{pointer-events:none}
 body.share-mode #btnViewTable,body.share-mode #btnViewGantt{pointer-events:none;opacity:.5}
 
 /* ── Share mode: hide edit-only controls ── */
@@ -483,20 +494,21 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       </div>
       <div id="tableArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
         <div class="tv-wrap">
-          <table class="tv-table">
+          <table class="tv-table" id="tvTable">
+            <colgroup id="tvColgroup"></colgroup>
             <thead>
               <tr>
-                <th class="tv-num">#</th>
-                <th style="min-width:220px" data-i18n="lbl_name2">任務名稱</th>
-                <th style="min-width:90px" data-i18n="lbl_owner">負責人</th>
-                <th style="min-width:130px" data-i18n="lbl_startDate">開始日期</th>
-                <th style="min-width:130px" data-i18n="lbl_endDate">結束日期</th>
-                <th style="min-width:90px" data-i18n="lbl_status">狀態</th>
-                <th style="min-width:70px" data-i18n="tv_pct">完成度%</th>
-                <th style="min-width:170px" data-i18n="lbl_deps2">前置任務</th>
-                <th style="min-width:110px" data-i18n="tv_barColor">Bar顏色</th>
-                <th style="min-width:170px" data-i18n="lbl_note">備註</th>
-                <th class="tv-actions"></th>
+                <th class="tv-num" data-col="num">#</th>
+                <th data-col="name" data-i18n="lbl_name2">任務名稱</th>
+                <th data-col="owner" data-i18n="lbl_owner">負責人</th>
+                <th data-col="start" data-i18n="lbl_startDate">開始日期</th>
+                <th data-col="end" data-i18n="lbl_endDate">結束日期</th>
+                <th data-col="status" data-i18n="lbl_status">狀態</th>
+                <th data-col="pct" data-i18n="tv_pct">完成度%</th>
+                <th data-col="deps" data-i18n="lbl_deps2">前置任務</th>
+                <th data-col="color" data-i18n="tv_barColor">Bar顏色</th>
+                <th data-col="note" data-i18n="lbl_note">備註</th>
+                <th class="tv-actions" data-col="actions"></th>
               </tr>
             </thead>
             <tbody id="tvBody"></tbody>
@@ -562,6 +574,10 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <div id="dayCountInfo" style="font-size:12px;color:var(--acc);margin-top:6px;font-weight:500;display:none"></div>
     <label data-i18n="lbl_status">狀態</label>
     <select id="mst"><option value="pending" data-i18n="opt_pending">待開始</option><option value="ongoing" data-i18n="opt_ongoing">進行中</option><option value="done" data-i18n="opt_done">已完成</option><option value="delayed" data-i18n="opt_delayed">延遲</option></select>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 0">
+      <input type="checkbox" id="mstManual" onchange="toggleStatusManual()" style="width:16px;height:16px;accent-color:var(--acc);cursor:pointer">
+      <label for="mstManual" style="margin:0;cursor:pointer;font-size:12px" data-i18n="lbl_statusManual">手動指定狀態（取消勾選則依完成度／日期自動判斷）</label>
+    </div>
     <label data-i18n="lbl_pct">完成度</label>
     <div class="pr"><input type="range" id="mp" min="0" max="100" step="5"><span id="mpd">0%</span></div>
     <label data-i18n="lbl_deps">前置任務（此任務開始前須完成）</label>
@@ -825,6 +841,7 @@ const TRANS={
     lbl_name:'任務名稱 *',lbl_owner:'負責人',lbl_type:'任務類型',
     type_task:'一般任務',type_milestone:'里程碑',type_group:'群組（可摺疊）',
     lbl_startDate:'開始日期',lbl_endDate:'結束日期',lbl_status:'狀態',lbl_pct:'完成度',
+    lbl_statusManual:'手動指定狀態（取消勾選則依完成度／日期自動判斷）',
     opt_pending:'待開始',opt_ongoing:'進行中',opt_done:'已完成',opt_delayed:'延遲',
     lbl_deps:'前置任務（此任務開始前須完成）',lbl_color:'Bar 顏色（此任務專屬）',
     lbl_note:'備註',lbl_critical:'🔴 關鍵任務',lbl_parent:'父群組（可選）',
@@ -854,6 +871,7 @@ const TRANS={
     lbl_name:'Task Name *',lbl_owner:'Owner',lbl_type:'Type',
     type_task:'Task',type_milestone:'Milestone',type_group:'Group (collapsible)',
     lbl_startDate:'Start Date',lbl_endDate:'End Date',lbl_status:'Status',lbl_pct:'Progress',
+    lbl_statusManual:'Set status manually (uncheck to auto-derive from % complete / dates)',
     opt_pending:'Pending',opt_ongoing:'In Progress',opt_done:'Done',opt_delayed:'Delayed',
     lbl_deps:'Predecessors (must finish before this starts)',lbl_color:'Bar Color (this task)',
     lbl_note:'Notes',lbl_critical:'🔴 Critical Task',lbl_parent:'Parent Group (optional)',
@@ -883,6 +901,7 @@ const TRANS={
     lbl_name:'ชื่องาน *',lbl_owner:'ผู้รับผิดชอบ',lbl_type:'ประเภท',
     type_task:'งานทั่วไป',type_milestone:'ไมล์สโตน',type_group:'กลุ่ม (ย่อได้)',
     lbl_startDate:'วันเริ่มต้น',lbl_endDate:'วันสิ้นสุด',lbl_status:'สถานะ',lbl_pct:'ความคืบหน้า',
+    lbl_statusManual:'กำหนดสถานะเอง (ยกเลิกติ๊กเพื่อคำนวณอัตโนมัติจาก % งาน/วันที่)',
     opt_pending:'รอดำเนินการ',opt_ongoing:'กำลังดำเนินการ',opt_done:'เสร็จแล้ว',opt_delayed:'ล่าช้า',
     lbl_deps:'งานก่อนหน้า (ต้องเสร็จก่อนงานนี้จะเริ่ม)',lbl_color:'สีแถบ (งานนี้)',
     lbl_note:'หมายเหตุ',lbl_critical:'🔴 งานวิกฤต',lbl_parent:'กลุ่มหลัก (ไม่บังคับ)',
@@ -989,9 +1008,23 @@ const getProj=id=>projects.find(p=>p.id===id);
 const activeProj=()=>getProj(activeId);
 const getTasks=()=>activeProj()?.tasks||[];
 
+// Status is derived automatically from completion % and end date unless the
+// task carries an explicit manual override (t.statusManual).
+// Priority: 100% done → done; overdue (end < today) and not done → delayed;
+// >0% (and not overdue) → ongoing; else pending.
+function computeAutoStatus(t){
+  if((t.pct||0)>=100)return'done';
+  if(parseD(t.end)<today)return'delayed';
+  if((t.pct||0)>0)return'ongoing';
+  return'pending';
+}
+function effectiveStatus(t){
+  return(t.statusManual&&t.status)?t.status:computeAutoStatus(t);
+}
+
 function taskBarBg(t){
   if(t.color)return t.color;
-  return{done:'#059669',ongoing:'#4F6BED',pending:'#9CA3AF',delayed:'#DC2626'}[t.status]||'#9CA3AF';
+  return{done:'#059669',ongoing:'#4F6BED',pending:'#9CA3AF',delayed:'#DC2626'}[effectiveStatus(t)]||'#9CA3AF';
 }
 
 // ═══════════════════════
@@ -1223,19 +1256,19 @@ function loadDemo(){
   const p1='proj_'+Date.now(),p2='proj_'+(Date.now()+1);
   projects=[
     {id:p1,name:'A棟翻修工程',color:'#4F6BED',nextId:9,tasks:[
-      {id:1,name:'基礎結構施工',owner:'張工',start:'2025-04-28',end:'2025-05-20',status:'done',pct:100,note:'已完驗收',deps:[],color:'#059669',type:'task',parentId:null,collapsed:false},
-      {id:2,name:'水電配管',owner:'李技',start:'2025-05-05',end:'2025-05-22',status:'done',pct:100,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#0EA5E9',type:'task',parentId:null,collapsed:false},
-      {id:3,name:'防水工程',owner:'王班',start:'2025-05-18',end:'2025-06-02',status:'ongoing',pct:65,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#F97316',type:'task',parentId:null,collapsed:false},
-      {id:4,name:'外牆粉刷',owner:'陳師',start:'2025-05-28',end:'2025-06-15',status:'ongoing',pct:30,note:'材料已到位',deps:[{id:3,type:'FS',lag:0}],color:'#A855F7',type:'task',parentId:null,collapsed:false},
-      {id:5,name:'室內隔間',owner:'張工',start:'2025-06-03',end:'2025-06-25',status:'pending',pct:0,note:'',deps:[{id:2,type:'FS',lag:0},{id:3,type:'FS',lag:0}],color:'#F59E0B',type:'task',parentId:null,collapsed:false},
-      {id:6,name:'地板鋪設',owner:'李技',start:'2025-06-18',end:'2025-07-05',status:'pending',pct:0,note:'',deps:[{id:5,type:'FS',lag:0}],color:'#06B6D4',type:'task',parentId:null,collapsed:false},
-      {id:7,name:'門窗安裝',owner:'王班',start:'2025-06-25',end:'2025-07-10',status:'delayed',pct:10,note:'供應商延誤',deps:[{id:4,type:'FS',lag:0}],color:'#DC2626',type:'task',parentId:null,collapsed:false},
-      {id:8,name:'竣工驗收',owner:'全員',start:'2025-07-10',end:'2025-07-15',status:'pending',pct:0,note:'',deps:[{id:6,type:'FS',lag:0},{id:7,type:'FS',lag:0}],color:'#7C3AED',type:'milestone',parentId:null,collapsed:false},
+      {id:1,name:'基礎結構施工',owner:'張工',start:'2025-04-28',end:'2025-05-20',status:'done',statusManual:true,pct:100,note:'已完驗收',deps:[],color:'#059669',type:'task',parentId:null,collapsed:false},
+      {id:2,name:'水電配管',owner:'李技',start:'2025-05-05',end:'2025-05-22',status:'done',statusManual:true,pct:100,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#0EA5E9',type:'task',parentId:null,collapsed:false},
+      {id:3,name:'防水工程',owner:'王班',start:'2025-05-18',end:'2025-06-02',status:'ongoing',statusManual:true,pct:65,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#F97316',type:'task',parentId:null,collapsed:false},
+      {id:4,name:'外牆粉刷',owner:'陳師',start:'2025-05-28',end:'2025-06-15',status:'ongoing',statusManual:true,pct:30,note:'材料已到位',deps:[{id:3,type:'FS',lag:0}],color:'#A855F7',type:'task',parentId:null,collapsed:false},
+      {id:5,name:'室內隔間',owner:'張工',start:'2025-06-03',end:'2025-06-25',status:'pending',statusManual:true,pct:0,note:'',deps:[{id:2,type:'FS',lag:0},{id:3,type:'FS',lag:0}],color:'#F59E0B',type:'task',parentId:null,collapsed:false},
+      {id:6,name:'地板鋪設',owner:'李技',start:'2025-06-18',end:'2025-07-05',status:'pending',statusManual:true,pct:0,note:'',deps:[{id:5,type:'FS',lag:0}],color:'#06B6D4',type:'task',parentId:null,collapsed:false},
+      {id:7,name:'門窗安裝',owner:'王班',start:'2025-06-25',end:'2025-07-10',status:'delayed',statusManual:true,pct:10,note:'供應商延誤',deps:[{id:4,type:'FS',lag:0}],color:'#DC2626',type:'task',parentId:null,collapsed:false},
+      {id:8,name:'竣工驗收',owner:'全員',start:'2025-07-10',end:'2025-07-15',status:'pending',statusManual:true,pct:0,note:'',deps:[{id:6,type:'FS',lag:0},{id:7,type:'FS',lag:0}],color:'#7C3AED',type:'milestone',parentId:null,collapsed:false},
     ]},
     {id:p2,name:'B棟新建工程',color:'#10B981',nextId:4,tasks:[
-      {id:1,name:'地基開挖',owner:'張工',start:'2025-06-01',end:'2025-06-20',status:'ongoing',pct:40,note:'',deps:[],color:'#10B981',type:'task',parentId:null,collapsed:false},
-      {id:2,name:'鋼筋綁紮',owner:'王班',start:'2025-06-15',end:'2025-07-10',status:'pending',pct:0,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#F59E0B',type:'task',parentId:null,collapsed:false},
-      {id:3,name:'混凝土澆置',owner:'李技',start:'2025-07-05',end:'2025-07-25',status:'pending',pct:0,note:'',deps:[{id:2,type:'FS',lag:0}],color:'#4F6BED',type:'task',parentId:null,collapsed:false},
+      {id:1,name:'地基開挖',owner:'張工',start:'2025-06-01',end:'2025-06-20',status:'ongoing',statusManual:true,pct:40,note:'',deps:[],color:'#10B981',type:'task',parentId:null,collapsed:false},
+      {id:2,name:'鋼筋綁紮',owner:'王班',start:'2025-06-15',end:'2025-07-10',status:'pending',statusManual:true,pct:0,note:'',deps:[{id:1,type:'FS',lag:0}],color:'#F59E0B',type:'task',parentId:null,collapsed:false},
+      {id:3,name:'混凝土澆置',owner:'李技',start:'2025-07-05',end:'2025-07-25',status:'pending',statusManual:true,pct:0,note:'',deps:[{id:2,type:'FS',lag:0}],color:'#4F6BED',type:'task',parentId:null,collapsed:false},
     ]},
   ];
   activeId=p1;
@@ -1436,7 +1469,7 @@ function render(){
   const milestoneCount = allTasks.filter(t=>t.type==='milestone').length;
 
   const days=Math.round((ve-vs)/86400000)+1;
-  const done=allTasks.filter(t=>t.status==='done').length,ong=allTasks.filter(t=>t.status==='ongoing').length,del=allTasks.filter(t=>t.status==='delayed').length;
+  const done=allTasks.filter(t=>effectiveStatus(t)==='done').length,ong=allTasks.filter(t=>effectiveStatus(t)==='ongoing').length,del=allTasks.filter(t=>effectiveStatus(t)==='delayed').length;
   const avg=allTasks.length?Math.round(allTasks.reduce((a,t)=>a+t.pct,0)/allTasks.length):0;
   const spanDays=allTasks.length>=1?dayCount(allTasks.reduce((a,t)=>a<t.start?a:t.start,allTasks[0].start),allTasks.reduce((a,t)=>a>t.end?a:t.end,allTasks[0].end)):0;
   document.getElementById('stats').innerHTML=`
@@ -1564,7 +1597,7 @@ function render(){
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <div class="dep-dot${hasDep?' has':''}" title="${hasDep?'有前置任務':''}"></div>
           ${isCritical?`<span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:9px">關鍵</span>`:cpmResult[t.id]&&cpmResult[t.id].float>0?`<span style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace">浮時:${cpmResult[t.id].float}d</span>`:''}
-          <span class="badge ${SC[t.status]}">${SL[t.status]}</span>
+          <span class="badge ${SC[effectiveStatus(t)]}">${SL[effectiveStatus(t)]}</span>
           ${!window.SHARE_MODE?`<span class="detail-tog" onclick="jumpToTask(${t.id},event)" title="${T('jump_to_bar')}" style="color:var(--acc);font-weight:bold">→</span>`:''}
           <span class="detail-tog" onclick="toggleTaskDetail(${t.id},event)" title="${detailHidden?'展開詳情':'收合詳情'}">${detailHidden?'▶':'▽'}</span>
         </div>
@@ -1649,28 +1682,105 @@ function renderTable(){
     const level=getTaskLevel(t,allTasks);
     const depNames=normalizeDeps(t.deps).map(d=>{const f=allTasks.find(x=>x.id===d.id);return f?f.name:'';}).filter(Boolean).join(', ');
     const swatch=taskBarBg(t);
+    const eStatus=effectiveStatus(t);
     html+=`<tr data-id="${t.id}">`;
-    html+=`<td class="tv-num">${ri+1}</td>`;
-    html+=`<td style="padding-left:${4+level*20}px;display:flex;align-items:center;gap:2px">`;
+    html+=`<td class="tv-num">${ri+1}${ro?'':'<div class="tv-row-resizer" onmousedown="tvStartRowResize(event)"></div>'}</td>`;
+    html+=`<td style="padding-left:${4+level*20}px"><div style="display:flex;align-items:center;gap:2px;height:100%">`;
     if(isGroup)html+=`<span class="group-toggle" onclick="toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>`;
-    html+=`<input type="text" value="${escAttr(t.name)}" data-id="${t.id}" data-field="name" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" style="${isGroup?'font-weight:700':''}"></td>`;
+    html+=`<input type="text" value="${escAttr(t.name)}" data-id="${t.id}" data-field="name" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" style="${isGroup?'font-weight:700':''}"></div></td>`;
     html+=`<td><input type="text" value="${escAttr(t.owner||'')}" data-id="${t.id}" data-field="owner" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
     html+=`<td><input type="date" value="${t.start}" data-id="${t.id}" data-field="start" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
     html+=`<td><input type="date" value="${t.end}" data-id="${t.id}" data-field="end" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
-    html+=`<td><select data-id="${t.id}" data-field="status" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)">${Object.entries(SL).map(([k,v])=>`<option value="${k}"${t.status===k?' selected':''}>${v}</option>`).join('')}</select></td>`;
+    html+=`<td><div class="tv-status-cell"><select class="${t.statusManual?'tv-manual':'tv-auto'}" data-id="${t.id}" data-field="status" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" title="${t.statusManual?'手動設定':'依完成度／日期自動判斷'}">${Object.entries(SL).map(([k,v])=>`<option value="${k}"${eStatus===k?' selected':''}>${v}</option>`).join('')}</select>${(t.statusManual&&!ro)?`<button type="button" class="tv-reset-status" title="恢復自動判斷" onclick="tvResetStatus(${t.id})">⟲</button>`:''}</div></td>`;
     html+=`<td><input type="number" min="0" max="100" value="${t.pct||0}" data-id="${t.id}" data-field="pct" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
-    html+=`<td><input type="text" value="${escAttr(depNames)}" data-id="${t.id}" data-field="deps" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" placeholder="逗號分隔任務名稱"></td>`;
-    html+=`<td><div class="tv-color"><span class="tv-swatch" style="background:${swatch}"></span><input type="text" value="${escAttr(t.color||'')}" data-id="${t.id}" data-field="color" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" placeholder="#4F6BED"></div></td>`;
+    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="deps" ${dis} onclick="openEdit(${t.id})" title="點擊編輯前置任務（跟甘特圖編輯視窗相同）">${depNames?`<span>${escAttr(depNames)}</span>`:'<span class="tv-placeholder">+ 設定前置任務</span>'}</button></td>`;
+    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="color" ${dis} onclick="openEdit(${t.id})" title="點擊編輯 Bar 顏色（跟甘特圖編輯視窗相同）"><span class="tv-swatch" style="background:${swatch}"></span>${t.color?`<span>${escAttr(t.color)}</span>`:'<span class="tv-placeholder">自動</span>'}</button></td>`;
     html+=`<td><input type="text" value="${escAttr(t.note||'')}" data-id="${t.id}" data-field="note" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
     html+=`<td class="tv-actions">${ro?'':`<button class="tv-del-btn" title="刪除此列" onclick="tvDeleteRow(${t.id})">🗑</button>`}</td>`;
     html+='</tr>';
   });
   document.getElementById('tvBody').innerHTML=html;
+  tvApplyRowHeight(tvLoadRowHeight());
+  initTvColResizer();
   if(_tvFocus){
     const el=document.querySelector(`#tvBody [data-id="${_tvFocus.id}"][data-field="${_tvFocus.field}"]`);
     if(el){el.focus();if(el.select)try{el.select();}catch(e){}}
     _tvFocus=null;
   }
+}
+
+// ── Column width / row height resize (Excel-like drag handles) ──
+const TV_COL_FIELDS=['num','name','owner','start','end','status','pct','deps','color','note','actions'];
+const TV_COL_DEFAULT_W={num:36,name:220,owner:90,start:130,end:130,status:120,pct:70,deps:190,color:130,note:190,actions:36};
+let _tvColWidths=null;
+function tvLoadColWidths(){
+  if(_tvColWidths)return _tvColWidths;
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem('tv_colWidths')||'{}');}catch(e){}
+  _tvColWidths=Object.assign({},TV_COL_DEFAULT_W,saved);
+  return _tvColWidths;
+}
+function tvSaveColWidths(){try{localStorage.setItem('tv_colWidths',JSON.stringify(_tvColWidths));}catch(e){}}
+
+function tvLoadRowHeight(){return Math.max(24,parseInt(localStorage.getItem('tv_rowHeight'))||34);}
+function tvApplyRowHeight(h){const tbl=document.getElementById('tvTable');if(tbl)tbl.style.setProperty('--tv-row-h',h+'px');}
+
+function tvStartRowResize(e){
+  e.preventDefault();e.stopPropagation();
+  const startY=e.clientY,startH=tvLoadRowHeight();
+  function onMove(ev){tvApplyRowHeight(Math.max(20,startH+ev.clientY-startY));}
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    const tbl=document.getElementById('tvTable');
+    const cur=tbl?parseInt(tbl.style.getPropertyValue('--tv-row-h')):startH;
+    localStorage.setItem('tv_rowHeight',cur||startH);
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+function initTvColResizer(){
+  const w=tvLoadColWidths();
+  const cg=document.getElementById('tvColgroup');
+  if(cg)cg.innerHTML=TV_COL_FIELDS.map(f=>`<col style="width:${w[f]}px">`).join('');
+  const headRow=document.querySelector('#tableArea thead tr');if(!headRow)return;
+  [...headRow.children].forEach(th=>{
+    const field=th.dataset.col;
+    if(!field||field==='actions'||window.SHARE_MODE)return;
+    if(th.querySelector('.col-resizer'))return;
+    const handle=document.createElement('div');
+    handle.className='col-resizer';
+    handle.addEventListener('mousedown',ev=>tvStartColResize(ev,field));
+    th.appendChild(handle);
+  });
+}
+
+function tvStartColResize(e,field){
+  e.preventDefault();e.stopPropagation();
+  const w=tvLoadColWidths();
+  const startX=e.clientX,startW=w[field];
+  const idx=TV_COL_FIELDS.indexOf(field);
+  const col=document.querySelectorAll('#tvColgroup col')[idx];
+  function onMove(ev){
+    const nw=Math.max(36,startW+ev.clientX-startX);
+    w[field]=nw;
+    if(col)col.style.width=nw+'px';
+  }
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    tvSaveColWidths();
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+function tvResetStatus(id){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return;
+  t.statusManual=false;
+  autoSave();render();
 }
 
 // Commits a single cell's value into the task model. Returns true on success.
@@ -1696,40 +1806,34 @@ function tvApplyChange(el){
     case 'note':t.note=val.trim();return true;
     case 'start':
       if(!val||parseD(val)>parseD(t.end)){toast('⚠️ 開始日期不能晚於結束日期');return false;}
-      t.start=val;return true;
+      t.start=val;tvRefreshRowStatus(id);return true;
     case 'end':
       if(!val||parseD(val)<parseD(t.start)){toast('⚠️ 結束日期不能早於開始日期');return false;}
-      t.end=val;return true;
-    case 'status':t.status=val;return true;
+      t.end=val;tvRefreshRowStatus(id);return true;
+    case 'status':t.status=val;t.statusManual=true;return true;
     case 'pct':{
       let n=parseInt(val);if(isNaN(n))n=0;
-      t.pct=Math.min(100,Math.max(0,n));return true;
-    }
-    case 'color':{
-      const v=val.trim();
-      const sw=el.closest('.tv-color')?.querySelector('.tv-swatch');
-      if(!v){t.color=null;if(sw)sw.style.background=taskBarBg(t);return true;}
-      const hex=v.startsWith('#')?v:'#'+v;
-      if(!/^#[0-9a-fA-F]{6}$/.test(hex)){toast('⚠️ 顏色格式需為 #RRGGBB');return false;}
-      t.color=hex;if(sw)sw.style.background=hex;
-      return true;
-    }
-    case 'deps':{
-      const names=val.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
-      const newDeps=[],skipped=[];
-      names.forEach(n=>{
-        const found=p.tasks.find(x=>x.name===n&&x.id!==id);
-        if(!found){skipped.push(n);return;}
-        if(hasCycle(found.id,id,p.tasks)){skipped.push(n+'(循環依賴)');return;}
-        if(!newDeps.some(d=>d.id===found.id))newDeps.push({id:found.id,type:'FS',lag:0});
-      });
-      t.deps=newDeps;
-      el.value=newDeps.map(d=>p.tasks.find(x=>x.id===d.id)?.name).filter(Boolean).join(', ');
-      if(skipped.length)toast('⚠️ 忽略無法辨識的前置任務：'+skipped.join('、'));
-      return true;
+      t.pct=Math.min(100,Math.max(0,n));
+      tvRefreshRowStatus(id);return true;
     }
   }
   return true;
+}
+
+// pct/start/end changes can flip the auto-computed status (and its bar-color
+// fallback) — patch just this row's status <select> + swatch in place so the
+// change is visible immediately without a full table rebuild.
+function tvRefreshRowStatus(id){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return;
+  const row=document.querySelector(`#tvBody tr[data-id="${id}"]`);if(!row)return;
+  const sel=row.querySelector('select[data-field="status"]');
+  if(sel&&!t.statusManual){
+    const es=effectiveStatus(t);
+    if(sel.value!==es)sel.value=es;
+  }
+  const sw=row.querySelector('button[data-field="color"] .tv-swatch');
+  if(sw)sw.style.background=taskBarBg(t);
 }
 
 // If a task's name changes, other rows' 前置任務 cells may be showing the old
@@ -1747,8 +1851,13 @@ function tvRefreshDepsDisplay(){
 }
 
 function tvCommit(e){
+  const field=e.target.dataset.field;
   tvApplyChange(e.target);
   autoSave();
+  // Status changes need a full re-render so the manual-override reset icon
+  // appears immediately. Safe here (unlike other fields) because this path
+  // only fires from a genuine blur/change — never mid Tab/Enter navigation.
+  if(field==='status')render();
 }
 
 function tvFocusCell(id,field){
@@ -1776,7 +1885,7 @@ function tvKeyNav(e){
 
 function tvAddRow(){
   const p=activeProj();if(!p)return;
-  const t={id:p.nextId++,name:T('tv_newTaskName')||'新任務',owner:'',start:ds(today),end:ds(addD(today,7)),status:'pending',pct:0,note:'',deps:[],color:null,type:'task',parentId:null,collapsed:false};
+  const t={id:p.nextId++,name:T('tv_newTaskName')||'新任務',owner:'',start:ds(today),end:ds(addD(today,7)),status:'pending',statusManual:false,pct:0,note:'',deps:[],color:null,type:'task',parentId:null,collapsed:false};
   p.tasks.push(t);
   _tvFocus={id:t.id,field:'name'};
   autoSave();render();
@@ -2195,7 +2304,7 @@ function drawGanttCanvas(p){
     cx.beginPath();cx.moveTo(PADDING+NAME_W,y);cx.lineTo(PADDING+NAME_W,y+rowH);cx.stroke();
     if(isCritical){cx.fillStyle='#DC2626';cx.fillRect(0,y,3,rowH);}
     // Badge
-    const bc=badgeCfg[t.status]||badgeCfg.pending;const blabel=SL[t.status];
+    const bc=badgeCfg[effectiveStatus(t)]||badgeCfg.pending;const blabel=SL[effectiveStatus(t)];
     cx.font=`600 9px "DM Sans",sans-serif`;cx.textBaseline='alphabetic';
     const bw2=cx.measureText(blabel).width+14;const badgeX=PADDING+NAME_W-bw2-8;const badgeMidY=y+rowH/2;
     cx.fillStyle=bc.bg;roundRect(cx,badgeX,badgeMidY-8,bw2,16,8);cx.fill();
@@ -2496,12 +2605,28 @@ document.getElementById('msd').addEventListener('change',()=>{
   const s=document.getElementById('msd').value,e=document.getElementById('med');
   if(s&&_editDuration>0){e.value=ds(addD(parseD(s),_editDuration));}
   chkDates();if(editDeps.length)chkDeps();
+  refreshAutoStatusPreview();
 });
 document.getElementById('med').addEventListener('change',()=>{
   const s=document.getElementById('msd').value,e=document.getElementById('med').value;
   if(s&&e&&parseD(e)>=parseD(s)){_editDuration=dayCount(s,e);}
   chkDates();if(editDeps.length)chkDeps();
+  refreshAutoStatusPreview();
 });
+
+// Status auto-preview inside the edit modal: mirrors computeAutoStatus() live
+// as the user adjusts completion % / dates, unless manual override is checked.
+function refreshAutoStatusPreview(){
+  const manualEl=document.getElementById('mstManual');
+  if(!manualEl||manualEl.checked)return;
+  const tmp={pct:parseInt(document.getElementById('mp').value)||0,end:document.getElementById('med').value||ds(today)};
+  document.getElementById('mst').value=computeAutoStatus(tmp);
+}
+function toggleStatusManual(){
+  const manual=document.getElementById('mstManual').checked;
+  document.getElementById('mst').disabled=!manual;
+  if(!manual)refreshAutoStatusPreview();
+}
 
 // ═══════════════════════
 // Cycle detection (DFS)
@@ -2537,9 +2662,10 @@ function openAdd(){
   ['mn','mo','mno'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('msd').value=ds(today);
   document.getElementById('med').value=ds(addD(today,7));
-  document.getElementById('mst').value='pending';
   document.getElementById('mp').value=0;
   document.getElementById('mpd').textContent='0%';
+  document.getElementById('mstManual').checked=false;
+  toggleStatusManual();
   document.getElementById('mtype').value='task';
   document.getElementById('mcritical').checked=false;
   document.getElementById('delBtn').style.display='none';
@@ -2574,9 +2700,11 @@ function openEdit(id){
   document.getElementById('mo').value=t.owner||'';
   document.getElementById('msd').value=t.start;
   document.getElementById('med').value=t.end;
-  document.getElementById('mst').value=t.status;
   document.getElementById('mp').value=t.pct;
   document.getElementById('mpd').textContent=t.pct+'%';
+  document.getElementById('mstManual').checked=!!t.statusManual;
+  document.getElementById('mst').value=effectiveStatus(t);
+  toggleStatusManual();
   document.getElementById('mno').value=t.note||'';
   document.getElementById('mtype').value=t.type||'task';
   document.getElementById('mcritical').checked=t.critical||false;
@@ -2611,7 +2739,7 @@ function filterDepList(q){
   if(!filtered.length){
     dd.innerHTML=`<div style="padding:8px 12px;color:var(--tx3);font-size:12px">找不到符合的任務</div>`;
   } else {
-    dd.innerHTML=filtered.map(t=>`<div onmousedown="selectAndAddDep(${t.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${t.name}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[t.status]} · 結束:${t.end}</span></div>`).join('');
+    dd.innerHTML=filtered.map(t=>`<div onmousedown="selectAndAddDep(${t.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${t.name}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[effectiveStatus(t)]} · 結束:${t.end}</span></div>`).join('');
   }
   dd.style.display='block';
 }
@@ -2681,6 +2809,7 @@ function saveModal(){
     start:document.getElementById('msd').value,
     end:document.getElementById('med').value,
     status:document.getElementById('mst').value,
+    statusManual:document.getElementById('mstManual').checked,
     pct:parseInt(document.getElementById('mp').value),
     note:document.getElementById('mno').value.trim(),
     deps:normalizeDeps(editDeps),
@@ -2734,7 +2863,7 @@ document.addEventListener('click',e=>{
   }
 });
 
-document.getElementById('mp').addEventListener('input',function(){document.getElementById('mpd').textContent=this.value+'%';});
+document.getElementById('mp').addEventListener('input',function(){document.getElementById('mpd').textContent=this.value+'%';refreshAutoStatusPreview();});
 
 // ═══════════════════════
 // EXCEL IMPORT / EXPORT
@@ -2948,7 +3077,7 @@ async function exportImportExcel(){
       t.owner||'',
       t.start,
       t.end,
-      SL_EXP[t.status]||'待開始',
+      SL_EXP[effectiveStatus(t)]||'待開始',
       t.pct||0,
       depNames,
       t.color||'',
@@ -3012,8 +3141,9 @@ function handleFile(file){
         if(parseD(end)<parseD(start))return;
         const rawColor=get(row,7);
         const color=/^#[0-9a-fA-F]{6}$/.test(rawColor)?rawColor:null;
+        const matchedStatus=SR[nk(get(row,4))];
         p.tasks.push({id:p.nextId++,name,owner:get(row,1),start,end,
-          status:SR[nk(get(row,4))]||'pending',
+          status:matchedStatus||'pending',statusManual:!!matchedStatus,
           pct:Math.min(100,Math.max(0,parseInt(get(row,5))||0)),
           note:get(row,8),deps:[],color,type:'task',parentId:null,collapsed:false});
         imp++;
@@ -3069,7 +3199,8 @@ const HELP_SECTIONS=[
   {id:'intro',icon:'🗂',title:'系統介紹',content:`<h2>甘特圖多專案排程系統</h2><p>一個可在瀏覽器離線運行的工程專案排程工具，支援多專案管理、視覺化甘特圖、任務依賴追蹤、關鍵任務標記、基準計畫比對等功能。</p><div class="help-card help-tip"><strong>💡 無需安裝、無需網路</strong><br>將此 HTML 檔案存到電腦後，雙擊即可在瀏覽器開啟使用。所有資料儲存於本機瀏覽器，不上傳任何伺服器。</div><h3>全功能一覽</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">🔴</span><strong>關鍵任務</strong><br>手動勾選標記，● 紅點 + 紅色外框，原 Bar 顏色不變</div><div class="help-feature"><span class="help-feat-icon">📌</span><strong>基準計畫</strong><br>儲存計畫快照，視覺化比對實際與計畫偏差</div><div class="help-feature"><span class="help-feat-icon">◆</span><strong>里程碑</strong><br>菱形圖示標記重要節點事件</div><div class="help-feature"><span class="help-feat-icon">📁</span><strong>WBS 群組</strong><br>父子任務階層，群組可摺疊展開；關聯箭頭同步更新</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>進階依賴關係</strong><br>支援 FS / SS / FF / SF 四種類型加 Lag 天數；箭頭即時同步</div><div class="help-feature"><span class="help-feat-icon">📅</span><strong>日 / 週 / 月視圖</strong><br>三種時間尺度切換，適應不同計畫粒度</div><div class="help-feature"><span class="help-feat-icon">📱</span><strong>觸控支援</strong><br>行動裝置與平板可拖曳 Bar 調整日期</div><div class="help-feature"><span class="help-feat-icon">🗜</span><strong>介面收合</strong><br>統計列與任務詳情列均可收合，專注甘特圖本體</div><div class="help-feature"><span class="help-feat-icon">📤</span><strong>雙格式 Excel</strong><br>甘特圖樣式匯出 + 可重新匯入的簡單表格格式</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>一鍵分享連結</strong><br>點擊即複製分享連結，無需另開視窗</div><div class="help-feature"><span class="help-feat-icon">🎯</span><strong>指定插入位置</strong><br>新增任務時可選擇插在任何現有任務之後</div><div class="help-feature"><span class="help-feat-icon">⚙️</span><strong>工具列收合 + 三語介面</strong><br>點擊 ⚙️ 工具列可收合按鈕列；支援繁中 / EN / ไทย 切換</div><div class="help-feature"><span class="help-feat-icon">📥</span><strong>MS Project XML 匯入</strong><br>直接匯入 .xml 格式的 MS Project 檔案，自動轉換任務、依賴與進度</div><div class="help-feature"><span class="help-feat-icon">📐</span><strong>超長視圖範圍</strong><br>視圖範圍可延伸至 18 個月、2 年，適合長週期工程專案</div><div class="help-feature"><span class="help-feat-icon">→</span><strong>快速跳至甘特圖位置</strong><br>任務列右側 → 按鈕一鍵將甘特圖捲動至該任務 Bar 中央</div><div class="help-feature"><span class="help-feat-icon">🗓</span><strong>智慧日期帶動</strong><br>更改開始日期自動保持工期；設定 FS 前置任務自動設開始日期</div><div class="help-feature"><span class="help-feat-icon">📋</span><strong>表格檢視</strong><br>像 Excel 一樣直接在格子裡編輯任務，Tab/Enter 快速跳格，即時儲存</div></div>`},
   {id:'interface',icon:'🖥',title:'介面說明',content:`<h2>介面說明</h2><h3>工具列（上方）</h3><p>工具列右側有 <strong>⚙️ 工具列</strong> 收合按鈕，可隱藏全部工具按鈕只保留標題列。收合狀態自動記憶。點擊右側 <strong>ZH / EN / TH</strong> 可即時切換介面語言（繁體中文 / 英文 / 泰文）。</p><p><strong>任務操作</strong></p><ul class="help-list"><li><strong>＋ 新增任務</strong>：開啟新增任務表單，可選擇插入位置</li><li><strong>☑ 任務刪除</strong>：進入批次選取模式，可多選後批次刪除</li><li><strong>💾 儲存專案</strong>：手動儲存（系統亦每次操作後自動儲存）</li></ul><p><strong>視圖切換</strong></p><ul class="help-list"><li><strong>日 / 週 / 月</strong>：切換甘特圖時間欄寬度</li><li><strong>視圖範圍</strong>：下拉選單可選 30天 ～ 2年（30 / 60 / 90 / 120 / 180 / 365 / 545 / 730天）</li><li><strong>📅 今天</strong>：捲動甘特圖至今日位置（同時重置視圖起始點至今日）</li><li><strong>📌 基準 / 存基準</strong>：顯示基準計畫對比 / 儲存目前快照</li><li><strong>☰ 收合詳情</strong>：一鍵收合／展開所有任務的說明列</li></ul><p><strong>匯入匯出（藍色按鈕）</strong></p><ul class="help-list"><li><strong>📥 匯入 Excel</strong>：從可重新匯入格式的 Excel 匯入任務</li><li><strong>📤 EXCEL格式</strong>：匯出可重新匯入的簡單表格（與匯入格式相同）</li><li><strong>📥 MS Project</strong>：匯入 MS Project 匯出的 .xml 檔案，自動建立新專案</li></ul><p><strong>匯出 / 分享</strong></p><ul class="help-list"><li><strong>🖼 PNG</strong>：高解析度甘特圖圖片</li><li><strong>📄 PDF</strong>：正式 PDF 文件</li><li><strong>🔗 分享連結</strong>：一鍵複製唯讀分享連結到剪貼簿</li><li><strong>📊 匯出 Excel</strong>（綠色）：含甘特圖樣式、顏色、Bar 色彩的完整 Excel</li></ul><h3>統計列</h3><p>顯示總任務數、已完成、進行中、延遲、整體完成度、關鍵任務數、里程碑數、專案總天數。點擊「▼ 統計資訊」標題列可收合整個統計區。</p><h3>甘特圖左側任務列</h3><ul class="help-list"><li>點擊任意任務列可開啟編輯表單</li><li>⠿ 圖示可上下拖曳重新排序</li><li>每列右側 <strong>→ 按鈕</strong>（藍色）：點擊立即將甘特圖捲動至該任務 Bar 中央位置</li><li>每列右側 <strong>▽ 小按鈕</strong>：單獨收合／展開該任務的說明列</li><li>群組左側 <strong>▼ / ▶</strong>：摺疊或展開子任務，依賴箭頭自動同步更新</li></ul><h3>甘特圖 Bar 操作</h3><ul class="help-list"><li>滑鼠移到 Bar 上，兩端出現半透明 handle</li><li>拖曳左側 handle：調整開始日期</li><li>拖曳右側 handle：調整結束日期</li><li>拖曳 Bar 中間：整條 Bar 平移（完成度歸零）</li><li>行動裝置：觸控手勢同樣支援以上三種拖曳</li></ul><h3>開啟專案自動捲動</h3><p>切換或載入專案時，甘特圖會自動將視圖起始點設為最早任務日期的前 30 天，讓你一眼看到專案起始位置。點擊「📅 今天」可重置回以今日為中心的視圖。</p>`},
   {id:'tasks',icon:'✅',title:'任務操作',content:`<h2>任務操作</h2><h3>任務類型</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">▬</span><strong>一般任務</strong><br>標準矩形 Bar，最基本的工作項目</div><div class="help-feature"><span class="help-feat-icon">◆</span><strong>里程碑</strong><br>菱形圖示，代表重要交付節點或審查點</div><div class="help-feature"><span class="help-feat-icon">📁</span><strong>群組</strong><br>可包含多個子任務，點擊 ▼ 摺疊子任務列表</div></div><h3>新增任務</h3><ol class="help-steps"><li>點擊「＋ 新增任務」</li><li>填寫名稱、負責人、開始／結束日期、完成度、Bar 顏色</li><li>選擇任務類型（一般／里程碑／群組）</li><li>若需勾選為關鍵任務，勾選「🔴 關鍵任務」</li><li>在「插入位置」選擇要插在哪個現有任務之後（預設加到末尾）</li><li>若為子任務，在「父群組」下拉選擇所屬群組</li><li>點「儲存」完成</li></ol><div class="help-card help-tip"><strong>💡 指定插入位置</strong><br>新增任務時下方有「插入位置」下拉選單，可選「在『任務X』之後插入」，直接將新任務插入到任意位置，不必事後拖曳移動。</div><h3>日期智慧帶動</h3><div class="help-card help-tip"><strong>📅 開始日期→自動更新結束日期</strong><br>修改開始日期時，系統自動保持原有工期，結束日期自動跟著調整。若手動修改結束日期，工期會即時重新記錄。</div><div class="help-card help-tip"><strong>🔗 設定 FS 前置任務→自動帶開始日期</strong><br>新增「完成→開始（FS）」類型的前置任務時，本任務的開始日期會自動設為前置任務結束日期的<strong>隔天</strong>，並保持工期同步更新結束日期。免手動計算。</div><h3>編輯與刪除</h3><ul class="help-list"><li>點擊任務列 → 開啟編輯表單</li><li>編輯表單底部有「刪除此任務」按鈕</li><li>批次刪除：點「☑ 任務刪除」進入批次模式，勾選後點「刪除選取」</li></ul><h3>拖曳排序</h3><p>抓住左側 ⠿ 圖示，上下拖曳即可調整任務顯示順序，不影響日期排程。</p>`},
-  {id:'tableview',icon:'📋',title:'表格檢視',content:`<h2>表格檢視（Excel 編輯模式）</h2><p>除了甘特圖，系統也提供一個像 Excel 的表格畫面，直接在格子裡打字更新任務，適合大量、快速修改任務內容。</p><h3>切換方式</h3><p>工具列左側點擊「<strong>📈 甘特圖</strong> / <strong>📋 表格檢視</strong>」按鈕群即可切換，兩邊顯示同一份任務資料，切換不會遺失變更。</p><h3>欄位</h3><p>任務名稱、負責人、開始日期、結束日期、狀態、完成度%、前置任務、Bar顏色、備註 — 每格皆可直接點擊編輯。</p><h3>操作方式</h3><ul class="help-list"><li>點擊任一格即可輸入或修改內容</li><li><strong>Tab</strong>：跳到右邊下一格；<strong>Shift+Tab</strong>：跳回上一格</li><li><strong>Enter</strong>：跳到下一列同一欄；<strong>Shift+Enter</strong>：跳回上一列</li><li>離開儲存格（Tab / Enter / 點擊他處）即時儲存生效，不需額外按「儲存」</li><li>群組任務列可點擊左側 ▼ / ▶ 摺疊或展開子任務，與甘特圖同步</li></ul><h3>前置任務欄</h3><p>直接輸入任務名稱，多個以逗號分隔（如：<code>基礎結構施工, 水電配管</code>）。系統會自動比對名稱轉換為依賴關係；找不到的名稱或會造成循環依賴的設定將被忽略並提示。</p><div class="help-card help-tip"><strong>💡 與匯出格式一致</strong><br>表格欄位與「📤 EXCEL格式」匯出/匯入的欄位相同，習慣用 Excel 整理任務的使用者可以直接沿用同樣的欄位對照方式。</div><h3>新增／刪除列</h3><ul class="help-list"><li>表格下方「＋ 新增列」：在最後新增一列空白任務</li><li>每列最右側 🗑 圖示：刪除該列任務（會確認並自動移除其他任務對它的前置任務關聯）</li></ul>`},
+  {id:'tableview',icon:'📋',title:'表格檢視',content:`<h2>表格檢視（Excel 編輯模式）</h2><p>除了甘特圖，系統也提供一個像 Excel 的表格畫面，直接在格子裡打字更新任務，適合大量、快速修改任務內容。</p><h3>切換方式</h3><p>工具列左側點擊「<strong>📈 甘特圖</strong> / <strong>📋 表格檢視</strong>」按鈕群即可切換，兩邊顯示同一份任務資料，切換不會遺失變更。</p><h3>欄位</h3><p>任務名稱、負責人、開始日期、結束日期、狀態、完成度%、前置任務、Bar顏色、備註 — 每格皆可直接點擊編輯。</p><h3>操作方式</h3><ul class="help-list"><li>點擊任一格即可輸入或修改內容</li><li><strong>Tab</strong>：跳到右邊下一格；<strong>Shift+Tab</strong>：跳回上一格</li><li><strong>Enter</strong>：跳到下一列同一欄；<strong>Shift+Enter</strong>：跳回上一列</li><li>離開儲存格（Tab / Enter / 點擊他處）即時儲存生效，不需額外按「儲存」</li><li>群組任務列可點擊左側 ▼ / ▶ 摺疊或展開子任務，與甘特圖同步</li></ul><h3>欄寬／列高調整</h3><p>把滑鼠移到欄位標題右側邊界或任一列「#」欄下緣，游標變成拖曳箭頭時按住拖曳，即可像 Excel 一樣調整欄寬或列高，設定會自動記住。</p><h3>Bar 顏色與前置任務</h3><p>點擊「Bar顏色」或「前置任務」儲存格，會彈出跟甘特圖「編輯任務」視窗<strong>完全相同</strong>的選色盤／依賴搜尋介面（可指定 FS/SS/FF/SF 類型與 Lag 天數），編輯完成按「儲存」即同步回表格。</p><h3>狀態欄位</h3><p>預設由完成度與結束日期自動判斷（灰色斜體字＝自動）；若手動選擇了狀態，欄位右側會出現 <strong>⟲</strong> 圖示，點擊可恢復自動判斷。詳見「狀態自動判斷」章節。</p><h3>新增／刪除列</h3><ul class="help-list"><li>表格下方「＋ 新增列」：在最後新增一列空白任務</li><li>每列最右側 🗑 圖示：刪除該列任務（會確認並自動移除其他任務對它的前置任務關聯）</li></ul>`},
+  {id:'autostatus',icon:'🔄',title:'狀態自動判斷',content:`<h2>狀態自動判斷</h2><p>「狀態」欄位（待開始／進行中／已完成／延遲）預設由系統依<strong>完成度</strong>與<strong>結束日期</strong>自動計算，不需要每次手動更新，甘特圖與表格檢視都套用同一套規則。</p><h3>判斷規則（依序）</h3><ol class="help-steps"><li>完成度 = 100% → <strong>已完成</strong></li><li>完成度 &lt; 100% 且結束日期已早於今天 → <strong>延遲</strong></li><li>完成度 &gt; 0%（且未逾期）→ <strong>進行中</strong></li><li>完成度 = 0%（且未逾期）→ <strong>待開始</strong></li></ol><div class="help-card help-tip"><strong>💡 每天都會重新判斷</strong><br>即使沒有人編輯任務，只要結束日期一過，任務下次顯示時就會自動變成「延遲」；反之完成度補上 100% 便立即變回「已完成」。</div><h3>手動覆蓋</h3><p>若有特殊情況需要指定固定狀態（例如廠商已通知會延誤，想提前標示），可以手動覆蓋：</p><ul class="help-list"><li><strong>編輯任務視窗</strong>：勾選「狀態」下方的「手動指定狀態」，即可自行選擇固定狀態；取消勾選則恢復自動判斷。</li><li><strong>表格檢視</strong>：直接在狀態欄的下拉選單選擇即視為手動指定；欄位右側會出現 <strong>⟲</strong> 圖示，點擊即可恢復自動判斷。</li></ul><p>手動指定的狀態會一直保留，不受完成度或日期變化影響，直到你自己取消覆蓋為止。</p>`},
   {id:'wbs',icon:'📁',title:'WBS 群組',content:`<h2>WBS 工作分解結構（群組）</h2><p>WBS（Work Breakdown Structure）讓你將相關任務歸類到群組下，形成父子階層，便於大型專案分類管理。</p><h3>建立群組</h3><ol class="help-steps"><li>點「＋ 新增任務」，任務類型選「群組」</li><li>填寫群組名稱（如：結構工程、機電工程）</li><li>群組的日期不影響 Bar 顯示（群組本身不畫 Bar）</li></ol><h3>建立子任務</h3><ol class="help-steps"><li>點「＋ 新增任務」，任務類型選「一般任務」</li><li>在「父群組」下拉選單中選擇所屬群組</li><li>儲存後子任務會縮排顯示在群組下方</li></ol><h3>摺疊／展開</h3><ul class="help-list"><li>點擊群組名稱前的 <strong>▼</strong> 圖示 → 摺疊，隱藏所有子任務</li><li>點擊 <strong>▶</strong> → 展開，顯示子任務列表</li><li>群組名稱旁括號數字為子任務總數，如 <code>結構工程 (5)</code></li><li>摺疊或展開時，甘特圖中的依賴關係箭頭會即時同步重新繪製</li></ul>`},
   {id:'deps',icon:'🔗',title:'依賴關係',content:`<h2>任務依賴關係</h2><p>依賴關係定義任務之間的先後邏輯，確保排程符合實際施工順序。支援四種業界標準依賴類型，並可加上 Lag（緩衝天數）。展開或收合群組時，依賴箭頭會即時同步更新位置。</p><h3>依賴類型說明</h3><div class="help-grid"><div class="help-feature"><strong>FS（完成→開始）</strong><br>前置任務完成後，後續才能開始。<br><em>最常見類型</em></div><div class="help-feature"><strong>SS（開始→開始）</strong><br>前置任務開始後，後續才能開始。<br><em>平行作業常用</em></div><div class="help-feature"><strong>FF（完成→完成）</strong><br>前置任務完成後，後續才能完成。</div><div class="help-feature"><strong>SF（開始→完成）</strong><br>前置任務開始後，後續才能完成。<br><em>較少見，適用特殊情境</em></div></div><h3>Lag 緩衝天數</h3><p>在依賴關係後加上 Lag 可設定間隔天數。正值代表等待（如混凝土養護 3 天），負值代表提前重疊。</p><h3>設定方式</h3><ol class="help-steps"><li>開啟任務編輯表單</li><li>在「前置任務」區域下拉選擇目標任務</li><li>選擇依賴類型（FS／SS／FF／SF）</li><li>輸入 Lag 天數（預設 0）</li><li>點「加入」即新增該依賴</li></ol><div class="help-card help-tip"><strong>💡 FS 自動帶日期</strong><br>加入「FS（完成→開始）」依賴後，本任務的開始日期會自動設為前置任務結束日期的隔天，並保持工期同步更新結束日期。</div><div class="help-card help-tip"><strong>💡 防止循環依賴</strong><br>系統會自動偵測並阻止形成循環依賴（A→B→C→A）。</div>`},
   {id:'critical',icon:'🔴',title:'關鍵任務',content:`<h2>關鍵任務（手動標記）</h2><p>任何延誤都會直接影響專案進度的任務，建議手動標記為關鍵任務。標記後立即在甘特圖上以醒目視覺強調。</p><h3>如何標記</h3><ol class="help-steps"><li>點擊任務列，開啟編輯表單</li><li>勾選「🔴 關鍵任務」核取框</li><li>點「儲存」即生效；再次勾選可取消標記</li></ol><h3>視覺標誌</h3><ul class="help-list"><li><strong>● 紅色圓點</strong>（任務名稱左側）：標記關鍵任務，<em>原 Bar 顏色保持不變</em></li><li><strong>紅色外框</strong>（甘特圖 Bar）：關鍵任務 Bar 有明顯紅色光環外框</li><li><strong>紅色左邊框</strong>（任務列）：任務列左側有紅色細邊框</li><li><strong>「關鍵」徽章</strong>：任務列右側紅色小標籤</li><li><strong>浮時: Xd</strong>：系統仍依前置依賴計算浮動時間，供排程調整參考</li></ul><h3>統計列</h3><p>統計列「關鍵任務」欄位即時顯示目前手動標記為關鍵的任務總數。</p>`},
