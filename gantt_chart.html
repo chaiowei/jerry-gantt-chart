@@ -235,6 +235,27 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .export-msg{font-size:14px;font-weight:500;color:var(--tx)}
 .export-sub{font-size:12px;color:var(--tx2);margin-top:4px}
 
+/* ── Table view (Excel-style editable grid) ── */
+.tv-wrap{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:auto;flex:1;margin:16px 20px 8px}
+.tv-table{border-collapse:collapse;width:100%;min-width:960px}
+.tv-table thead th{position:sticky;top:0;background:#F3F4F6;font-size:10px;font-weight:700;padding:8px 8px;border-bottom:2px solid rgba(0,0,0,.12);text-align:left;white-space:nowrap;z-index:2;text-transform:uppercase;letter-spacing:.4px}
+.tv-table tbody td{border-bottom:1px solid rgba(0,0,0,.06);padding:2px 4px;vertical-align:middle}
+.tv-table tbody tr:hover td{background:rgba(79,107,237,.04)}
+.tv-table input[type=text],.tv-table input[type=date],.tv-table input[type=number],.tv-table select{width:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:6px 6px;border-radius:5px;color:var(--tx)}
+.tv-table input:hover,.tv-table select:hover{border-color:var(--bdr)}
+.tv-table input:focus,.tv-table select:focus{outline:none;border-color:var(--acc);background:var(--surf);box-shadow:0 0 0 2px var(--acc-l)}
+.tv-table input[type=number]{width:100%}
+.tv-num{width:36px;min-width:36px;text-align:center;font-size:10px;color:var(--tx3);font-weight:600}
+.tv-color{display:flex;align-items:center;gap:5px}
+.tv-swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0;border:1px solid rgba(0,0,0,.15)}
+.tv-actions{width:36px;text-align:center}
+.tv-del-btn{border:none;background:none;color:var(--tx3);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:5px}
+.tv-del-btn:hover{background:var(--del-l);color:var(--del)}
+.tv-add-row{padding:10px 20px 16px}
+body.share-mode .tv-del-btn,body.share-mode .tv-add-row{display:none!important}
+body.share-mode .tv-table input,body.share-mode .tv-table select{pointer-events:none}
+body.share-mode #btnViewTable,body.share-mode #btnViewGantt{pointer-events:none;opacity:.5}
+
 /* ── Share mode: hide edit-only controls ── */
 body.share-mode #topPrimaryActions{display:none!important}
 body.share-mode [onclick*="openImport"]{display:none!important}
@@ -400,6 +421,11 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
         </div>
       </div>
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
+        <div class="btn-group">
+          <button class="btn active-view" id="btnViewGantt" onclick="setMainView('gantt')" data-i18n="tb_viewGantt">📈 甘特圖</button>
+          <button class="btn" id="btnViewTable" onclick="setMainView('table')" data-i18n="tb_viewTable">📋 表格檢視</button>
+        </div>
+        <div class="tb-sep"></div>
         <button class="btn a" onclick="openAdd()" data-i18n="btn_addTask">＋ 新增任務</button>
         <div class="tb-sep"></div>
         <button class="btn sel-mode" id="bulkToggleBtn" onclick="toggleBulkMode()" data-i18n="btn_bulk">☑ 批次選取</button>
@@ -453,6 +479,31 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--acc)"></div><span data-i18n="leg_dep">有前置任務</span></div>
             <div class="ln" data-i18n="leg_hint">⠿ 拖曳排序 ｜ 點任務列編輯 ｜ 拖曳 Bar 兩端調整日期</div>
           </div>
+        </div>
+      </div>
+      <div id="tableArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div class="tv-wrap">
+          <table class="tv-table">
+            <thead>
+              <tr>
+                <th class="tv-num">#</th>
+                <th style="min-width:220px" data-i18n="lbl_name2">任務名稱</th>
+                <th style="min-width:90px" data-i18n="lbl_owner">負責人</th>
+                <th style="min-width:130px" data-i18n="lbl_startDate">開始日期</th>
+                <th style="min-width:130px" data-i18n="lbl_endDate">結束日期</th>
+                <th style="min-width:90px" data-i18n="lbl_status">狀態</th>
+                <th style="min-width:70px" data-i18n="tv_pct">完成度%</th>
+                <th style="min-width:170px" data-i18n="lbl_deps2">前置任務</th>
+                <th style="min-width:110px" data-i18n="tv_barColor">Bar顏色</th>
+                <th style="min-width:170px" data-i18n="lbl_note">備註</th>
+                <th class="tv-actions"></th>
+              </tr>
+            </thead>
+            <tbody id="tvBody"></tbody>
+          </table>
+        </div>
+        <div class="tv-add-row">
+          <button class="btn a" onclick="tvAddRow()" data-i18n="tv_addRow">＋ 新增列</button>
         </div>
       </div>
     </div>
@@ -765,6 +816,8 @@ const TRANS={
     tb_importExcel:'📥 匯入 Excel',tb_exportTemplate:'📤 EXCEL格式',tb_importMSP:'📥 MS Project',
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 分享連結',tb_exportExcel:'📊 匯出 Excel',
     tb_exportProj:'📤 匯出專案檔',tb_importProj:'📩 匯入專案檔',
+    tb_viewGantt:'📈 甘特圖',tb_viewTable:'📋 表格檢視',
+    lbl_name2:'任務名稱',lbl_deps2:'前置任務',tv_pct:'完成度%',tv_barColor:'Bar顏色',tv_addRow:'＋ 新增列',tv_newTaskName:'新任務',
     btn_addTask:'＋ 新增任務',btn_bulk:'☑ 批次選取',btn_bulkActive:'✕ 退出選取',
     btn_save:'💾 儲存專案',btn_delProj:'🗑 刪除專案',
     sb_projects:'我的專案',sb_newProj:'＋ 建立新專案',sb_help:'📖 使用說明書',
@@ -792,6 +845,8 @@ const TRANS={
     tb_importExcel:'📥 Import Excel',tb_exportTemplate:'📤 Excel Template',tb_importMSP:'📥 MS Project',
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 Share',tb_exportExcel:'📊 Export Excel',
     tb_exportProj:'📤 Export Project',tb_importProj:'📩 Import Project',
+    tb_viewGantt:'📈 Gantt',tb_viewTable:'📋 Table View',
+    lbl_name2:'Task Name',lbl_deps2:'Predecessors',tv_pct:'Progress%',tv_barColor:'Bar Color',tv_addRow:'＋ Add Row',tv_newTaskName:'New Task',
     btn_addTask:'＋ Add Task',btn_bulk:'☑ Bulk Select',btn_bulkActive:'✕ Exit Select',
     btn_save:'💾 Save',btn_delProj:'🗑 Delete',
     sb_projects:'Projects',sb_newProj:'＋ New Project',sb_help:'📖 Help',
@@ -819,6 +874,8 @@ const TRANS={
     tb_importExcel:'📥 นำเข้า Excel',tb_exportTemplate:'📤 เทมเพลต Excel',tb_importMSP:'📥 MS Project',
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 แชร์',tb_exportExcel:'📊 ส่งออก Excel',
     tb_exportProj:'📤 ส่งออกโปรเจค',tb_importProj:'📩 นำเข้าโปรเจค',
+    tb_viewGantt:'📈 แกนต์ชาร์ต',tb_viewTable:'📋 มุมมองตาราง',
+    lbl_name2:'ชื่องาน',lbl_deps2:'งานก่อนหน้า',tv_pct:'ความคืบหน้า%',tv_barColor:'สีแถบ',tv_addRow:'＋ เพิ่มแถว',tv_newTaskName:'งานใหม่',
     btn_addTask:'＋ เพิ่มงาน',btn_bulk:'☑ เลือกหลายรายการ',btn_bulkActive:'✕ ออกจากการเลือก',
     btn_save:'💾 บันทึก',btn_delProj:'🗑 ลบโปรเจค',
     sb_projects:'โปรเจคของฉัน',sb_newProj:'＋ สร้างโปรเจคใหม่',sb_help:'📖 วิธีใช้',
@@ -919,6 +976,8 @@ const PALETTE=['#4F6BED','#0EA5E9','#10B981','#84CC16','#F59E0B','#F97316','#EF4
 const PROJ_COLORS=['#4F6BED','#10B981','#F59E0B','#EF4444','#A855F7','#F97316','#06B6D4','#EC4899','#64748B','#7C3AED'];
 
 let projects=[],activeId=null,editId=null,editDeps=[],editColor=null,dragSrc=null,newProjColor=PROJ_COLORS[0],pendingDeleteId=null,_editDuration=0,_viewAnchor=null;
+let mainView=localStorage.getItem('mainView')||'gantt',_tvFocus=null;
+const TV_FIELDS=['name','owner','start','end','status','pct','deps','color','note'];
 let bulkMode=false,bulkSelected=new Set();
 const today=new Date(); today.setHours(0,0,0,0);
 const ds=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
@@ -1268,13 +1327,13 @@ function renderTopbar(){
   const ta=document.getElementById('topToolActions');
   const emptyRow=document.getElementById('topEmptyRow');
   const ti=document.getElementById('projTitleInput');
-  const empty=document.getElementById('emptyState'),gantt=document.getElementById('ganttArea');
+  const empty=document.getElementById('emptyState'),gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea');
   if(!p){
     if(ti){ti.value='選擇或建立專案';ti.readOnly=true;}
     if(badge)badge.style.display='none';
     pa.style.display='none';ta.style.display='none';
     if(emptyRow)emptyRow.style.display='flex';
-    empty.style.display='flex';gantt.style.display='none';
+    empty.style.display='flex';gantt.style.display='none';tbl.style.display='none';
     exitBulkMode();return;
   }
   if(ti){ti.value=p.name;ti.readOnly=!!window.SHARE_MODE;if(window.SHARE_MODE){ti.style.pointerEvents='none';ti.style.cursor='default';}}
@@ -1282,10 +1341,34 @@ function renderTopbar(){
   pa.style.display='flex';ta.style.display='flex';
   if(emptyRow)emptyRow.style.display='none';
   empty.style.display='none';
-  gantt.style.display='flex';
-  gantt.style.flexDirection='column';
-  gantt.style.overflow='hidden';
-  gantt.style.flex='1';
+  applyMainView();
+}
+
+function applyMainView(){
+  const gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea');
+  const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable');
+  if(!activeProj())return;
+  if(mainView==='table'){
+    gantt.style.display='none';
+    tbl.style.display='flex';
+    if(btnG)btnG.classList.remove('active-view');
+    if(btnT)btnT.classList.add('active-view');
+  } else {
+    tbl.style.display='none';
+    gantt.style.display='flex';
+    gantt.style.flexDirection='column';
+    gantt.style.overflow='hidden';
+    gantt.style.flex='1';
+    if(btnT)btnT.classList.remove('active-view');
+    if(btnG)btnG.classList.add('active-view');
+  }
+}
+
+function setMainView(mode){
+  mainView=mode;
+  localStorage.setItem('mainView',mode);
+  applyMainView();
+  render();
 }
 
 document.addEventListener('input',function(e){
@@ -1546,6 +1629,166 @@ function render(){
   });
   initColResizer();
   initBarDrag();
+  if(mainView==='table')renderTable();
+}
+
+// ═══════════════════════
+// TABLE VIEW (Excel-style editable grid)
+// ═══════════════════════
+function escAttr(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderTable(){
+  const p=activeProj();if(!p)return;
+  const allTasks=p.tasks;
+  const tasks=getVisibleTasks(allTasks);
+  const ro=!!window.SHARE_MODE;
+  const dis=ro?'disabled':'';
+  let html='';
+  tasks.forEach((t,ri)=>{
+    const isGroup=t.type==='group';
+    const level=getTaskLevel(t,allTasks);
+    const depNames=normalizeDeps(t.deps).map(d=>{const f=allTasks.find(x=>x.id===d.id);return f?f.name:'';}).filter(Boolean).join(', ');
+    const swatch=taskBarBg(t);
+    html+=`<tr data-id="${t.id}">`;
+    html+=`<td class="tv-num">${ri+1}</td>`;
+    html+=`<td style="padding-left:${4+level*20}px;display:flex;align-items:center;gap:2px">`;
+    if(isGroup)html+=`<span class="group-toggle" onclick="toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>`;
+    html+=`<input type="text" value="${escAttr(t.name)}" data-id="${t.id}" data-field="name" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" style="${isGroup?'font-weight:700':''}"></td>`;
+    html+=`<td><input type="text" value="${escAttr(t.owner||'')}" data-id="${t.id}" data-field="owner" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
+    html+=`<td><input type="date" value="${t.start}" data-id="${t.id}" data-field="start" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
+    html+=`<td><input type="date" value="${t.end}" data-id="${t.id}" data-field="end" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
+    html+=`<td><select data-id="${t.id}" data-field="status" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)">${Object.entries(SL).map(([k,v])=>`<option value="${k}"${t.status===k?' selected':''}>${v}</option>`).join('')}</select></td>`;
+    html+=`<td><input type="number" min="0" max="100" value="${t.pct||0}" data-id="${t.id}" data-field="pct" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
+    html+=`<td><input type="text" value="${escAttr(depNames)}" data-id="${t.id}" data-field="deps" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" placeholder="逗號分隔任務名稱"></td>`;
+    html+=`<td><div class="tv-color"><span class="tv-swatch" style="background:${swatch}"></span><input type="text" value="${escAttr(t.color||'')}" data-id="${t.id}" data-field="color" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" placeholder="#4F6BED"></div></td>`;
+    html+=`<td><input type="text" value="${escAttr(t.note||'')}" data-id="${t.id}" data-field="note" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
+    html+=`<td class="tv-actions">${ro?'':`<button class="tv-del-btn" title="刪除此列" onclick="tvDeleteRow(${t.id})">🗑</button>`}</td>`;
+    html+='</tr>';
+  });
+  document.getElementById('tvBody').innerHTML=html;
+  if(_tvFocus){
+    const el=document.querySelector(`#tvBody [data-id="${_tvFocus.id}"][data-field="${_tvFocus.field}"]`);
+    if(el){el.focus();if(el.select)try{el.select();}catch(e){}}
+    _tvFocus=null;
+  }
+}
+
+// Commits a single cell's value into the task model. Returns true on success.
+// Deliberately avoids rebuilding the table DOM here — this runs mid-keystroke
+// during Tab/Enter navigation, and replacing the focused input's row would
+// knock focus back to <body> (and re-fire a spurious change event on the
+// now-detached input). Structural changes (add/delete row) still go through
+// render() since there's no focus-in-flight to protect at that point.
+function tvApplyChange(el){
+  const p=activeProj();if(!p)return false;
+  const id=parseInt(el.dataset.id),field=el.dataset.field;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return false;
+  const val=el.value;
+  switch(field){
+    case 'name':{
+      const v=val.trim();
+      if(!v){toast('⚠️ 任務名稱不可為空');return false;}
+      t.name=v;
+      tvRefreshDepsDisplay();
+      return true;
+    }
+    case 'owner':t.owner=val.trim();return true;
+    case 'note':t.note=val.trim();return true;
+    case 'start':
+      if(!val||parseD(val)>parseD(t.end)){toast('⚠️ 開始日期不能晚於結束日期');return false;}
+      t.start=val;return true;
+    case 'end':
+      if(!val||parseD(val)<parseD(t.start)){toast('⚠️ 結束日期不能早於開始日期');return false;}
+      t.end=val;return true;
+    case 'status':t.status=val;return true;
+    case 'pct':{
+      let n=parseInt(val);if(isNaN(n))n=0;
+      t.pct=Math.min(100,Math.max(0,n));return true;
+    }
+    case 'color':{
+      const v=val.trim();
+      const sw=el.closest('.tv-color')?.querySelector('.tv-swatch');
+      if(!v){t.color=null;if(sw)sw.style.background=taskBarBg(t);return true;}
+      const hex=v.startsWith('#')?v:'#'+v;
+      if(!/^#[0-9a-fA-F]{6}$/.test(hex)){toast('⚠️ 顏色格式需為 #RRGGBB');return false;}
+      t.color=hex;if(sw)sw.style.background=hex;
+      return true;
+    }
+    case 'deps':{
+      const names=val.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+      const newDeps=[],skipped=[];
+      names.forEach(n=>{
+        const found=p.tasks.find(x=>x.name===n&&x.id!==id);
+        if(!found){skipped.push(n);return;}
+        if(hasCycle(found.id,id,p.tasks)){skipped.push(n+'(循環依賴)');return;}
+        if(!newDeps.some(d=>d.id===found.id))newDeps.push({id:found.id,type:'FS',lag:0});
+      });
+      t.deps=newDeps;
+      el.value=newDeps.map(d=>p.tasks.find(x=>x.id===d.id)?.name).filter(Boolean).join(', ');
+      if(skipped.length)toast('⚠️ 忽略無法辨識的前置任務：'+skipped.join('、'));
+      return true;
+    }
+  }
+  return true;
+}
+
+// If a task's name changes, other rows' 前置任務 cells may be showing the old
+// name as plain text (deps are stored by id, so the data itself stays correct).
+// Refresh those cells in place — but never touch the cell the user is actively
+// editing, or we'd clobber their keystrokes.
+function tvRefreshDepsDisplay(){
+  const p=activeProj();if(!p)return;
+  document.querySelectorAll('#tvBody input[data-field="deps"]').forEach(inp=>{
+    if(inp===document.activeElement)return;
+    const t=p.tasks.find(x=>x.id===parseInt(inp.dataset.id));if(!t)return;
+    const canon=normalizeDeps(t.deps).map(d=>p.tasks.find(x=>x.id===d.id)?.name).filter(Boolean).join(', ');
+    if(inp.value!==canon)inp.value=canon;
+  });
+}
+
+function tvCommit(e){
+  tvApplyChange(e.target);
+  autoSave();
+}
+
+function tvFocusCell(id,field){
+  const el=document.querySelector(`#tvBody [data-id="${id}"][data-field="${field}"]`);
+  if(el){el.focus();if(el.select)try{el.select();}catch(err){}}
+}
+
+function tvKeyNav(e){
+  if(e.key!=='Tab'&&e.key!=='Enter')return;
+  e.preventDefault();
+  const el=e.target;
+  const id=parseInt(el.dataset.id),field=el.dataset.field;
+  const ok=tvApplyChange(el);
+  autoSave();
+  if(!ok)return; // leave focus in place so the user can fix the invalid value
+  const p=activeProj();if(!p)return;
+  const tasks=getVisibleTasks(p.tasks);
+  const rowIdx=tasks.findIndex(x=>x.id===id);
+  let nc=TV_FIELDS.indexOf(field),nr=rowIdx;
+  const back=e.shiftKey;
+  if(e.key==='Tab'){nc+=back?-1:1;if(nc<0){nc=TV_FIELDS.length-1;nr--;}else if(nc>=TV_FIELDS.length){nc=0;nr++;}}
+  else{nr+=back?-1:1;}
+  if(nr>=0&&nr<tasks.length)tvFocusCell(tasks[nr].id,TV_FIELDS[nc]);
+}
+
+function tvAddRow(){
+  const p=activeProj();if(!p)return;
+  const t={id:p.nextId++,name:T('tv_newTaskName')||'新任務',owner:'',start:ds(today),end:ds(addD(today,7)),status:'pending',pct:0,note:'',deps:[],color:null,type:'task',parentId:null,collapsed:false};
+  p.tasks.push(t);
+  _tvFocus={id:t.id,field:'name'};
+  autoSave();render();
+}
+
+function tvDeleteRow(id){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return;
+  if(!confirm(`確定刪除任務「${t.name}」？`))return;
+  p.tasks=p.tasks.filter(x=>x.id!==id);
+  p.tasks.forEach(x=>{x.deps=normalizeDeps(x.deps||[]).filter(d=>d.id!==id);});
+  autoSave();render();
 }
 
 // ═══════════════════════
@@ -2823,9 +3066,10 @@ function importProjectJSON(file){
 // HELP / USER MANUAL
 // ═══════════════════════
 const HELP_SECTIONS=[
-  {id:'intro',icon:'🗂',title:'系統介紹',content:`<h2>甘特圖多專案排程系統</h2><p>一個可在瀏覽器離線運行的工程專案排程工具，支援多專案管理、視覺化甘特圖、任務依賴追蹤、關鍵任務標記、基準計畫比對等功能。</p><div class="help-card help-tip"><strong>💡 無需安裝、無需網路</strong><br>將此 HTML 檔案存到電腦後，雙擊即可在瀏覽器開啟使用。所有資料儲存於本機瀏覽器，不上傳任何伺服器。</div><h3>全功能一覽</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">🔴</span><strong>關鍵任務</strong><br>手動勾選標記，● 紅點 + 紅色外框，原 Bar 顏色不變</div><div class="help-feature"><span class="help-feat-icon">📌</span><strong>基準計畫</strong><br>儲存計畫快照，視覺化比對實際與計畫偏差</div><div class="help-feature"><span class="help-feat-icon">◆</span><strong>里程碑</strong><br>菱形圖示標記重要節點事件</div><div class="help-feature"><span class="help-feat-icon">📁</span><strong>WBS 群組</strong><br>父子任務階層，群組可摺疊展開；關聯箭頭同步更新</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>進階依賴關係</strong><br>支援 FS / SS / FF / SF 四種類型加 Lag 天數；箭頭即時同步</div><div class="help-feature"><span class="help-feat-icon">📅</span><strong>日 / 週 / 月視圖</strong><br>三種時間尺度切換，適應不同計畫粒度</div><div class="help-feature"><span class="help-feat-icon">📱</span><strong>觸控支援</strong><br>行動裝置與平板可拖曳 Bar 調整日期</div><div class="help-feature"><span class="help-feat-icon">🗜</span><strong>介面收合</strong><br>統計列與任務詳情列均可收合，專注甘特圖本體</div><div class="help-feature"><span class="help-feat-icon">📤</span><strong>雙格式 Excel</strong><br>甘特圖樣式匯出 + 可重新匯入的簡單表格格式</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>一鍵分享連結</strong><br>點擊即複製分享連結，無需另開視窗</div><div class="help-feature"><span class="help-feat-icon">🎯</span><strong>指定插入位置</strong><br>新增任務時可選擇插在任何現有任務之後</div><div class="help-feature"><span class="help-feat-icon">⚙️</span><strong>工具列收合 + 三語介面</strong><br>點擊 ⚙️ 工具列可收合按鈕列；支援繁中 / EN / ไทย 切換</div><div class="help-feature"><span class="help-feat-icon">📥</span><strong>MS Project XML 匯入</strong><br>直接匯入 .xml 格式的 MS Project 檔案，自動轉換任務、依賴與進度</div><div class="help-feature"><span class="help-feat-icon">📐</span><strong>超長視圖範圍</strong><br>視圖範圍可延伸至 18 個月、2 年，適合長週期工程專案</div><div class="help-feature"><span class="help-feat-icon">→</span><strong>快速跳至甘特圖位置</strong><br>任務列右側 → 按鈕一鍵將甘特圖捲動至該任務 Bar 中央</div><div class="help-feature"><span class="help-feat-icon">🗓</span><strong>智慧日期帶動</strong><br>更改開始日期自動保持工期；設定 FS 前置任務自動設開始日期</div></div>`},
+  {id:'intro',icon:'🗂',title:'系統介紹',content:`<h2>甘特圖多專案排程系統</h2><p>一個可在瀏覽器離線運行的工程專案排程工具，支援多專案管理、視覺化甘特圖、任務依賴追蹤、關鍵任務標記、基準計畫比對等功能。</p><div class="help-card help-tip"><strong>💡 無需安裝、無需網路</strong><br>將此 HTML 檔案存到電腦後，雙擊即可在瀏覽器開啟使用。所有資料儲存於本機瀏覽器，不上傳任何伺服器。</div><h3>全功能一覽</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">🔴</span><strong>關鍵任務</strong><br>手動勾選標記，● 紅點 + 紅色外框，原 Bar 顏色不變</div><div class="help-feature"><span class="help-feat-icon">📌</span><strong>基準計畫</strong><br>儲存計畫快照，視覺化比對實際與計畫偏差</div><div class="help-feature"><span class="help-feat-icon">◆</span><strong>里程碑</strong><br>菱形圖示標記重要節點事件</div><div class="help-feature"><span class="help-feat-icon">📁</span><strong>WBS 群組</strong><br>父子任務階層，群組可摺疊展開；關聯箭頭同步更新</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>進階依賴關係</strong><br>支援 FS / SS / FF / SF 四種類型加 Lag 天數；箭頭即時同步</div><div class="help-feature"><span class="help-feat-icon">📅</span><strong>日 / 週 / 月視圖</strong><br>三種時間尺度切換，適應不同計畫粒度</div><div class="help-feature"><span class="help-feat-icon">📱</span><strong>觸控支援</strong><br>行動裝置與平板可拖曳 Bar 調整日期</div><div class="help-feature"><span class="help-feat-icon">🗜</span><strong>介面收合</strong><br>統計列與任務詳情列均可收合，專注甘特圖本體</div><div class="help-feature"><span class="help-feat-icon">📤</span><strong>雙格式 Excel</strong><br>甘特圖樣式匯出 + 可重新匯入的簡單表格格式</div><div class="help-feature"><span class="help-feat-icon">🔗</span><strong>一鍵分享連結</strong><br>點擊即複製分享連結，無需另開視窗</div><div class="help-feature"><span class="help-feat-icon">🎯</span><strong>指定插入位置</strong><br>新增任務時可選擇插在任何現有任務之後</div><div class="help-feature"><span class="help-feat-icon">⚙️</span><strong>工具列收合 + 三語介面</strong><br>點擊 ⚙️ 工具列可收合按鈕列；支援繁中 / EN / ไทย 切換</div><div class="help-feature"><span class="help-feat-icon">📥</span><strong>MS Project XML 匯入</strong><br>直接匯入 .xml 格式的 MS Project 檔案，自動轉換任務、依賴與進度</div><div class="help-feature"><span class="help-feat-icon">📐</span><strong>超長視圖範圍</strong><br>視圖範圍可延伸至 18 個月、2 年，適合長週期工程專案</div><div class="help-feature"><span class="help-feat-icon">→</span><strong>快速跳至甘特圖位置</strong><br>任務列右側 → 按鈕一鍵將甘特圖捲動至該任務 Bar 中央</div><div class="help-feature"><span class="help-feat-icon">🗓</span><strong>智慧日期帶動</strong><br>更改開始日期自動保持工期；設定 FS 前置任務自動設開始日期</div><div class="help-feature"><span class="help-feat-icon">📋</span><strong>表格檢視</strong><br>像 Excel 一樣直接在格子裡編輯任務，Tab/Enter 快速跳格，即時儲存</div></div>`},
   {id:'interface',icon:'🖥',title:'介面說明',content:`<h2>介面說明</h2><h3>工具列（上方）</h3><p>工具列右側有 <strong>⚙️ 工具列</strong> 收合按鈕，可隱藏全部工具按鈕只保留標題列。收合狀態自動記憶。點擊右側 <strong>ZH / EN / TH</strong> 可即時切換介面語言（繁體中文 / 英文 / 泰文）。</p><p><strong>任務操作</strong></p><ul class="help-list"><li><strong>＋ 新增任務</strong>：開啟新增任務表單，可選擇插入位置</li><li><strong>☑ 任務刪除</strong>：進入批次選取模式，可多選後批次刪除</li><li><strong>💾 儲存專案</strong>：手動儲存（系統亦每次操作後自動儲存）</li></ul><p><strong>視圖切換</strong></p><ul class="help-list"><li><strong>日 / 週 / 月</strong>：切換甘特圖時間欄寬度</li><li><strong>視圖範圍</strong>：下拉選單可選 30天 ～ 2年（30 / 60 / 90 / 120 / 180 / 365 / 545 / 730天）</li><li><strong>📅 今天</strong>：捲動甘特圖至今日位置（同時重置視圖起始點至今日）</li><li><strong>📌 基準 / 存基準</strong>：顯示基準計畫對比 / 儲存目前快照</li><li><strong>☰ 收合詳情</strong>：一鍵收合／展開所有任務的說明列</li></ul><p><strong>匯入匯出（藍色按鈕）</strong></p><ul class="help-list"><li><strong>📥 匯入 Excel</strong>：從可重新匯入格式的 Excel 匯入任務</li><li><strong>📤 EXCEL格式</strong>：匯出可重新匯入的簡單表格（與匯入格式相同）</li><li><strong>📥 MS Project</strong>：匯入 MS Project 匯出的 .xml 檔案，自動建立新專案</li></ul><p><strong>匯出 / 分享</strong></p><ul class="help-list"><li><strong>🖼 PNG</strong>：高解析度甘特圖圖片</li><li><strong>📄 PDF</strong>：正式 PDF 文件</li><li><strong>🔗 分享連結</strong>：一鍵複製唯讀分享連結到剪貼簿</li><li><strong>📊 匯出 Excel</strong>（綠色）：含甘特圖樣式、顏色、Bar 色彩的完整 Excel</li></ul><h3>統計列</h3><p>顯示總任務數、已完成、進行中、延遲、整體完成度、關鍵任務數、里程碑數、專案總天數。點擊「▼ 統計資訊」標題列可收合整個統計區。</p><h3>甘特圖左側任務列</h3><ul class="help-list"><li>點擊任意任務列可開啟編輯表單</li><li>⠿ 圖示可上下拖曳重新排序</li><li>每列右側 <strong>→ 按鈕</strong>（藍色）：點擊立即將甘特圖捲動至該任務 Bar 中央位置</li><li>每列右側 <strong>▽ 小按鈕</strong>：單獨收合／展開該任務的說明列</li><li>群組左側 <strong>▼ / ▶</strong>：摺疊或展開子任務，依賴箭頭自動同步更新</li></ul><h3>甘特圖 Bar 操作</h3><ul class="help-list"><li>滑鼠移到 Bar 上，兩端出現半透明 handle</li><li>拖曳左側 handle：調整開始日期</li><li>拖曳右側 handle：調整結束日期</li><li>拖曳 Bar 中間：整條 Bar 平移（完成度歸零）</li><li>行動裝置：觸控手勢同樣支援以上三種拖曳</li></ul><h3>開啟專案自動捲動</h3><p>切換或載入專案時，甘特圖會自動將視圖起始點設為最早任務日期的前 30 天，讓你一眼看到專案起始位置。點擊「📅 今天」可重置回以今日為中心的視圖。</p>`},
   {id:'tasks',icon:'✅',title:'任務操作',content:`<h2>任務操作</h2><h3>任務類型</h3><div class="help-grid"><div class="help-feature"><span class="help-feat-icon">▬</span><strong>一般任務</strong><br>標準矩形 Bar，最基本的工作項目</div><div class="help-feature"><span class="help-feat-icon">◆</span><strong>里程碑</strong><br>菱形圖示，代表重要交付節點或審查點</div><div class="help-feature"><span class="help-feat-icon">📁</span><strong>群組</strong><br>可包含多個子任務，點擊 ▼ 摺疊子任務列表</div></div><h3>新增任務</h3><ol class="help-steps"><li>點擊「＋ 新增任務」</li><li>填寫名稱、負責人、開始／結束日期、完成度、Bar 顏色</li><li>選擇任務類型（一般／里程碑／群組）</li><li>若需勾選為關鍵任務，勾選「🔴 關鍵任務」</li><li>在「插入位置」選擇要插在哪個現有任務之後（預設加到末尾）</li><li>若為子任務，在「父群組」下拉選擇所屬群組</li><li>點「儲存」完成</li></ol><div class="help-card help-tip"><strong>💡 指定插入位置</strong><br>新增任務時下方有「插入位置」下拉選單，可選「在『任務X』之後插入」，直接將新任務插入到任意位置，不必事後拖曳移動。</div><h3>日期智慧帶動</h3><div class="help-card help-tip"><strong>📅 開始日期→自動更新結束日期</strong><br>修改開始日期時，系統自動保持原有工期，結束日期自動跟著調整。若手動修改結束日期，工期會即時重新記錄。</div><div class="help-card help-tip"><strong>🔗 設定 FS 前置任務→自動帶開始日期</strong><br>新增「完成→開始（FS）」類型的前置任務時，本任務的開始日期會自動設為前置任務結束日期的<strong>隔天</strong>，並保持工期同步更新結束日期。免手動計算。</div><h3>編輯與刪除</h3><ul class="help-list"><li>點擊任務列 → 開啟編輯表單</li><li>編輯表單底部有「刪除此任務」按鈕</li><li>批次刪除：點「☑ 任務刪除」進入批次模式，勾選後點「刪除選取」</li></ul><h3>拖曳排序</h3><p>抓住左側 ⠿ 圖示，上下拖曳即可調整任務顯示順序，不影響日期排程。</p>`},
+  {id:'tableview',icon:'📋',title:'表格檢視',content:`<h2>表格檢視（Excel 編輯模式）</h2><p>除了甘特圖，系統也提供一個像 Excel 的表格畫面，直接在格子裡打字更新任務，適合大量、快速修改任務內容。</p><h3>切換方式</h3><p>工具列左側點擊「<strong>📈 甘特圖</strong> / <strong>📋 表格檢視</strong>」按鈕群即可切換，兩邊顯示同一份任務資料，切換不會遺失變更。</p><h3>欄位</h3><p>任務名稱、負責人、開始日期、結束日期、狀態、完成度%、前置任務、Bar顏色、備註 — 每格皆可直接點擊編輯。</p><h3>操作方式</h3><ul class="help-list"><li>點擊任一格即可輸入或修改內容</li><li><strong>Tab</strong>：跳到右邊下一格；<strong>Shift+Tab</strong>：跳回上一格</li><li><strong>Enter</strong>：跳到下一列同一欄；<strong>Shift+Enter</strong>：跳回上一列</li><li>離開儲存格（Tab / Enter / 點擊他處）即時儲存生效，不需額外按「儲存」</li><li>群組任務列可點擊左側 ▼ / ▶ 摺疊或展開子任務，與甘特圖同步</li></ul><h3>前置任務欄</h3><p>直接輸入任務名稱，多個以逗號分隔（如：<code>基礎結構施工, 水電配管</code>）。系統會自動比對名稱轉換為依賴關係；找不到的名稱或會造成循環依賴的設定將被忽略並提示。</p><div class="help-card help-tip"><strong>💡 與匯出格式一致</strong><br>表格欄位與「📤 EXCEL格式」匯出/匯入的欄位相同，習慣用 Excel 整理任務的使用者可以直接沿用同樣的欄位對照方式。</div><h3>新增／刪除列</h3><ul class="help-list"><li>表格下方「＋ 新增列」：在最後新增一列空白任務</li><li>每列最右側 🗑 圖示：刪除該列任務（會確認並自動移除其他任務對它的前置任務關聯）</li></ul>`},
   {id:'wbs',icon:'📁',title:'WBS 群組',content:`<h2>WBS 工作分解結構（群組）</h2><p>WBS（Work Breakdown Structure）讓你將相關任務歸類到群組下，形成父子階層，便於大型專案分類管理。</p><h3>建立群組</h3><ol class="help-steps"><li>點「＋ 新增任務」，任務類型選「群組」</li><li>填寫群組名稱（如：結構工程、機電工程）</li><li>群組的日期不影響 Bar 顯示（群組本身不畫 Bar）</li></ol><h3>建立子任務</h3><ol class="help-steps"><li>點「＋ 新增任務」，任務類型選「一般任務」</li><li>在「父群組」下拉選單中選擇所屬群組</li><li>儲存後子任務會縮排顯示在群組下方</li></ol><h3>摺疊／展開</h3><ul class="help-list"><li>點擊群組名稱前的 <strong>▼</strong> 圖示 → 摺疊，隱藏所有子任務</li><li>點擊 <strong>▶</strong> → 展開，顯示子任務列表</li><li>群組名稱旁括號數字為子任務總數，如 <code>結構工程 (5)</code></li><li>摺疊或展開時，甘特圖中的依賴關係箭頭會即時同步重新繪製</li></ul>`},
   {id:'deps',icon:'🔗',title:'依賴關係',content:`<h2>任務依賴關係</h2><p>依賴關係定義任務之間的先後邏輯，確保排程符合實際施工順序。支援四種業界標準依賴類型，並可加上 Lag（緩衝天數）。展開或收合群組時，依賴箭頭會即時同步更新位置。</p><h3>依賴類型說明</h3><div class="help-grid"><div class="help-feature"><strong>FS（完成→開始）</strong><br>前置任務完成後，後續才能開始。<br><em>最常見類型</em></div><div class="help-feature"><strong>SS（開始→開始）</strong><br>前置任務開始後，後續才能開始。<br><em>平行作業常用</em></div><div class="help-feature"><strong>FF（完成→完成）</strong><br>前置任務完成後，後續才能完成。</div><div class="help-feature"><strong>SF（開始→完成）</strong><br>前置任務開始後，後續才能完成。<br><em>較少見，適用特殊情境</em></div></div><h3>Lag 緩衝天數</h3><p>在依賴關係後加上 Lag 可設定間隔天數。正值代表等待（如混凝土養護 3 天），負值代表提前重疊。</p><h3>設定方式</h3><ol class="help-steps"><li>開啟任務編輯表單</li><li>在「前置任務」區域下拉選擇目標任務</li><li>選擇依賴類型（FS／SS／FF／SF）</li><li>輸入 Lag 天數（預設 0）</li><li>點「加入」即新增該依賴</li></ol><div class="help-card help-tip"><strong>💡 FS 自動帶日期</strong><br>加入「FS（完成→開始）」依賴後，本任務的開始日期會自動設為前置任務結束日期的隔天，並保持工期同步更新結束日期。</div><div class="help-card help-tip"><strong>💡 防止循環依賴</strong><br>系統會自動偵測並阻止形成循環依賴（A→B→C→A）。</div>`},
   {id:'critical',icon:'🔴',title:'關鍵任務',content:`<h2>關鍵任務（手動標記）</h2><p>任何延誤都會直接影響專案進度的任務，建議手動標記為關鍵任務。標記後立即在甘特圖上以醒目視覺強調。</p><h3>如何標記</h3><ol class="help-steps"><li>點擊任務列，開啟編輯表單</li><li>勾選「🔴 關鍵任務」核取框</li><li>點「儲存」即生效；再次勾選可取消標記</li></ol><h3>視覺標誌</h3><ul class="help-list"><li><strong>● 紅色圓點</strong>（任務名稱左側）：標記關鍵任務，<em>原 Bar 顏色保持不變</em></li><li><strong>紅色外框</strong>（甘特圖 Bar）：關鍵任務 Bar 有明顯紅色光環外框</li><li><strong>紅色左邊框</strong>（任務列）：任務列左側有紅色細邊框</li><li><strong>「關鍵」徽章</strong>：任務列右側紅色小標籤</li><li><strong>浮時: Xd</strong>：系統仍依前置依賴計算浮動時間，供排程調整參考</li></ul><h3>統計列</h3><p>統計列「關鍵任務」欄位即時顯示目前手動標記為關鍵的任務總數。</p>`},
