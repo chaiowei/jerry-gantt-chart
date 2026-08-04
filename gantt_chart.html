@@ -238,9 +238,9 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 /* ── Table view (Excel-style editable grid) ── */
 .tv-wrap{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:auto;flex:1;margin:16px 20px 8px}
 .tv-table{border-collapse:collapse;width:100%;min-width:1000px;table-layout:fixed}
-.tv-table thead th{position:sticky;top:0;background:#F3F4F6;font-size:10px;font-weight:700;padding:8px 8px;border-bottom:2px solid rgba(0,0,0,.12);text-align:left;white-space:nowrap;z-index:2;text-transform:uppercase;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis}
+.tv-table thead th{position:sticky;top:0;background:#F3F4F6;font-size:10px;font-weight:700;padding:8px 8px;border:1px solid rgba(0,0,0,.14);text-align:left;white-space:nowrap;z-index:2;text-transform:uppercase;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis}
 .tv-table tbody tr{height:var(--tv-row-h,34px)}
-.tv-table tbody td{border-bottom:1px solid rgba(0,0,0,.06);padding:2px 4px;vertical-align:middle;overflow:hidden}
+.tv-table tbody td{border:1px solid rgba(0,0,0,.09);padding:2px 4px;vertical-align:middle;overflow:hidden;position:relative}
 .tv-table tbody tr:hover td{background:rgba(79,107,237,.04)}
 .tv-table input[type=text],.tv-table input[type=date],.tv-table input[type=number],.tv-table select{width:100%;height:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:0 6px;border-radius:5px;color:var(--tx)}
 .tv-table input:hover,.tv-table select:hover{border-color:var(--bdr)}
@@ -266,6 +266,19 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 body.share-mode .tv-del-btn,body.share-mode .tv-add-row,body.share-mode .tv-reset-status,body.share-mode .col-resizer,body.share-mode .tv-row-resizer{display:none!important}
 body.share-mode .tv-table input,body.share-mode .tv-table select,body.share-mode .tv-chip-btn{pointer-events:none}
 body.share-mode #btnViewTable,body.share-mode #btnViewGantt{pointer-events:none;opacity:.5}
+
+/* ── Active cell + fill handle (Excel-style drag-to-copy) ── */
+.tv-cell-active{outline:2px solid var(--acc)!important;outline-offset:-2px;z-index:1}
+.tv-fill-handle{position:absolute;right:0;bottom:0;width:12px;height:12px;cursor:crosshair;z-index:3}
+.tv-fill-handle::after{content:'';position:absolute;right:1px;bottom:1px;width:8px;height:8px;background:var(--acc);border:1.5px solid #fff;border-radius:1px}
+.tv-fill-target{background:var(--acc-l)!important;outline:1.5px dashed var(--acc);outline-offset:-1px}
+
+/* ── Cell popover (color / dependencies) ── */
+.tv-popover{position:fixed;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:0 10px 32px rgba(0,0,0,.2);z-index:250;width:300px;max-width:92vw;overflow:hidden}
+.tv-pop-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:600;background:#F8F9FF}
+.tv-pop-close{border:none;background:none;font-size:16px;line-height:1;color:var(--tx3);cursor:pointer;padding:2px 6px;border-radius:5px}
+.tv-pop-close:hover{background:var(--bg);color:var(--tx)}
+.tv-pop-body{padding:12px;max-height:70vh;overflow-y:auto}
 
 /* ── Share mode: hide edit-only controls ── */
 body.share-mode #topPrimaryActions{display:none!important}
@@ -520,6 +533,11 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       </div>
     </div>
   </div>
+</div>
+<!-- TABLE VIEW CELL POPOVER (color / dependencies) -->
+<div class="tv-popover" id="tvPopover" style="display:none">
+  <div class="tv-pop-head"><span id="tvPopTitle"></span><button type="button" class="tv-pop-close" onclick="tvClosePopover()">×</button></div>
+  <div class="tv-pop-body" id="tvPopBody"></div>
 </div>
 <!-- BULK ACTION BAR -->
 <div class="bulk-bar" id="bulkBar">
@@ -1693,8 +1711,8 @@ function renderTable(){
     html+=`<td><input type="date" value="${t.end}" data-id="${t.id}" data-field="end" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
     html+=`<td><div class="tv-status-cell"><select class="${t.statusManual?'tv-manual':'tv-auto'}" data-id="${t.id}" data-field="status" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)" title="${t.statusManual?'手動設定':'依完成度／日期自動判斷'}">${Object.entries(SL).map(([k,v])=>`<option value="${k}"${eStatus===k?' selected':''}>${v}</option>`).join('')}</select>${(t.statusManual&&!ro)?`<button type="button" class="tv-reset-status" title="恢復自動判斷" onclick="tvResetStatus(${t.id})">⟲</button>`:''}</div></td>`;
     html+=`<td><input type="number" min="0" max="100" value="${t.pct||0}" data-id="${t.id}" data-field="pct" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
-    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="deps" ${dis} onclick="openEdit(${t.id})" title="點擊編輯前置任務（跟甘特圖編輯視窗相同）">${depNames?`<span>${escAttr(depNames)}</span>`:'<span class="tv-placeholder">+ 設定前置任務</span>'}</button></td>`;
-    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="color" ${dis} onclick="openEdit(${t.id})" title="點擊編輯 Bar 顏色（跟甘特圖編輯視窗相同）"><span class="tv-swatch" style="background:${swatch}"></span>${t.color?`<span>${escAttr(t.color)}</span>`:'<span class="tv-placeholder">自動</span>'}</button></td>`;
+    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="deps" ${dis} onclick="tvOpenDepsPopover(${t.id},this)" title="設定前置任務">${depNames?`<span>${escAttr(depNames)}</span>`:'<span class="tv-placeholder">+ 設定前置任務</span>'}</button></td>`;
+    html+=`<td><button type="button" class="tv-chip-btn" data-id="${t.id}" data-field="color" ${dis} onclick="tvOpenColorPopover(${t.id},this)" title="設定 Bar 顏色"><span class="tv-swatch" style="background:${swatch}"></span>${t.color?`<span>${escAttr(t.color)}</span>`:'<span class="tv-placeholder">自動</span>'}</button></td>`;
     html+=`<td><input type="text" value="${escAttr(t.note||'')}" data-id="${t.id}" data-field="note" ${dis} onkeydown="tvKeyNav(event)" onchange="tvCommit(event)"></td>`;
     html+=`<td class="tv-actions">${ro?'':`<button class="tv-del-btn" title="刪除此列" onclick="tvDeleteRow(${t.id})">🗑</button>`}</td>`;
     html+='</tr>';
@@ -1898,6 +1916,289 @@ function tvDeleteRow(id){
   p.tasks=p.tasks.filter(x=>x.id!==id);
   p.tasks.forEach(x=>{x.deps=normalizeDeps(x.deps||[]).filter(d=>d.id!==id);});
   autoSave();render();
+}
+
+// ── Active cell + fill handle (Excel-style drag-down-to-copy) ──
+let _tvActiveCell=null;
+document.addEventListener('focusin',e=>{
+  const el=e.target.closest('#tvBody [data-field]');
+  if(!el){tvClearActiveCell();return;}
+  tvSetActiveCell(el);
+});
+function tvSetActiveCell(el){
+  tvClearActiveCell();
+  const td=el.closest('td');if(!td)return;
+  td.classList.add('tv-cell-active');
+  if(!el.disabled){
+    const handle=document.createElement('div');
+    handle.className='tv-fill-handle';
+    handle.addEventListener('mousedown',ev=>tvStartFill(ev,el));
+    td.appendChild(handle);
+  }
+  _tvActiveCell={id:parseInt(el.dataset.id),field:el.dataset.field};
+}
+function tvClearActiveCell(){
+  document.querySelectorAll('#tvBody .tv-cell-active').forEach(td=>td.classList.remove('tv-cell-active'));
+  document.querySelectorAll('#tvBody .tv-fill-handle').forEach(h=>h.remove());
+  _tvActiveCell=null;
+}
+
+function tvFillValue(source,target,field){
+  switch(field){
+    case 'name':{const v=(source.name||'').trim();if(!v)return false;target.name=v;return true;}
+    case 'owner':target.owner=source.owner||'';return true;
+    case 'note':target.note=source.note||'';return true;
+    case 'start':
+      if(parseD(source.start)>parseD(target.end))return false;
+      target.start=source.start;return true;
+    case 'end':
+      if(parseD(source.end)<parseD(target.start))return false;
+      target.end=source.end;return true;
+    case 'status':target.status=source.status;target.statusManual=source.statusManual;return true;
+    case 'pct':target.pct=source.pct;return true;
+    case 'color':target.color=source.color;return true;
+    case 'deps':target.deps=(source.deps||[]).map(d=>({...d}));return true;
+  }
+  return true;
+}
+
+function tvStartFill(e,el){
+  e.preventDefault();e.stopPropagation();
+  const p=activeProj();if(!p)return;
+  const sourceId=parseInt(el.dataset.id),field=el.dataset.field;
+  const tasks=getVisibleTasks(p.tasks);
+  const startIdx=tasks.findIndex(t=>t.id===sourceId);
+  if(startIdx<0)return;
+  let lastIdx=startIdx;
+  function clearHighlights(){document.querySelectorAll('#tvBody .tv-fill-target').forEach(td=>td.classList.remove('tv-fill-target'));}
+  function highlightRange(idx){
+    clearHighlights();
+    const lo=Math.min(startIdx,idx),hi=Math.max(startIdx,idx);
+    for(let i=lo;i<=hi;i++){
+      if(i===startIdx)continue;
+      const t=tasks[i];if(!t)continue;
+      const cell=document.querySelector(`#tvBody tr[data-id="${t.id}"] [data-field="${field}"]`);
+      const td=cell&&cell.closest('td');
+      if(td)td.classList.add('tv-fill-target');
+    }
+  }
+  function onMove(ev){
+    const rowEl=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('#tvBody tr');
+    if(!rowEl)return;
+    const idx=tasks.findIndex(t=>t.id===parseInt(rowEl.dataset.id));
+    if(idx<0)return;
+    lastIdx=idx;
+    highlightRange(idx);
+  }
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    clearHighlights();
+    if(lastIdx===startIdx)return;
+    const lo=Math.min(startIdx,lastIdx),hi=Math.max(startIdx,lastIdx);
+    const source=p.tasks.find(x=>x.id===sourceId);if(!source)return;
+    let filled=0,skipped=0;
+    for(let i=lo;i<=hi;i++){
+      if(i===startIdx)continue;
+      const targetTask=p.tasks.find(x=>x.id===tasks[i].id);if(!targetTask)continue;
+      if(tvFillValue(source,targetTask,field)===false)skipped++;else filled++;
+    }
+    autoSave();render();
+    if(skipped)toast(`⚠️ 已複製 ${filled} 列，${skipped} 列因日期衝突未套用`);
+    else if(filled)toast(`✅ 已複製到 ${filled} 列`);
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+// ── Cell popovers: Bar 顏色 / 前置任務 (only that section, not the full task modal) ──
+let _tvPopField=null,_tvPopTaskId=null;
+
+function tvShowPopover(anchorEl){
+  const pop=document.getElementById('tvPopover');
+  pop.style.display='block';
+  const r=anchorEl.getBoundingClientRect();
+  const popW=pop.offsetWidth||300;
+  let left=r.left,top=r.bottom+6;
+  if(left+popW>window.innerWidth-8)left=window.innerWidth-popW-8;
+  if(left<8)left=8;
+  const popH=pop.offsetHeight||300;
+  if(top+popH>window.innerHeight-8)top=Math.max(8,r.top-popH-6);
+  pop.style.left=left+'px';
+  pop.style.top=top+'px';
+  setTimeout(()=>{
+    document.addEventListener('mousedown',tvOutsideClick);
+    document.addEventListener('keydown',tvPopoverEsc);
+  },0);
+}
+function tvOutsideClick(e){
+  const pop=document.getElementById('tvPopover');
+  if(pop.contains(e.target))return;
+  if(e.target.closest('.tv-chip-btn'))return;
+  tvClosePopover();
+}
+function tvPopoverEsc(e){if(e.key==='Escape')tvClosePopover();}
+function tvClosePopover(){
+  const pop=document.getElementById('tvPopover');
+  if(pop.style.display==='none')return;
+  pop.style.display='none';
+  document.removeEventListener('mousedown',tvOutsideClick);
+  document.removeEventListener('keydown',tvPopoverEsc);
+  _tvPopField=null;_tvPopTaskId=null;
+  // No render() here on purpose: every edit inside the popover (color pick,
+  // dep add/remove) already patches its row's DOM live via tvPatchRow*().
+  // Rebuilding the table now would destroy whatever the user just clicked
+  // into next (same class of bug as the Tab-navigation focus loss above).
+}
+
+// Bar 顏色 popover
+function tvOpenColorPopover(id,anchorEl){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return;
+  _tvPopField='color';_tvPopTaskId=id;
+  document.getElementById('tvPopTitle').textContent='Bar 顏色（此任務專屬）';
+  const eff=t.color||taskBarBg(t);
+  document.getElementById('tvPopBody').innerHTML=`
+    <div class="cp-grid" id="tvCpGrid"></div>
+    <div class="cp-custom">
+      <label>自訂</label>
+      <input type="color" id="tvCpHex" value="${eff}" oninput="tvApplyCellColor(this.value)">
+      <input type="text" id="tvCpTxt" value="${t.color?escAttr(t.color):''}" placeholder="#rrggbb" onchange="tvCommitCellColorText(this.value)">
+    </div>
+    <div class="bar-prev" id="tvBarPrev" style="background:${eff}">預覽 ${eff}</div>
+    <button type="button" class="btn" style="margin-top:10px;width:100%" onclick="tvApplyCellColor(null)">清除自訂顏色（改用狀態預設色）</button>`;
+  tvBuildCpGrid(t.color);
+  tvShowPopover(anchorEl);
+}
+function tvBuildCpGrid(cur){
+  document.getElementById('tvCpGrid').innerHTML=PALETTE.map(c=>`<div class="cp-sw${(cur||'').toLowerCase()===c.toLowerCase()?' sel':''}" style="background:${c};border-color:${c}" onclick="tvApplyCellColor('${c}')"></div>`).join('');
+}
+function tvCommitCellColorText(v){
+  v=v.trim();if(!v){tvApplyCellColor(null);return;}
+  const hex=v.startsWith('#')?v:'#'+v;
+  if(!/^#[0-9a-fA-F]{6}$/.test(hex)){toast('⚠️ 顏色格式需為 #RRGGBB');return;}
+  tvApplyCellColor(hex);
+}
+function tvApplyCellColor(hex){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  t.color=hex||null;
+  const eff=hex||taskBarBg(t);
+  const hexEl=document.getElementById('tvCpHex'),txtEl=document.getElementById('tvCpTxt'),prevEl=document.getElementById('tvBarPrev');
+  if(hexEl)hexEl.value=eff;
+  if(txtEl)txtEl.value=hex||'';
+  if(prevEl){prevEl.textContent='預覽 '+eff;prevEl.style.background=eff;}
+  tvBuildCpGrid(hex);
+  tvPatchRowColor(t);
+  autoSave();
+}
+function tvPatchRowColor(t){
+  const row=document.querySelector(`#tvBody tr[data-id="${t.id}"]`);if(!row)return;
+  const btn=row.querySelector('button[data-field="color"]');if(!btn)return;
+  const sw=btn.querySelector('.tv-swatch');
+  const label=btn.querySelector('span:not(.tv-swatch)');
+  if(sw)sw.style.background=taskBarBg(t);
+  if(label){
+    if(t.color){label.textContent=t.color;label.classList.remove('tv-placeholder');}
+    else{label.textContent='自動';label.classList.add('tv-placeholder');}
+  }
+}
+
+// 前置任務 popover
+function tvOpenDepsPopover(id,anchorEl){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===id);if(!t)return;
+  _tvPopField='deps';_tvPopTaskId=id;
+  document.getElementById('tvPopTitle').textContent='前置任務（此任務開始前須完成）';
+  document.getElementById('tvPopBody').innerHTML=`
+    <div class="dl" id="tvDepList"></div>
+    <div class="dw" style="flex-wrap:wrap;gap:4px;align-items:flex-start;margin-top:6px">
+      <div style="position:relative;flex:1;min-width:140px">
+        <input id="tvDepSearch" type="text" placeholder="🔍 搜尋前置任務…" autocomplete="off"
+          oninput="tvFilterDepList(this.value)" onfocus="tvFilterDepList(this.value)"
+          style="width:100%;height:30px;border:1px solid var(--bdr);border-radius:var(--r);padding:0 8px;font-size:12px;font-family:inherit;background:var(--bg);color:var(--tx);box-sizing:border-box">
+        <div id="tvDepDropdown" style="display:none;position:absolute;top:32px;left:0;right:0;max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.18)"></div>
+      </div>
+      <select id="tvNewDepType" style="width:56px;height:30px;font-size:11px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg);font-family:inherit">
+        <option value="FS">FS</option><option value="SS">SS</option><option value="FF">FF</option><option value="SF">SF</option>
+      </select>
+      <input id="tvNewDepLag" type="number" value="0" min="-99" max="99" style="width:48px;height:30px;font-size:11px;border:1px solid var(--bdr);border-radius:var(--r);padding:0 4px;font-family:inherit" title="時間差(天)，正數=延後，負數=重疊">
+    </div>
+    <div class="alert" id="tvDepAlert"></div>`;
+  tvRenderDepTags();
+  tvShowPopover(anchorEl);
+}
+function tvRenderDepTags(){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  const html=normalizeDeps(t.deps).map(dep=>{
+    const dt=p.tasks.find(x=>x.id===dep.id);
+    return dt?`<span class="dt">${escAttr(dt.name)}<button onclick="tvRemoveDep(${dep.id})">×</button></span>`:'';
+  }).join('');
+  document.getElementById('tvDepList').innerHTML=html||'<span style="font-size:11px;color:var(--tx3)">尚無前置任務</span>';
+}
+function tvFilterDepList(q){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  const depIds=getDepIds(t.deps);
+  const pool=p.tasks.filter(x=>x.id!==_tvPopTaskId&&!depIds.includes(x.id));
+  const filtered=q?pool.filter(x=>x.name.toLowerCase().includes(q.toLowerCase())):pool;
+  const dd=document.getElementById('tvDepDropdown');if(!dd)return;
+  if(!filtered.length){
+    dd.innerHTML=`<div style="padding:8px 12px;color:var(--tx3);font-size:12px">找不到符合的任務</div>`;
+  } else {
+    dd.innerHTML=filtered.map(x=>`<div onmousedown="tvSelectAddDep(${x.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${escAttr(x.name)}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[effectiveStatus(x)]} · 結束:${x.end}</span></div>`).join('');
+  }
+  dd.style.display='block';
+}
+function tvSelectAddDep(depId){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  const dep=p.tasks.find(x=>x.id===depId);if(!dep)return;
+  const a=document.getElementById('tvDepAlert');
+  if(hasCycle(depId,_tvPopTaskId,p.tasks)){
+    a.textContent=`⚠️ 無法加入：「${dep.name}」與本任務形成循環依賴，請重新選擇。`;
+    a.classList.add('show');return;
+  }
+  const type=document.getElementById('tvNewDepType').value||'FS';
+  const lag=parseInt(document.getElementById('tvNewDepLag').value)||0;
+  if(type==='FS'&&dep.end){
+    const dur=dayCount(t.start,t.end);
+    const newStart=ds(addD(parseD(dep.end),1));
+    t.start=newStart;
+    t.end=ds(addD(parseD(newStart),dur));
+    tvPatchRowDates(t);
+  }
+  t.deps=normalizeDeps(t.deps);
+  t.deps.push({id:depId,type,lag});
+  a.classList.remove('show');
+  const inp=document.getElementById('tvDepSearch');if(inp)inp.value='';
+  const dd=document.getElementById('tvDepDropdown');if(dd)dd.style.display='none';
+  tvRenderDepTags();
+  tvPatchRowDeps(t);
+  autoSave();
+}
+function tvRemoveDep(depId){
+  const p=activeProj();if(!p)return;
+  const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  t.deps=normalizeDeps(t.deps).filter(d=>d.id!==depId);
+  document.getElementById('tvDepAlert').classList.remove('show');
+  tvRenderDepTags();
+  tvPatchRowDeps(t);
+  autoSave();
+}
+function tvPatchRowDeps(t){
+  const p=activeProj();if(!p)return;
+  const row=document.querySelector(`#tvBody tr[data-id="${t.id}"]`);if(!row)return;
+  const btn=row.querySelector('button[data-field="deps"]');if(!btn)return;
+  const names=normalizeDeps(t.deps).map(d=>p.tasks.find(x=>x.id===d.id)?.name).filter(Boolean).join(', ');
+  btn.innerHTML=names?`<span>${escAttr(names)}</span>`:'<span class="tv-placeholder">+ 設定前置任務</span>';
+}
+function tvPatchRowDates(t){
+  const row=document.querySelector(`#tvBody tr[data-id="${t.id}"]`);if(!row)return;
+  const s=row.querySelector('input[data-field="start"]');if(s)s.value=t.start;
+  const e=row.querySelector('input[data-field="end"]');if(e)e.value=t.end;
+  tvRefreshRowStatus(t.id);
 }
 
 // ═══════════════════════
