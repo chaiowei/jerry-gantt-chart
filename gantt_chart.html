@@ -242,6 +242,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .tv-table tbody tr{height:var(--tv-row-h,34px)}
 .tv-table tbody td{border:1px solid rgba(0,0,0,.09);padding:2px 4px;vertical-align:middle;overflow:hidden;position:relative}
 .tv-table tbody tr:hover td{background:rgba(79,107,237,.04)}
+.tv-table tbody tr.tv-row-delayed td{background:rgba(220,38,38,.1)}
+.tv-table tbody tr.tv-row-delayed:hover td{background:rgba(220,38,38,.16)}
 .tv-table input[type=text],.tv-table input[type=date],.tv-table input[type=number],.tv-table select{width:100%;height:100%;border:1px solid transparent;background:transparent;font-family:inherit;font-size:12px;padding:0 6px;border-radius:5px;color:var(--tx)}
 .tv-table input:hover,.tv-table select:hover{border-color:var(--bdr)}
 .tv-table input:focus,.tv-table select:focus{outline:none;border-color:var(--acc);background:var(--surf);box-shadow:0 0 0 2px var(--acc-l)}
@@ -389,20 +391,20 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
   <div class="main">
     <div class="topbar">
       <div class="topbar-row1" id="topToolActions" style="display:none">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0">
           <input class="proj-title-input" id="projTitleInput" value="選擇或建立專案" readonly>
           <span class="proj-badge" id="projBadge" style="display:none"></span>
           <span class="share-mode-badge">👁 唯讀分享</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
           <button class="tools-toggle-btn" id="toolsToggleBtn" onclick="toggleToolBtns()">⚙️ <span data-i18n="tb_tools">工具列</span> <span id="toolsToggleArrow">▾</span></button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap">
           <div id="toolBtnsWrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <select class="ctrl" id="viewRange" onchange="render()">
               <option value="30">30 天</option>
-              <option value="60" selected>60 天</option>
+              <option value="60">60 天</option>
               <option value="90">90 天</option>
               <option value="120">120 天</option>
-              <option value="180">180 天</option>
+              <option value="180" selected>180 天</option>
               <option value="365">1 年</option>
               <option value="545">18 個月</option>
               <option value="730">2 年</option>
@@ -432,7 +434,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="importProjectJSON(this.files[0])">
             <div class="tb-sep"></div>
           </div>
-          <div class="lang-sel">
+          <div class="lang-sel" style="margin-left:auto;flex-shrink:0">
             <button class="lang-btn active" id="langBtnZH" onclick="setUILang('zh')">繁中</button>
             <button class="lang-btn" id="langBtnEN" onclick="setUILang('en')">EN</button>
             <button class="lang-btn" id="langBtnTH" onclick="setUILang('th')">ไทย</button>
@@ -1701,7 +1703,7 @@ function renderTable(){
     const depNames=normalizeDeps(t.deps).map(d=>{const f=allTasks.find(x=>x.id===d.id);return f?f.name:'';}).filter(Boolean).join(', ');
     const swatch=taskBarBg(t);
     const eStatus=effectiveStatus(t);
-    html+=`<tr data-id="${t.id}">`;
+    html+=`<tr data-id="${t.id}" class="${eStatus==='delayed'?'tv-row-delayed':''}">`;
     html+=`<td class="tv-num">${ri+1}${ro?'':'<div class="tv-row-resizer" onmousedown="tvStartRowResize(event)"></div>'}</td>`;
     html+=`<td style="padding-left:${4+level*20}px"><div style="display:flex;align-items:center;gap:2px;height:100%">`;
     if(isGroup)html+=`<span class="group-toggle" onclick="toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>`;
@@ -1845,11 +1847,10 @@ function tvRefreshRowStatus(id){
   const p=activeProj();if(!p)return;
   const t=p.tasks.find(x=>x.id===id);if(!t)return;
   const row=document.querySelector(`#tvBody tr[data-id="${id}"]`);if(!row)return;
+  const es=effectiveStatus(t);
   const sel=row.querySelector('select[data-field="status"]');
-  if(sel&&!t.statusManual){
-    const es=effectiveStatus(t);
-    if(sel.value!==es)sel.value=es;
-  }
+  if(sel&&!t.statusManual&&sel.value!==es)sel.value=es;
+  row.classList.toggle('tv-row-delayed',es==='delayed');
   const sw=row.querySelector('button[data-field="color"] .tv-swatch');
   if(sw)sw.style.background=taskBarBg(t);
 }
