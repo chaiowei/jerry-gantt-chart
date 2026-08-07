@@ -1085,8 +1085,19 @@ function effectiveStatus(t){
   return(t.statusManual&&t.status)?t.status:computeAutoStatus(t);
 }
 
+// Only ever returns a validated #RRGGBB string (or null). Task/project colors
+// can come from imported JSON files we don't control the contents of, and get
+// dropped straight into style="background:${...}" attributes when rendered —
+// without this check a crafted color string could break out of the attribute.
+function sanitizeHexColor(c){
+  if(typeof c!=='string')return null;
+  const v=c.trim();
+  return/^#[0-9a-fA-F]{6}$/.test(v)?v:null;
+}
+
 function taskBarBg(t){
-  if(t.color)return t.color;
+  const c=sanitizeHexColor(t.color);
+  if(c)return c;
   return{done:'#059669',ongoing:'#4F6BED',pending:'#9CA3AF',delayed:'#DC2626'}[effectiveStatus(t)]||'#9CA3AF';
 }
 
@@ -1407,10 +1418,10 @@ function renderSidebar(){
   const list=document.getElementById('projList');
   if(!projects.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:rgba(255,255,255,.3);text-align:center">尚無專案</div>';return;}
   list.innerHTML=projects.map(p=>`
-    <div class="proj-item${p.id===activeId?' active':''}" onclick="switchProject('${p.id}')">
-      <div class="proj-dot" style="background:${p.color}"></div>
-      <div class="proj-name" title="${p.name}">${p.name}</div>
-      <button class="proj-del" title="刪除" onclick="event.stopPropagation();confirmDeleteProject('${p.id}')">✕</button>
+    <div class="proj-item${p.id===activeId?' active':''}" onclick="switchProject('${escAttr(p.id)}')">
+      <div class="proj-dot" style="background:${sanitizeHexColor(p.color)}"></div>
+      <div class="proj-name" title="${escAttr(p.name)}">${escAttr(p.name)}</div>
+      <button class="proj-del" title="刪除" onclick="event.stopPropagation();confirmDeleteProject('${escAttr(p.id)}')">✕</button>
     </div>`).join('');
 }
 
@@ -1628,9 +1639,9 @@ function render(){
     const bg=taskBarBg(t),vis=ce>=0&&cs<days;
     const depIds = getDepIds(t.deps);
     const hasDep=!!(depIds.length);
-    const depNames=hasDep?depIds.map(id=>allTasks.find(x=>x.id===id)?.name||'').filter(Boolean).join('、'):'';
+    const depNames=hasDep?depIds.map(id=>escAttr(allTasks.find(x=>x.id===id)?.name||'')).filter(Boolean).join('、'):'';
     const dc2=dayCount(t.start,t.end);
-    const meta=[t.owner,t.note,depNames?'← '+depNames:''].filter(Boolean).join(' · ');
+    const meta=[escAttr(t.owner),escAttr(t.note),depNames?'← '+depNames:''].filter(Boolean).join(' · ');
     const isSelected=bulkSelected.has(t.id);
     const isCritical = t.critical || false;
     const level = getTaskLevel(t, allTasks);
@@ -1654,7 +1665,7 @@ function render(){
         <span class="dh" onclick="event.stopPropagation()" ${handleDrag}>⠿</span>
         ${isGroup ? `<span class="group-toggle" onclick="event.stopPropagation();toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>` : ''}
         <div class="nt">
-          <div class="nn" style="color:${isMilestone?'#7C3AED':bg};font-weight:${isCritical||isGroup?'700':'500'}">${isMilestone?'◆ ':''}${isCritical?'<span style="font-size:8px;color:#DC2626;vertical-align:middle;margin-right:2px" title="關鍵任務">●</span>':''}${t.name}${isGroup?` (${allTasks.filter(x=>x.parentId===t.id).length})`:''}</div>
+          <div class="nn" style="color:${isMilestone?'#7C3AED':bg};font-weight:${isCritical||isGroup?'700':'500'}">${isMilestone?'◆ ':''}${isCritical?'<span style="font-size:8px;color:#DC2626;vertical-align:middle;margin-right:2px" title="關鍵任務">●</span>':''}${escAttr(t.name)}${isGroup?` (${allTasks.filter(x=>x.parentId===t.id).length})`:''}</div>
           <div class="nm${detailHidden?' nm-hidden':''}"><span class="day-chip">${isMilestone?'里程碑':dc2+'天'}</span>${meta?`<span>${meta}</span>`:''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
@@ -2101,7 +2112,7 @@ function tvOpenColorPopover(id,anchorEl){
   const t=p.tasks.find(x=>x.id===id);if(!t)return;
   _tvPopField='color';_tvPopTaskId=id;
   document.getElementById('tvPopTitle').textContent='Bar 顏色（此任務專屬）';
-  const eff=t.color||taskBarBg(t);
+  const eff=taskBarBg(t);
   document.getElementById('tvPopBody').innerHTML=`
     <div class="cp-grid" id="tvCpGrid"></div>
     <div class="cp-custom">
@@ -2109,7 +2120,7 @@ function tvOpenColorPopover(id,anchorEl){
       <input type="color" id="tvCpHex" value="${eff}" oninput="tvApplyCellColor(this.value)">
       <input type="text" id="tvCpTxt" value="${t.color?escAttr(t.color):''}" placeholder="#rrggbb" onchange="tvCommitCellColorText(this.value)">
     </div>
-    <div class="bar-prev" id="tvBarPrev" style="background:${eff}">預覽 ${eff}</div>
+    <div class="bar-prev" id="tvBarPrev" style="background:${eff}">預覽 ${escAttr(eff)}</div>
     <button type="button" class="btn" style="margin-top:10px;width:100%" onclick="tvApplyCellColor(null)">清除自訂顏色（改用狀態預設色）</button>`;
   tvBuildCpGrid(t.color);
   tvShowPopover(anchorEl);
@@ -3022,7 +3033,7 @@ function openAdd(){
   const tasks = getTasks();
   parentSel.innerHTML = '<option value="">無（頂層任務）</option>';
   tasks.filter(t=>t.type==='group').forEach(t=>{
-    parentSel.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+    parentSel.innerHTML += `<option value="${t.id}">${escAttr(t.name)}</option>`;
   });
   // Insert position dropdown (new task only)
   const insSel=document.getElementById('minsertPos');
@@ -3031,7 +3042,7 @@ function openAdd(){
   insSel.innerHTML='<option value="">加入到最末尾</option>';
   visTasks.forEach((t,i)=>{
     const indent=t.parentId?'　':'';
-    insSel.innerHTML+=`<option value="${i}">${indent}在「${t.name}」之後插入</option>`;
+    insSel.innerHTML+=`<option value="${i}">${indent}在「${escAttr(t.name)}」之後插入</option>`;
   });
   document.getElementById('insertPosRow').style.display='';
   document.getElementById('em').classList.add('open');
@@ -3061,7 +3072,7 @@ function openEdit(id){
   const parentSel = document.getElementById('mparent');
   parentSel.innerHTML = '<option value="">無（頂層任務）</option>';
   tasks.filter(x=>x.type==='group'&&x.id!==id).forEach(x=>{
-    parentSel.innerHTML += `<option value="${x.id}"${t.parentId===x.id?' selected':''}>${x.name}</option>`;
+    parentSel.innerHTML += `<option value="${x.id}"${t.parentId===x.id?' selected':''}>${escAttr(x.name)}</option>`;
   });
   document.getElementById('insertPosRow').style.display='none'; // hide for edit
   document.getElementById('em').classList.add('open');
@@ -3084,7 +3095,7 @@ function filterDepList(q){
   if(!filtered.length){
     dd.innerHTML=`<div style="padding:8px 12px;color:var(--tx3);font-size:12px">找不到符合的任務</div>`;
   } else {
-    dd.innerHTML=filtered.map(t=>`<div onmousedown="selectAndAddDep(${t.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${t.name}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[effectiveStatus(t)]} · 結束:${t.end}</span></div>`).join('');
+    dd.innerHTML=filtered.map(t=>`<div onmousedown="selectAndAddDep(${t.id})" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''"><strong>${escAttr(t.name)}</strong><span style="color:var(--tx3);margin-left:6px;font-size:11px">${SL[effectiveStatus(t)]} · 結束:${t.end}</span></div>`).join('');
   }
   dd.style.display='block';
 }
@@ -3122,7 +3133,7 @@ function renderDepTags(){
   const tasks=getTasks();
   document.getElementById('depList').innerHTML=normalizeDeps(editDeps).map(dep=>{
     const t=tasks.find(x=>x.id===dep.id);
-    return t?`<span class="dt">${t.name}<button onclick="removeDep(${dep.id})">×</button></span>`:'';
+    return t?`<span class="dt">${escAttr(t.name)}<button onclick="removeDep(${dep.id})">×</button></span>`:'';
   }).join('');
 }
 
@@ -3525,7 +3536,7 @@ function importProjectJSON(file){
       const newId='proj_'+Date.now();
       const sameName=projects.some(p=>p.name===data.name);
       const newName=sameName?`${data.name}（匯入 ${ds(today)}）`:data.name;
-      const proj={id:newId,name:newName,color:data.color||'#4F6BED',nextId:data.nextId||1,tasks:data.tasks||[]};
+      const proj={id:newId,name:newName,color:sanitizeHexColor(data.color)||'#4F6BED',nextId:data.nextId||1,tasks:data.tasks||[]};
       projects.push(proj);activeId=newId;
       migrateProjects();
       renderSidebar();renderTopbar();render();
