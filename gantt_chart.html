@@ -753,10 +753,26 @@ function doGuestMode() {
 
 function doLogout() {
   if (!confirm('確定登出？本機未儲存的資料將會保留。')) return;
+  if (currentUser && currentUser.token) {
+    // Best-effort session revoke — don't block logout on it either way.
+    apiFetch('POST', null, { action: 'logout', username: currentUser.username, token: currentUser.token }).catch(() => {});
+  }
   currentUser = null; isGuestMode = true;
   localStorage.removeItem('gm_user');
   applyLoginState();
   toast('已登出');
+}
+
+// Called when the backend says our session token is missing/expired
+// (loadProjects/saveProjects respond with needLogin:true). Drops back to
+// guest mode locally — nothing on the server is touched — and asks the user
+// to log back in; a fresh login issues a new 30-day token.
+function handleAuthExpired(msg) {
+  currentUser = null; isGuestMode = true;
+  localStorage.removeItem('gm_user');
+  applyLoginState();
+  toast('⚠️ ' + (msg || '登入已過期，請重新登入'));
+  openLoginModal();
 }
 
 function applyLoginState() {
@@ -801,8 +817,11 @@ async function apiFetch(method, params, body) {
 async function loadCloudProjects() {
   if (!currentUser) return;
   try {
-    const res = await apiFetch('GET', { action:'loadProjects', username:currentUser.username, folderId:currentUser.folderId });
-    if (!res.ok) { toast('⚠️ 雲端載入失敗：' + res.error); return; }
+    const res = await apiFetch('GET', { action:'loadProjects', username:currentUser.username, token:currentUser.token });
+    if (!res.ok) {
+      if (res.needLogin) { handleAuthExpired(res.error); return; }
+      toast('⚠️ 雲端載入失敗：' + res.error); return;
+    }
     if (res.projects && res.projects.length > 0) {
       res.projects.forEach(cp => {
         const existing = projects.find(p => p.id === cp.id);
@@ -1306,10 +1325,11 @@ function saveAll(){
   apiFetch('POST', null, {
     action: 'saveProjects',
     username: currentUser.username,
-    folderId: currentUser.folderId,
+    token: currentUser.token,
     projects: projects
   }).then(res => {
     if (res.ok) toast('✅ 已儲存 ' + res.saved + ' 個專案至雲端');
+    else if (res.needLogin) handleAuthExpired(res.error);
     else toast('⚠️ 雲端儲存失敗：' + res.error);
   }).catch(e => toast('⚠️ 雲端連線失敗，資料已存本機'));
 }

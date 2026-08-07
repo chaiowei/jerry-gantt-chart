@@ -72,6 +72,7 @@ function doPost(e) {
     switch (action) {
       case 'saveProjects':  return respond(handleSaveProjects(body));
       case 'createShare':   return respond(handleCreateShare(body));
+      case 'logout':        return respond(handleLogout(body));
       default:              return respond({ ok: false, error: 'Unknown POST action: ' + action });
     }
   } catch (err) {
@@ -110,6 +111,71 @@ function verifyPassword(candidate, stored) {
   return stored === candidate; // legacy plaintext row, migrated on success below
 }
 
+// ════════════════════════════════════════════════════════════
+//  SESSIONS
+// ════════════════════════════════════════════════════════════
+// loadProjects/saveProjects used to trust `username` alone — no password, no
+// token, just the name. Anyone who knew or guessed a valid username could
+// read or overwrite that person's projects with zero authentication. A
+// session token issued at login (and required on every subsequent call)
+// closes that. Multiple concurrent sessions are allowed on purpose (desktop
+// + phone etc.); each login just adds its own row here. Tokens last 30 days.
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function ensureSessionsSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  let sheet = ss.getSheetByName('sessions');
+  if (!sheet) {
+    sheet = ss.insertSheet('sessions');
+    sheet.appendRow(['token', 'username', 'expiresAt']);
+  }
+  return sheet;
+}
+
+function createSession(username) {
+  const sheet = ensureSessionsSheet();
+  // Lazily sweep expired rows (any user) on every new login so the sheet
+  // doesn't grow forever — no separate cleanup trigger needed.
+  const data = sheet.getDataRange().getValues();
+  const now = Date.now();
+  const keep = [data[0]];
+  for (let i = 1; i < data.length; i++) {
+    if (Number(data[i][2]) > now) keep.push(data[i]);
+  }
+  if (keep.length !== data.length) {
+    sheet.clearContents();
+    sheet.getRange(1, 1, keep.length, 3).setValues(keep);
+  }
+  const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  sheet.appendRow([token, username, now + SESSION_TTL_MS]);
+  return token;
+}
+
+function verifySession(username, token) {
+  if (!username || !token) return false;
+  const sheet = ensureSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  const now = Date.now();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token && data[i][1] === username) return Number(data[i][2]) > now;
+  }
+  return false;
+}
+
+function handleLogout(params) {
+  const { username, token } = params;
+  if (!username || !token) return { ok: true }; // nothing to revoke, not an error
+  const sheet = ensureSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token && data[i][1] === username) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+  return { ok: true };
+}
+
 function handleLogin(params) {
   const { username, password } = params;
   if (!username || !password) return { ok: false, error: '請輸入帳號和密碼' };
@@ -134,9 +200,10 @@ function handleLogin(params) {
       cache.remove(lockKey);
       if (!isHashedPassword(storedPass)) sheet.getRange(rowIndex, 2).setValue(hashPassword(password));
       const userFolderId = ensureUserFolder(username, folderId, sheet, rowIndex);
+      const token = createSession(username);
       return {
         ok: true,
-        user: { username, displayName: displayName || username, color: color || '#4F6BED', folderId: userFolderId }
+        user: { username, displayName: displayName || username, color: color || '#4F6BED', folderId: userFolderId, token }
       };
     }
     break;
@@ -179,8 +246,9 @@ function getAuthorizedFolderId(username) {
 //  LOAD PROJECTS
 // ════════════════════════════════════════════════════════════
 function handleLoadProjects(params) {
-  const { username } = params;
-  if (!username) return { ok: false, error: '缺少參數' };
+  const { username, token } = params;
+  if (!username || !token) return { ok: false, error: '缺少參數', needLogin: true };
+  if (!verifySession(username, token)) return { ok: false, error: '登入已過期，請重新登入', needLogin: true };
   const folderId = getAuthorizedFolderId(username);
   if (!folderId) return { ok: false, error: '找不到使用者' };
 
@@ -206,8 +274,9 @@ function handleLoadProjects(params) {
 //  SAVE PROJECTS
 // ════════════════════════════════════════════════════════════
 function handleSaveProjects(body) {
-  const { username, projects } = body;
-  if (!username || !projects) return { ok: false, error: '缺少參數' };
+  const { username, token, projects } = body;
+  if (!username || !token || !projects) return { ok: false, error: '缺少參數', needLogin: true };
+  if (!verifySession(username, token)) return { ok: false, error: '登入已過期，請重新登入', needLogin: true };
   const folderId = getAuthorizedFolderId(username);
   if (!folderId) return { ok: false, error: '找不到使用者' };
 
