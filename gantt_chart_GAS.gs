@@ -9,7 +9,7 @@
 const CONFIG = {
   SHEET_ID: '1xizWmZ8KGJMqYJpcnkIJ-10WMIyE7-rHodlwh-UYCw8',
   ROOT_FOLDER_ID: '1PceXpD4lT1Xqy_vtZTqELghY4qvoecx-',
-  DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbwVg-Zo3E7NgtnwLpf1RuRUswb9kVKmAqL30Jr9XLMGGodPg3ValZPhBS-KGYOQsH6i/exec',
+  DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbwSZqK_NQuyUuaPGGSUNUiffayYNDo0dGdmHSmI9JdRomjw1o3zYwTNUVTB8SIfGY4w/exec',
 };
 // ──────────────────────────────────────────────────────────
 
