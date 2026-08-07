@@ -13,14 +13,12 @@ const CONFIG = {
 };
 // ──────────────────────────────────────────────────────────
 
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
-}
+// NOTE: Apps Script's ContentService does not support setting custom response
+// headers (there used to be a corsHeaders() helper here, but it was never
+// actually applied to any response — dead code). Cross-origin access to this
+// web app cannot be restricted via CORS headers at all; every check that
+// matters (who can read/write which folder, login attempts, share IDs) has
+// to happen in the handler functions below instead.
 
 function doOptions() {
   return ContentService.createTextOutput('')
@@ -74,6 +72,7 @@ function doPost(e) {
     switch (action) {
       case 'saveProjects':  return respond(handleSaveProjects(body));
       case 'createShare':   return respond(handleCreateShare(body));
+      case 'logout':        return respond(handleLogout(body));
       default:              return respond({ ok: false, error: 'Unknown POST action: ' + action });
     }
   } catch (err) {
@@ -90,24 +89,126 @@ function respond(data) {
 // ════════════════════════════════════════════════════════════
 //  LOGIN
 // ════════════════════════════════════════════════════════════
+// Passwords used to be compared as plain text straight out of the sheet. That's
+// fixed below with a salted-hash check, but existing rows still hold plaintext
+// until a user logs in — isHashedPassword()/verifyPassword() below transparently
+// upgrade a row to the hashed format the moment its plaintext password is used
+// successfully, so no manual migration of the sheet is needed.
+function isHashedPassword(stored) {
+  return typeof stored === 'string' && /^[a-f0-9]{32}:[a-f0-9]{64}$/.test(stored);
+}
+function hashPassword(password, salt) {
+  salt = salt || Utilities.getUuid().replace(/-/g, '').slice(0, 32);
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + password, Utilities.Charset.UTF_8);
+  const hex = digest.map(function(b) { return ((b < 0 ? b + 256 : b)).toString(16).padStart(2, '0'); }).join('');
+  return salt + ':' + hex;
+}
+function verifyPassword(candidate, stored) {
+  if (isHashedPassword(stored)) {
+    const salt = stored.split(':')[0];
+    return hashPassword(candidate, salt) === stored;
+  }
+  return stored === candidate; // legacy plaintext row, migrated on success below
+}
+
+// ════════════════════════════════════════════════════════════
+//  SESSIONS
+// ════════════════════════════════════════════════════════════
+// loadProjects/saveProjects used to trust `username` alone — no password, no
+// token, just the name. Anyone who knew or guessed a valid username could
+// read or overwrite that person's projects with zero authentication. A
+// session token issued at login (and required on every subsequent call)
+// closes that. Multiple concurrent sessions are allowed on purpose (desktop
+// + phone etc.); each login just adds its own row here. Tokens last 30 days.
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function ensureSessionsSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  let sheet = ss.getSheetByName('sessions');
+  if (!sheet) {
+    sheet = ss.insertSheet('sessions');
+    sheet.appendRow(['token', 'username', 'expiresAt']);
+  }
+  return sheet;
+}
+
+function createSession(username) {
+  const sheet = ensureSessionsSheet();
+  // Lazily sweep expired rows (any user) on every new login so the sheet
+  // doesn't grow forever — no separate cleanup trigger needed.
+  const data = sheet.getDataRange().getValues();
+  const now = Date.now();
+  const keep = [data[0]];
+  for (let i = 1; i < data.length; i++) {
+    if (Number(data[i][2]) > now) keep.push(data[i]);
+  }
+  if (keep.length !== data.length) {
+    sheet.clearContents();
+    sheet.getRange(1, 1, keep.length, 3).setValues(keep);
+  }
+  const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  sheet.appendRow([token, username, now + SESSION_TTL_MS]);
+  return token;
+}
+
+function verifySession(username, token) {
+  if (!username || !token) return false;
+  const sheet = ensureSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  const now = Date.now();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token && data[i][1] === username) return Number(data[i][2]) > now;
+  }
+  return false;
+}
+
+function handleLogout(params) {
+  const { username, token } = params;
+  if (!username || !token) return { ok: true }; // nothing to revoke, not an error
+  const sheet = ensureSessionsSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === token && data[i][1] === username) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+  return { ok: true };
+}
+
 function handleLogin(params) {
   const { username, password } = params;
   if (!username || !password) return { ok: false, error: '請輸入帳號和密碼' };
+
+  // Basic brute-force lockout: 5 failed attempts per username locks it out
+  // for 15 minutes. CacheService is per-script and ephemeral, which is fine
+  // here — it only needs to slow down automated guessing, not persist forever.
+  const cache = CacheService.getScriptCache();
+  const lockKey = 'loginfail_' + username;
+  const fails = parseInt(cache.get(lockKey) || '0', 10);
+  if (fails >= 5) return { ok: false, error: '登入失敗次數過多，請 15 分鐘後再試' };
 
   const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID).getSheetByName('users');
   if (!sheet) return { ok: false, error: '找不到帳號資料表（確認 Sheet 名稱為 users）' };
 
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    const [uname, pass, displayName, color, folderId] = data[i];
-    if (uname === username && pass === password) {
-      const userFolderId = ensureUserFolder(username, folderId, sheet, i + 1);
+    const [uname, storedPass, displayName, color, folderId] = data[i];
+    if (uname !== username) continue;
+    const rowIndex = i + 1;
+    if (verifyPassword(password, storedPass)) {
+      cache.remove(lockKey);
+      if (!isHashedPassword(storedPass)) sheet.getRange(rowIndex, 2).setValue(hashPassword(password));
+      const userFolderId = ensureUserFolder(username, folderId, sheet, rowIndex);
+      const token = createSession(username);
       return {
         ok: true,
-        user: { username, displayName: displayName || username, color: color || '#4F6BED', folderId: userFolderId }
+        user: { username, displayName: displayName || username, color: color || '#4F6BED', folderId: userFolderId, token }
       };
     }
+    break;
   }
+  cache.put(lockKey, String(fails + 1), 900);
   return { ok: false, error: '帳號或密碼錯誤' };
 }
 
@@ -125,12 +226,31 @@ function ensureUserFolder(username, existingFolderId, sheet, rowIndex) {
   return newId;
 }
 
+// Looks up the caller's OWN folder from the users sheet by username — never
+// trust a folderId the client hands us. Previously handleLoadProjects and
+// handleSaveProjects both took `folderId` straight from the request and
+// called DriveApp.getFolderById(folderId) with it, which meant anyone who
+// could reach this endpoint could read or write to *any* Drive folder ID
+// they knew or guessed, not just their own — this closes that off.
+function getAuthorizedFolderId(username) {
+  const sheet = SpreadsheetApp.openById(CONFIG.SHEET_ID).getSheetByName('users');
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === username) return ensureUserFolder(username, data[i][4], sheet, i + 1);
+  }
+  return null;
+}
+
 // ════════════════════════════════════════════════════════════
 //  LOAD PROJECTS
 // ════════════════════════════════════════════════════════════
 function handleLoadProjects(params) {
-  const { username, folderId } = params;
-  if (!username || !folderId) return { ok: false, error: '缺少參數' };
+  const { username, token } = params;
+  if (!username || !token) return { ok: false, error: '缺少參數', needLogin: true };
+  if (!verifySession(username, token)) return { ok: false, error: '登入已過期，請重新登入', needLogin: true };
+  const folderId = getAuthorizedFolderId(username);
+  if (!folderId) return { ok: false, error: '找不到使用者' };
 
   const folder = DriveApp.getFolderById(folderId);
   const files = folder.getFilesByType(MimeType.PLAIN_TEXT);
@@ -154,8 +274,11 @@ function handleLoadProjects(params) {
 //  SAVE PROJECTS
 // ════════════════════════════════════════════════════════════
 function handleSaveProjects(body) {
-  const { username, folderId, projects } = body;
-  if (!username || !folderId || !projects) return { ok: false, error: '缺少參數' };
+  const { username, token, projects } = body;
+  if (!username || !token || !projects) return { ok: false, error: '缺少參數', needLogin: true };
+  if (!verifySession(username, token)) return { ok: false, error: '登入已過期，請重新登入', needLogin: true };
+  const folderId = getAuthorizedFolderId(username);
+  if (!folderId) return { ok: false, error: '找不到使用者' };
 
   const folder = DriveApp.getFolderById(folderId);
   let saved = 0;
@@ -164,15 +287,10 @@ function handleSaveProjects(body) {
     const filename = 'proj_' + proj.id + '.gantt.json';
     const content = JSON.stringify(proj, null, 2);
 
-    if (proj._fileId) {
-      try {
-        const file = DriveApp.getFileById(proj._fileId);
-        file.setContent(content);
-        saved++;
-        return;
-      } catch (e) {}
-    }
-
+    // Always resolve the target file by name inside the caller's OWN
+    // authorized folder — a client-supplied _fileId is never trusted
+    // directly (it used to be, via DriveApp.getFileById(proj._fileId),
+    // which let a request overwrite any file the script could reach).
     const existingFiles = folder.getFilesByName(filename);
     if (existingFiles.hasNext()) {
       existingFiles.next().setContent(content);
@@ -197,7 +315,10 @@ function handleCreateShare(body) {
   const existing = root.getFoldersByName('_shares');
   sharesFolder = existing.hasNext() ? existing.next() : root.createFolder('_shares');
 
-  const shareId = 'share_' + projectId + '_' + Date.now();
+  // A share ID doubles as the only access control on the resulting link, so
+  // it needs to be unguessable — projectId + Date.now() (the old scheme) is
+  // predictable enough to brute-force if projectId is known or small.
+  const shareId = 'share_' + Utilities.getUuid().replace(/-/g, '');
   const shareData = {
     shareId,
     shareType: shareType || 'interactive',
@@ -263,10 +384,24 @@ function handleShareView(shareId) {
 // ════════════════════════════════════════════════════════════
 //  BUILD SHARE HTML — 與編輯器視覺一致的唯讀頁面
 // ════════════════════════════════════════════════════════════
+// JSON.stringify() does not escape "<", so a task name containing the literal
+// text "</script>" would otherwise close the inline <script> block early and
+// let arbitrary HTML/JS after it run in every visitor's browser. Escaping "<"
+// (and "&"/U+2028/U+2029 for good measure) as \u-sequences keeps the JSON
+// valid while making that impossible.
+function safeJsonForScript(obj) {
+  return JSON.stringify(obj)
+    .replace(/&/g, '\\u0026')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 function buildShareHtml(proj, createdAt, createdBy, shareId, taskDetailHiddenIds, statsCollapsed) {
-  const projJson = JSON.stringify(proj);
-  const detailHiddenJson = JSON.stringify(taskDetailHiddenIds || []);
-  const createdByJson = JSON.stringify(createdBy || '');
+  const projJson = safeJsonForScript(proj);
+  const detailHiddenJson = safeJsonForScript(taskDetailHiddenIds || []);
+  const createdByJson = safeJsonForScript(createdBy || '');
   const statsCollapsedVal = (statsCollapsed ? 'true' : 'false');
 
   const css = `
