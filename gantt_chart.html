@@ -1561,8 +1561,14 @@ function toggleProjectActive(){
 function applyMainView(){
   const gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea'),dash=document.getElementById('dashboardArea');
   const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable'),btnD=document.getElementById('sbDashBtn');
+  const pa=document.getElementById('topPrimaryActions'),ta=document.getElementById('topToolActions');
   if(btnD)btnD.classList.toggle('active',mainView==='dashboard');
   if(!activeProj())return;
+  // 工作台是跨專案總覽頁，甘特圖／表格檢視才有意義的專案標題、檢視切換、
+  // 新增任務等工具列只在點進某個專案之後才出現。
+  const inDash=mainView==='dashboard';
+  if(pa)pa.style.display=inDash?'none':'flex';
+  if(ta)ta.style.display=inDash?'none':'flex';
   [btnG,btnT].forEach(b=>b&&b.classList.remove('active-view'));
   if(mainView==='dashboard'){
     gantt.style.display='none';tbl.style.display='none';
