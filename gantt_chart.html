@@ -239,6 +239,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .sb-brand{cursor:pointer}
 .sb-brand:hover{opacity:1}
 .sb-brand:hover .sb-icon{background:rgba(79,107,237,.4)}
+.sb-auth-block{padding-top:10px;margin-top:2px;border-top:1px solid rgba(255,255,255,.07)}
 .topbar-row1{transition:padding-left .22s}
 .sidebar.collapsed ~ .main .topbar-row1{padding-left:52px}
 .ni{display:flex;align-items:flex-start;gap:7px}
@@ -431,7 +432,17 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       <button class="sb-dash-btn" id="sbDashBtn" onclick="setMainView('dashboard')">
         <span class="sb-dash-icon">🗂️</span><span>工作台</span>
       </button>
-      <div id="loginStatus">
+      <div class="sb-brand" onclick="toggleSidebar()" title="收合側欄">
+        <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
+        <div><div class="sb-title">甘特圖管理</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
+      </div>
+    </div>
+    <div class="sb-section" data-i18n="sb_projects">我的專案</div>
+    <div class="sb-list" id="projList"></div>
+    <div class="sb-footer" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px">
+      <button class="sb-new-btn" onclick="newProject()" data-i18n="sb_newProj">＋ 建立新專案</button>
+      <button class="sb-footer-btn" onclick="openHelp()" data-i18n="sb_help">📖 使用說明書</button>
+      <div id="loginStatus" class="sb-auth-block">
         <div id="guestStatus" class="sb-auth-row" style="display:none">
           <div class="sb-auth-dot" style="background:#F59E0B"></div>
           <span class="sb-auth-label">訪客模式</span>
@@ -442,16 +453,6 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
           <span class="sb-auth-label" id="loggedInName" title="已登入 · 雲端同步"></span>
           <button class="sb-auth-btn out" onclick="doLogout()">登出</button>
         </div>
-      </div>
-    </div>
-    <div class="sb-section" data-i18n="sb_projects">我的專案</div>
-    <div class="sb-list" id="projList"></div>
-    <div class="sb-footer" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px">
-      <button class="sb-new-btn" onclick="newProject()" data-i18n="sb_newProj">＋ 建立新專案</button>
-      <button class="sb-footer-btn" onclick="openHelp()" data-i18n="sb_help">📖 使用說明書</button>
-      <div class="sb-brand" onclick="toggleSidebar()" title="收合側欄">
-        <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
-        <div><div class="sb-title">甘特圖管理</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
       </div>
     </div>
   </aside>
