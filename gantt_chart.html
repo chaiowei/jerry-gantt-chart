@@ -1512,7 +1512,14 @@ function renderSidebar(){
     </div>`).join('');
 }
 
-function switchProject(id){activeId=id;exitBulkMode();renderSidebar();renderTopbar();initProjectView();}
+function switchProject(id){
+  activeId=id;
+  exitBulkMode();
+  // 從工作台點「我的專案」裡的某個專案，要直接進去那個專案的編輯畫面，
+  // 不能留在工作台、只是背地裡換掉 activeId。
+  if(mainView==='dashboard'){mainView='gantt';localStorage.setItem('mainView','gantt');}
+  renderSidebar();renderTopbar();initProjectView();
+}
 
 function renderTopbar(){
   const p=activeProj();
