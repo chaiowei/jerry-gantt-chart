@@ -22,12 +22,22 @@
 html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;height:100%}
 .app{display:flex;height:100vh;overflow-x:visible;overflow-y:hidden}
 .sidebar{width:var(--sidebar);background:#1E2235;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
-.sb-brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
-.sb-brand-row{display:flex;align-items:center;gap:8px}
-.sb-icon{width:30px;height:30px;background:var(--acc);border-radius:6px;display:grid;place-items:center;flex-shrink:0}
-.sb-icon svg{fill:#fff;width:16px;height:16px}
-.sb-title{font-size:14px;font-weight:600;color:#fff;line-height:1.2}
-.sb-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-dash-nav{padding:14px 12px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-dash-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r);background:rgba(255,255,255,.06);border:1px solid transparent;color:rgba(255,255,255,.75);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .12s;margin-bottom:10px}
+.sb-dash-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.sb-dash-btn.active{background:rgba(79,107,237,.35);border-color:rgba(79,107,237,.55);color:#fff}
+.sb-dash-icon{font-size:16px}
+.sb-auth-row{display:flex;align-items:center;gap:7px}
+.sb-auth-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-auth-label{font-size:11px;color:rgba(255,255,255,.55);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-auth-btn{padding:4px 9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:20px;color:rgba(255,255,255,.75);font-size:10.5px;cursor:pointer;font-family:inherit;transition:all .12s;flex-shrink:0}
+.sb-auth-btn:hover{background:rgba(79,107,237,.3);border-color:rgba(79,107,237,.5);color:#fff}
+.sb-auth-btn.out:hover{background:rgba(220,38,38,.3);border-color:rgba(220,38,38,.5)}
+.sb-brand{display:flex;align-items:center;gap:8px;padding-top:10px;margin-top:2px;border-top:1px solid rgba(255,255,255,.07);opacity:.6}
+.sb-icon{width:22px;height:22px;background:rgba(255,255,255,.12);border-radius:5px;display:grid;place-items:center;flex-shrink:0}
+.sb-icon svg{fill:rgba(255,255,255,.7);width:12px;height:12px}
+.sb-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);line-height:1.2}
+.sb-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:1px}
 .sb-section{padding:12px 12px 4px;font-size:10px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.8px;text-transform:uppercase}
 .sb-list{flex:1;overflow-y:auto;padding:4px 8px}
 .sb-list::-webkit-scrollbar{width:4px}
@@ -120,8 +130,9 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .stat{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:10px 12px}
 .sl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .sv{font-size:20px;font-weight:600}
-/* ═══ DASHBOARD (工作台) ═══ */
-.dash-wrap{padding:4px 0 24px;display:flex;flex-direction:column;gap:18px;max-width:1180px}
+/* ═══ DASHBOARD (工作台) — 低飽和度粉藍／粉綠配色，避免整片死白 ═══ */
+.dash-wrap{--dpb:#E4F1FB;--dpb-bd:#C3E0F5;--dpb-tx:#2C6693;--dpg:#E3F7EE;--dpg-bd:#C1E9D6;--dpg-tx:#237A5C;
+  padding:4px 0 24px;display:flex;flex-direction:column;gap:18px;max-width:1180px}
 .dash-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .dash-title{font-size:18px;font-weight:600}
 .dash-sync{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2)}
@@ -130,33 +141,39 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .dash-sync-dot.err{background:var(--del)}
 .dash-sync-dot.busy{background:var(--acc);animation:dashPulse 1s ease-in-out infinite}
 @keyframes dashPulse{0%,100%{opacity:1}50%{opacity:.3}}
-.dash-sync-btn{border:1px solid var(--bdr);background:var(--surf);color:var(--tx2);font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit}
-.dash-sync-btn:hover{color:var(--tx);border-color:var(--acc)}
+.dash-sync-btn{border:1px solid var(--dpb-bd);background:var(--dpb);color:var(--dpb-tx);font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
+.dash-sync-btn:hover{background:#D5E9FA}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.dash-kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px}
-.dash-kpi .sl{margin-bottom:4px}
+.dash-kpi{background:var(--dpb);border:1px solid var(--dpb-bd);border-radius:var(--rl);padding:12px 14px}
+.dash-kpi:nth-child(even){background:var(--dpg);border-color:var(--dpg-bd)}
+.dash-kpi .sl{margin-bottom:4px;color:var(--dpb-tx);opacity:.75}
+.dash-kpi:nth-child(even) .sl{color:var(--dpg-tx)}
 .dash-kpi .sv{font-size:22px}
 .dash-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
 @media (max-width:860px){.dash-cols{grid-template-columns:1fr}}
-.dash-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
-.dash-card-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.dash-empty{color:var(--tx3);font-size:12px;padding:10px 2px}
-.dash-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-radius:8px;cursor:pointer;transition:background .12s}
-.dash-row:hover{background:var(--bg)}
+.dash-card{border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:2px;border:1px solid var(--dpb-bd);background:var(--dpb)}
+.dash-card.green{border-color:var(--dpg-bd);background:var(--dpg)}
+.dash-card-title{font-size:13px;font-weight:700;color:var(--dpb-tx);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.dash-card.green .dash-card-title{color:var(--dpg-tx)}
+.dash-empty{color:var(--tx2);font-size:12px;padding:10px 2px}
+.dash-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .12s;background:rgba(255,255,255,.55)}
+.dash-row+.dash-row{margin-top:4px}
+.dash-row:hover{background:#fff}
 .dash-row-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dash-row-main{flex:1;min-width:0}
 .dash-row-name{font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-row-sub{font-size:11px;color:var(--tx2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-row-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;white-space:nowrap}
 .dash-row-badge.overdue{background:var(--del-l);color:var(--del)}
-.dash-row-badge.soon{background:rgba(217,119,6,.12);color:#D97706}
-.dash-row-badge.later{background:var(--bg);color:var(--tx2)}
-.dash-proj-item{padding:9px 4px;border-radius:8px;cursor:pointer;transition:background .12s}
-.dash-proj-item:hover{background:var(--bg)}
+.dash-row-badge.soon{background:rgba(217,119,6,.14);color:#B45309}
+.dash-row-badge.later{background:rgba(255,255,255,.7);color:var(--tx2)}
+.dash-proj-item{padding:9px 10px;border-radius:8px;cursor:pointer;transition:background .12s;background:rgba(255,255,255,.55)}
+.dash-proj-item+.dash-proj-item{margin-top:4px}
+.dash-proj-item:hover{background:#fff}
 .dash-proj-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .dash-proj-name{font-size:13px;font-weight:500;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-proj-pct{font-size:11px;color:var(--tx2);font-weight:600}
-.dash-proj-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;display:flex}
+.dash-proj-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.8);overflow:hidden;display:flex}
 .dash-proj-bar-seg{height:100%}
 /* task detail (nm) collapse */
 .nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;transition:all .15s ease}
@@ -402,26 +419,20 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
 <button class="sb-toggle" id="sbToggle" onclick="toggleSidebar()" title="展開/收合側欄">☰</button>
 <div class="app">
   <aside class="sidebar">
-    <div class="sb-brand">
-      <div class="sb-brand-row">
-        <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
-        <div><div class="sb-title">甘特圖管理</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
-      </div>
-      <div id="loginStatus" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)">
-        <div id="guestStatus" style="display:none">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
-            <span style="font-size:11px;color:rgba(255,255,255,.5)">訪客模式（本機儲存）</span>
-          </div>
-          <button onclick="openLoginModal()" style="width:100%;padding:6px;background:rgba(79,107,237,.25);border:1px solid rgba(79,107,237,.4);border-radius:6px;color:#93C5FD;font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s">🔐 切換登入</button>
+    <div class="sb-dash-nav">
+      <button class="sb-dash-btn" id="sbDashBtn" onclick="setMainView('dashboard')">
+        <span class="sb-dash-icon">🗂️</span><span>工作台</span>
+      </button>
+      <div id="loginStatus">
+        <div id="guestStatus" class="sb-auth-row" style="display:none">
+          <div class="sb-auth-dot" style="background:#F59E0B"></div>
+          <span class="sb-auth-label">訪客模式</span>
+          <button class="sb-auth-btn" onclick="openLoginModal()">🔐 登入</button>
         </div>
-        <div id="loggedInStatus" style="display:none">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-            <div style="width:8px;height:8px;border-radius:50%;background:#10B981;flex-shrink:0"></div>
-            <span style="font-size:11px;color:rgba(255,255,255,.5)">已登入 · 雲端同步</span>
-          </div>
-          <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.8);margin-bottom:8px" id="loggedInName"></div>
-          <button onclick="doLogout()" style="width:100%;padding:6px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);border-radius:6px;color:#FCA5A5;font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s">登出</button>
+        <div id="loggedInStatus" class="sb-auth-row" style="display:none">
+          <div class="sb-auth-dot" style="background:#10B981"></div>
+          <span class="sb-auth-label" id="loggedInName" title="已登入 · 雲端同步"></span>
+          <button class="sb-auth-btn out" onclick="doLogout()">登出</button>
         </div>
       </div>
     </div>
@@ -430,6 +441,10 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <div class="sb-footer" style="padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px">
       <button class="sb-new-btn" onclick="newProject()" data-i18n="sb_newProj">＋ 建立新專案</button>
       <button class="sb-footer-btn" onclick="openHelp()" data-i18n="sb_help">📖 使用說明書</button>
+      <div class="sb-brand">
+        <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
+        <div><div class="sb-title">甘特圖管理</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
+      </div>
     </div>
   </aside>
   <div class="main">
@@ -498,7 +513,6 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       </div>
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
         <div class="btn-group">
-          <button class="btn" id="btnViewDash" onclick="setMainView('dashboard')" data-i18n="tb_viewDash">🗂️ 工作台</button>
           <button class="btn active-view" id="btnViewGantt" onclick="setMainView('gantt')" data-i18n="tb_viewGantt">📈 甘特圖</button>
           <button class="btn" id="btnViewTable" onclick="setMainView('table')" data-i18n="tb_viewTable">📋 表格檢視</button>
         </div>
@@ -821,11 +835,11 @@ function applyLoginState() {
   const nameEl = document.getElementById('loggedInName');
   const shareBtn = document.getElementById('shareBtn');
   if (currentUser && !isGuestMode) {
-    guestEl.style.display = 'none'; loggedEl.style.display = 'block';
+    guestEl.style.display = 'none'; loggedEl.style.display = 'flex';
     nameEl.textContent = currentUser.displayName || currentUser.username;
     if (shareBtn) shareBtn.style.display = '';
   } else {
-    guestEl.style.display = 'block'; loggedEl.style.display = 'none';
+    guestEl.style.display = 'flex'; loggedEl.style.display = 'none';
     if (shareBtn) shareBtn.style.display = 'none';
   }
 }
@@ -924,7 +938,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 分享連結',tb_exportExcel:'📊 匯出 Excel',
     tb_exportProj:'📤 匯出專案檔',tb_importProj:'📩 匯入專案檔',
     tb_ioMenu:'匯出／匯入',io_importTitle:'匯入',io_exportTitle:'匯出',
-    tb_viewDash:'🗂️ 工作台',tb_viewGantt:'📈 甘特圖',tb_viewTable:'📋 表格檢視',
+    tb_viewGantt:'📈 甘特圖',tb_viewTable:'📋 表格檢視',
     lbl_name2:'任務名稱',lbl_deps2:'前置任務',tv_pct:'完成度%',tv_barColor:'Bar顏色',tv_addRow:'＋ 新增列',tv_newTaskName:'新任務',
     btn_addTask:'＋ 新增任務',btn_bulk:'☑ 批次選取',btn_bulkActive:'✕ 退出選取',
     btn_save:'💾 儲存專案',btn_delProj:'🗑 刪除專案',
@@ -955,7 +969,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 Share',tb_exportExcel:'📊 Export Excel',
     tb_exportProj:'📤 Export Project',tb_importProj:'📩 Import Project',
     tb_ioMenu:'Export／Import',io_importTitle:'Import',io_exportTitle:'Export',
-    tb_viewDash:'🗂️ Dashboard',tb_viewGantt:'📈 Gantt',tb_viewTable:'📋 Table View',
+    tb_viewGantt:'📈 Gantt',tb_viewTable:'📋 Table View',
     lbl_name2:'Task Name',lbl_deps2:'Predecessors',tv_pct:'Progress%',tv_barColor:'Bar Color',tv_addRow:'＋ Add Row',tv_newTaskName:'New Task',
     btn_addTask:'＋ Add Task',btn_bulk:'☑ Bulk Select',btn_bulkActive:'✕ Exit Select',
     btn_save:'💾 Save',btn_delProj:'🗑 Delete',
@@ -986,7 +1000,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 แชร์',tb_exportExcel:'📊 ส่งออก Excel',
     tb_exportProj:'📤 ส่งออกโปรเจค',tb_importProj:'📩 นำเข้าโปรเจค',
     tb_ioMenu:'ส่งออก／นำเข้า',io_importTitle:'นำเข้า',io_exportTitle:'ส่งออก',
-    tb_viewDash:'🗂️ แดชบอร์ด',tb_viewGantt:'📈 แกนต์ชาร์ต',tb_viewTable:'📋 มุมมองตาราง',
+    tb_viewGantt:'📈 แกนต์ชาร์ต',tb_viewTable:'📋 มุมมองตาราง',
     lbl_name2:'ชื่องาน',lbl_deps2:'งานก่อนหน้า',tv_pct:'ความคืบหน้า%',tv_barColor:'สีแถบ',tv_addRow:'＋ เพิ่มแถว',tv_newTaskName:'งานใหม่',
     btn_addTask:'＋ เพิ่มงาน',btn_bulk:'☑ เลือกหลายรายการ',btn_bulkActive:'✕ ออกจากการเลือก',
     btn_save:'💾 บันทึก',btn_delProj:'🗑 ลบโปรเจค',
@@ -1513,13 +1527,13 @@ function renderTopbar(){
 
 function applyMainView(){
   const gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea'),dash=document.getElementById('dashboardArea');
-  const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable'),btnD=document.getElementById('btnViewDash');
+  const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable'),btnD=document.getElementById('sbDashBtn');
+  if(btnD)btnD.classList.toggle('active',mainView==='dashboard');
   if(!activeProj())return;
-  [btnG,btnT,btnD].forEach(b=>b&&b.classList.remove('active-view'));
+  [btnG,btnT].forEach(b=>b&&b.classList.remove('active-view'));
   if(mainView==='dashboard'){
     gantt.style.display='none';tbl.style.display='none';
     dash.style.display='flex';dash.style.flexDirection='column';
-    if(btnD)btnD.classList.add('active-view');
   } else if(mainView==='table'){
     gantt.style.display='none';dash.style.display='none';
     tbl.style.display='flex';
@@ -1634,7 +1648,7 @@ function renderDashboard(){
         <div class="dash-card-title">⏰ 即將到期／逾期任務</div>
         ${upcomingHtml}
       </div>
-      <div class="dash-card">
+      <div class="dash-card green">
         <div class="dash-card-title">🗂️ 各專案進度</div>
         ${projHtml}
       </div>
