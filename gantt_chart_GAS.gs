@@ -10,7 +10,16 @@ const CONFIG = {
   SHEET_ID: '1xizWmZ8KGJMqYJpcnkIJ-10WMIyE7-rHodlwh-UYCw8',
   ROOT_FOLDER_ID: '1PceXpD4lT1Xqy_vtZTqELghY4qvoecx-',
   DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbwSZqK_NQuyUuaPGGSUNUiffayYNDo0dGdmHSmI9JdRomjw1o3zYwTNUVTB8SIfGY4w/exec',
+  // 甘特圖 → Notion 單向鏡射同步用的 database（🗺️ 甘特圖任務（自動同步））。
+  // 這個 ID 不是密鑰，可以放心留在程式碼裡。
+  NOTION_DATABASE_ID: '6a1d82bf-2f21-4590-be67-a16fef72e79e',
 };
+// Notion 的 Integration Token 是密鑰，不寫在這個公開 Repo 裡。到 Apps Script
+// 編輯器的「專案設定 → 指令碼屬性」新增一筆 NOTION_TOKEN 即可，getNotionToken()
+// 會自動讀取。技術說明書（Notion 頁面）裡有完整的申請步驟。
+function getNotionToken() {
+  return PropertiesService.getScriptProperties().getProperty('NOTION_TOKEN') || '';
+}
 // ──────────────────────────────────────────────────────────
 
 // NOTE: Apps Script's ContentService does not support setting custom response
@@ -73,6 +82,7 @@ function doPost(e) {
       case 'saveProjects':  return respond(handleSaveProjects(body));
       case 'createShare':   return respond(handleCreateShare(body));
       case 'logout':        return respond(handleLogout(body));
+      case 'syncNotion':    return respond(handleSyncNotion(body));
       default:              return respond({ ok: false, error: 'Unknown POST action: ' + action });
     }
   } catch (err) {
@@ -301,6 +311,144 @@ function handleSaveProjects(body) {
   });
 
   return { ok: true, saved };
+}
+
+// ════════════════════════════════════════════════════════════
+//  NOTION SYNC — 單向鏡射：甘特圖是主編輯介面，Notion 只是唯讀鏡射，
+//  永遠以甘特圖這邊的資料為準覆蓋過去，不會反向讀取 Notion。
+// ════════════════════════════════════════════════════════════
+function handleSyncNotion(body) {
+  const { username, token } = body;
+  if (!username || !token) return { ok: false, error: '缺少參數', needLogin: true };
+  if (!verifySession(username, token)) return { ok: false, error: '登入已過期，請重新登入', needLogin: true };
+  if (!getNotionToken()) return { ok: false, error: 'Notion 尚未設定：請到 Apps Script 專案設定的指令碼屬性新增 NOTION_TOKEN' };
+
+  const loaded = handleLoadProjects({ username, token });
+  if (!loaded.ok) return loaded;
+  try {
+    return syncTasksToNotion(loaded.projects);
+  } catch (err) {
+    return { ok: false, error: 'Notion 同步發生錯誤: ' + err.message };
+  }
+}
+
+function ensureNotionMapSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  let sheet = ss.getSheetByName('notion_sync_map');
+  if (!sheet) {
+    sheet = ss.insertSheet('notion_sync_map');
+    sheet.appendRow(['syncKey', 'notionPageId', 'lastSyncedAt']);
+  }
+  return sheet;
+}
+
+function notionApiRequest(method, path, payload) {
+  const res = UrlFetchApp.fetch('https://api.notion.com/v1' + path, {
+    method: method,
+    headers: {
+      'Authorization': 'Bearer ' + getNotionToken(),
+      'Notion-Version': '2022-06-28',
+      'Content-Type': 'application/json',
+    },
+    payload: payload ? JSON.stringify(payload) : undefined,
+    muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  let responseBody = {};
+  try { responseBody = JSON.parse(res.getContentText() || '{}'); } catch (e) {}
+  if (code >= 400) {
+    throw new Error('Notion API ' + code + ': ' + (responseBody.message || res.getContentText()));
+  }
+  return responseBody;
+}
+
+function ganttAutoStatus(t) {
+  const pct = t.pct || 0;
+  if (pct >= 100) return 'done';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (t.end && new Date(t.end.replace(/\//g, '-')) < today) return 'delayed';
+  if (pct > 0) return 'ongoing';
+  return 'pending';
+}
+
+const NOTION_STATUS_LABEL = { done: '已完成', ongoing: '進行中', delayed: '延遲', pending: '待開始' };
+
+function buildNotionTaskProps(proj, t, nowIso) {
+  const status = (t.statusManual && t.status && NOTION_STATUS_LABEL[t.status]) ? t.status : ganttAutoStatus(t);
+  const props = {
+    'Name': { title: [{ text: { content: (t.name || '未命名任務').slice(0, 2000) } }] },
+    'Project': { rich_text: [{ text: { content: (proj.name || '').slice(0, 2000) } }] },
+    'Owner': { rich_text: [{ text: { content: (t.owner || '').slice(0, 2000) } }] },
+    'Progress': { number: typeof t.pct === 'number' ? t.pct : 0 },
+    'Status': { select: { name: NOTION_STATUS_LABEL[status] || '待開始' } },
+    'TaskType': { select: { name: t.type === 'milestone' ? '里程碑' : '任務' } },
+    'SyncKey': { rich_text: [{ text: { content: proj.id + '::' + t.id } }] },
+    'LastSyncedAt': { date: { start: nowIso } },
+  };
+  if (t.start) props['Start'] = { date: { start: t.start } };
+  if (t.end) props['Deadline'] = { date: { start: t.end } };
+  return props;
+}
+
+// 把 projects 目前的完整任務清單推到 Notion：已存在的 SyncKey 用 PATCH 更新，
+// 沒看過的用 POST 新建，Notion 那邊有但這次沒出現的（代表在甘特圖被刪除了）
+// 就封存掉，不留孤兒資料。SyncKey ↔ Notion page ID 的對應表存在
+// notion_sync_map 這張 Sheet，避免每次同步都要重新查詢一次 Notion。
+function syncTasksToNotion(projects) {
+  const sheet = ensureNotionMapSheet();
+  const rows = sheet.getDataRange().getValues();
+  const map = {}; // syncKey -> { pageId, rowIndex(1-based) }
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0]) map[rows[i][0]] = { pageId: rows[i][1], rowIndex: i + 1 };
+  }
+
+  const seenKeys = {};
+  const nowIso = new Date().toISOString();
+  let created = 0, updated = 0, archived = 0, failed = 0;
+  const newRows = [];
+
+  projects.forEach(proj => {
+    (proj.tasks || []).forEach(t => {
+      const syncKey = proj.id + '::' + t.id;
+      seenKeys[syncKey] = true;
+      const props = buildNotionTaskProps(proj, t, nowIso);
+      const existing = map[syncKey];
+      try {
+        if (existing && existing.pageId) {
+          notionApiRequest('PATCH', '/pages/' + existing.pageId, { properties: props });
+          updated++;
+        } else {
+          const res = notionApiRequest('POST', '/pages', {
+            parent: { database_id: CONFIG.NOTION_DATABASE_ID },
+            properties: props,
+          });
+          if (res && res.id) { newRows.push([syncKey, res.id, nowIso]); created++; }
+          else { failed++; }
+        }
+      } catch (e) {
+        failed++;
+      }
+      Utilities.sleep(120); // Notion API 限速約 3 req/s，留一點餘裕
+    });
+  });
+
+  // 甘特圖裡已經刪除、但 Notion 還留著的任務 → 封存並清掉對應表那一列
+  const rowsToDelete = [];
+  Object.keys(map).forEach(key => {
+    if (seenKeys[key]) return;
+    try {
+      notionApiRequest('PATCH', '/pages/' + map[key].pageId, { archived: true });
+      archived++;
+    } catch (e) { /* 頁面可能已經被手動刪除，忽略 */ }
+    rowsToDelete.push(map[key].rowIndex);
+  });
+  rowsToDelete.sort((a, b) => b - a).forEach(rowIndex => sheet.deleteRow(rowIndex));
+
+  if (newRows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 3).setValues(newRows);
+  }
+
+  return { ok: true, created, updated, archived, failed };
 }
 
 // ════════════════════════════════════════════════════════════
