@@ -140,14 +140,6 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
   padding:4px 0 24px;display:flex;flex-direction:column;gap:18px;max-width:1180px}
 .dash-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .dash-title{font-size:18px;font-weight:600}
-.dash-sync{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2)}
-.dash-sync-dot{width:7px;height:7px;border-radius:50%;background:var(--pend);flex-shrink:0}
-.dash-sync-dot.ok{background:var(--done)}
-.dash-sync-dot.err{background:var(--del)}
-.dash-sync-dot.busy{background:var(--acc);animation:dashPulse 1s ease-in-out infinite}
-@keyframes dashPulse{0%,100%{opacity:1}50%{opacity:.3}}
-.dash-sync-btn{border:1px solid var(--dpb-bd);background:var(--dpb);color:var(--dpb-tx);font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600}
-.dash-sync-btn:hover{background:#D5E9FA}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .dash-kpi{background:var(--dpb);border:1px solid var(--dpb-bd);border-radius:var(--rl);padding:12px 14px}
 .dash-kpi:nth-child(even){background:var(--dpg);border-color:var(--dpg-bd)}
@@ -1392,7 +1384,7 @@ function saveAll(){
     token: currentUser.token,
     projects: projects
   }).then(res => {
-    if (res.ok) { toast('✅ 已儲存 ' + res.saved + ' 個專案至雲端'); triggerNotionSync(false); }
+    if (res.ok) { toast('✅ 已儲存 ' + res.saved + ' 個專案至雲端'); }
     else if (res.needLogin) handleAuthExpired(res.error);
     else toast('⚠️ 雲端儲存失敗：' + res.error);
   }).catch(e => toast('⚠️ 雲端連線失敗，資料已存本機'));
@@ -1602,10 +1594,8 @@ function setMainView(mode){
 }
 
 // ═══════════════════════
-// DASHBOARD（工作台）— 跨專案聚合視圖 + Notion 單向同步狀態
+// DASHBOARD（工作台）— 跨專案聚合視圖
 // ═══════════════════════
-let _notionSyncing=false,_notionLastSyncAt=null,_notionLastSyncError=null;
-
 function dashJumpToTask(projId,taskId){
   switchProject(projId);
   setMainView('gantt');
@@ -1643,11 +1633,12 @@ function renderDashboard(){
       :x.daysLeft<=3?`<span class="dash-row-badge soon">剩 ${x.daysLeft} 天</span>`
       :`<span class="dash-row-badge later">剩 ${x.daysLeft} 天</span>`;
     const dotColor=sanitizeHexColor(x.p.color)||'#9CA3AF';
+    const ownerHtml=x.t.owner?` · 👤 ${escAttr(x.t.owner)}`:'';
     return `<div class="dash-row" onclick="dashJumpToTask('${escAttr(x.p.id)}',${x.t.id})">
       <div class="dash-row-dot" style="background:${dotColor}"></div>
       <div class="dash-row-main">
         <div class="dash-row-name">${escAttr(x.t.name)}</div>
-        <div class="dash-row-sub">${escAttr(x.p.name)} · ${fmt(x.t.end)}</div>
+        <div class="dash-row-sub">${escAttr(x.p.name)} · ${fmt(x.t.end)}${ownerHtml}</div>
       </div>
       ${badge}
     </div>`;
@@ -1672,20 +1663,9 @@ function renderDashboard(){
     </div>`;
   }).join(''):'<div class="dash-empty">還沒有任何專案</div>';
 
-  const syncDotClass=_notionSyncing?'busy':(_notionLastSyncError?'err':(_notionLastSyncAt?'ok':''));
-  const syncLabel=_notionSyncing?'同步中…'
-    :_notionLastSyncError?('同步失敗：'+_notionLastSyncError)
-    :_notionLastSyncAt?('Notion 已同步於 '+_notionLastSyncAt.getHours().toString().padStart(2,'0')+':'+_notionLastSyncAt.getMinutes().toString().padStart(2,'0'))
-    :'尚未同步至 Notion';
-
   el.innerHTML=`<div class="dash-wrap">
     <div class="dash-head">
       <div class="dash-title">🗂️ 工作台</div>
-      <div class="dash-sync">
-        <span class="dash-sync-dot ${syncDotClass}"></span>
-        <span id="dashSyncLabel">${syncLabel}</span>
-        <button class="dash-sync-btn" onclick="triggerNotionSync(true)">🔗 立即同步 Notion</button>
-      </div>
     </div>
     ${kpiHtml}
     <div class="dash-cols">
@@ -1699,37 +1679,6 @@ function renderDashboard(){
       </div>
     </div>
   </div>`;
-}
-
-// manual=true 時會用 toast 回報結果；saveAll() 成功後會用 manual=false 靜默觸發，
-// 讓 Notion 那邊的鏡射資料庫在雲端儲存完成後自動跟著更新，不需要另外手動按同步。
-function triggerNotionSync(manual){
-  if(isGuestMode||!currentUser){
-    if(manual)toast('⚠️ 訪客模式無法同步至 Notion，請先登入雲端帳號');
-    return;
-  }
-  if(_notionSyncing)return;
-  _notionSyncing=true;
-  if(mainView==='dashboard')renderDashboard();
-  apiFetch('POST',null,{action:'syncNotion',username:currentUser.username,token:currentUser.token})
-    .then(res=>{
-      _notionSyncing=false;
-      if(res.ok){
-        _notionLastSyncAt=new Date();
-        _notionLastSyncError=null;
-        if(manual)toast('✅ 已同步至 Notion（新增 '+res.created+'，更新 '+res.updated+'）');
-      } else if(!res.needLogin){
-        _notionLastSyncError=res.error||'同步失敗';
-        if(manual)toast('⚠️ Notion 同步失敗：'+_notionLastSyncError);
-      }
-      if(mainView==='dashboard')renderDashboard();
-    })
-    .catch(()=>{
-      _notionSyncing=false;
-      _notionLastSyncError='連線失敗';
-      if(manual)toast('⚠️ Notion 同步連線失敗');
-      if(mainView==='dashboard')renderDashboard();
-    });
 }
 
 document.addEventListener('input',function(e){
