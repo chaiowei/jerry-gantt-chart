@@ -120,6 +120,44 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .stat{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:10px 12px}
 .sl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .sv{font-size:20px;font-weight:600}
+/* ═══ DASHBOARD (工作台) ═══ */
+.dash-wrap{padding:4px 0 24px;display:flex;flex-direction:column;gap:18px;max-width:1180px}
+.dash-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.dash-title{font-size:18px;font-weight:600}
+.dash-sync{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2)}
+.dash-sync-dot{width:7px;height:7px;border-radius:50%;background:var(--pend);flex-shrink:0}
+.dash-sync-dot.ok{background:var(--done)}
+.dash-sync-dot.err{background:var(--del)}
+.dash-sync-dot.busy{background:var(--acc);animation:dashPulse 1s ease-in-out infinite}
+@keyframes dashPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.dash-sync-btn{border:1px solid var(--bdr);background:var(--surf);color:var(--tx2);font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit}
+.dash-sync-btn:hover{color:var(--tx);border-color:var(--acc)}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.dash-kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 14px}
+.dash-kpi .sl{margin-bottom:4px}
+.dash-kpi .sv{font-size:22px}
+.dash-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+@media (max-width:860px){.dash-cols{grid-template-columns:1fr}}
+.dash-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.dash-card-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.dash-empty{color:var(--tx3);font-size:12px;padding:10px 2px}
+.dash-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-radius:8px;cursor:pointer;transition:background .12s}
+.dash-row:hover{background:var(--bg)}
+.dash-row-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dash-row-main{flex:1;min-width:0}
+.dash-row-name{font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-row-sub{font-size:11px;color:var(--tx2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-row-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.dash-row-badge.overdue{background:var(--del-l);color:var(--del)}
+.dash-row-badge.soon{background:rgba(217,119,6,.12);color:#D97706}
+.dash-row-badge.later{background:var(--bg);color:var(--tx2)}
+.dash-proj-item{padding:9px 4px;border-radius:8px;cursor:pointer;transition:background .12s}
+.dash-proj-item:hover{background:var(--bg)}
+.dash-proj-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dash-proj-name{font-size:13px;font-weight:500;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-proj-pct{font-size:11px;color:var(--tx2);font-weight:600}
+.dash-proj-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;display:flex}
+.dash-proj-bar-seg{height:100%}
 /* task detail (nm) collapse */
 .nm{font-size:11px;color:var(--tx2);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;transition:all .15s ease}
 .nm.nm-hidden{display:none}
@@ -460,6 +498,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       </div>
       <div class="topbar-row2" id="topPrimaryActions" style="display:none">
         <div class="btn-group">
+          <button class="btn" id="btnViewDash" onclick="setMainView('dashboard')" data-i18n="tb_viewDash">🗂️ 工作台</button>
           <button class="btn active-view" id="btnViewGantt" onclick="setMainView('gantt')" data-i18n="tb_viewGantt">📈 甘特圖</button>
           <button class="btn" id="btnViewTable" onclick="setMainView('table')" data-i18n="tb_viewTable">📋 表格檢視</button>
         </div>
@@ -479,6 +518,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
         <div class="empty-sub" data-i18n="empty_sub">點擊左側「＋ 建立新專案」開始</div>
         <button class="btn a" onclick="newProject()" style="margin-top:4px" data-i18n="empty_btn">＋ 建立第一個專案</button>
       </div>
+      <div id="dashboardArea" style="display:none;flex:1;flex-direction:column;overflow-y:auto"></div>
       <div id="ganttArea" style="display:none;flex:1;flex-direction:column;overflow:hidden">
         <div class="content-fixed">
           <div class="stats-wrap">
@@ -884,7 +924,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 分享連結',tb_exportExcel:'📊 匯出 Excel',
     tb_exportProj:'📤 匯出專案檔',tb_importProj:'📩 匯入專案檔',
     tb_ioMenu:'匯出／匯入',io_importTitle:'匯入',io_exportTitle:'匯出',
-    tb_viewGantt:'📈 甘特圖',tb_viewTable:'📋 表格檢視',
+    tb_viewDash:'🗂️ 工作台',tb_viewGantt:'📈 甘特圖',tb_viewTable:'📋 表格檢視',
     lbl_name2:'任務名稱',lbl_deps2:'前置任務',tv_pct:'完成度%',tv_barColor:'Bar顏色',tv_addRow:'＋ 新增列',tv_newTaskName:'新任務',
     btn_addTask:'＋ 新增任務',btn_bulk:'☑ 批次選取',btn_bulkActive:'✕ 退出選取',
     btn_save:'💾 儲存專案',btn_delProj:'🗑 刪除專案',
@@ -915,7 +955,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 Share',tb_exportExcel:'📊 Export Excel',
     tb_exportProj:'📤 Export Project',tb_importProj:'📩 Import Project',
     tb_ioMenu:'Export／Import',io_importTitle:'Import',io_exportTitle:'Export',
-    tb_viewGantt:'📈 Gantt',tb_viewTable:'📋 Table View',
+    tb_viewDash:'🗂️ Dashboard',tb_viewGantt:'📈 Gantt',tb_viewTable:'📋 Table View',
     lbl_name2:'Task Name',lbl_deps2:'Predecessors',tv_pct:'Progress%',tv_barColor:'Bar Color',tv_addRow:'＋ Add Row',tv_newTaskName:'New Task',
     btn_addTask:'＋ Add Task',btn_bulk:'☑ Bulk Select',btn_bulkActive:'✕ Exit Select',
     btn_save:'💾 Save',btn_delProj:'🗑 Delete',
@@ -946,7 +986,7 @@ const TRANS={
     tb_png:'🖼 PNG',tb_pdf:'📄 PDF',tb_share:'🔗 แชร์',tb_exportExcel:'📊 ส่งออก Excel',
     tb_exportProj:'📤 ส่งออกโปรเจค',tb_importProj:'📩 นำเข้าโปรเจค',
     tb_ioMenu:'ส่งออก／นำเข้า',io_importTitle:'นำเข้า',io_exportTitle:'ส่งออก',
-    tb_viewGantt:'📈 แกนต์ชาร์ต',tb_viewTable:'📋 มุมมองตาราง',
+    tb_viewDash:'🗂️ แดชบอร์ด',tb_viewGantt:'📈 แกนต์ชาร์ต',tb_viewTable:'📋 มุมมองตาราง',
     lbl_name2:'ชื่องาน',lbl_deps2:'งานก่อนหน้า',tv_pct:'ความคืบหน้า%',tv_barColor:'สีแถบ',tv_addRow:'＋ เพิ่มแถว',tv_newTaskName:'งานใหม่',
     btn_addTask:'＋ เพิ่มงาน',btn_bulk:'☑ เลือกหลายรายการ',btn_bulkActive:'✕ ออกจากการเลือก',
     btn_save:'💾 บันทึก',btn_delProj:'🗑 ลบโปรเจค',
@@ -1328,7 +1368,7 @@ function saveAll(){
     token: currentUser.token,
     projects: projects
   }).then(res => {
-    if (res.ok) toast('✅ 已儲存 ' + res.saved + ' 個專案至雲端');
+    if (res.ok) { toast('✅ 已儲存 ' + res.saved + ' 個專案至雲端'); triggerNotionSync(false); }
     else if (res.needLogin) handleAuthExpired(res.error);
     else toast('⚠️ 雲端儲存失敗：' + res.error);
   }).catch(e => toast('⚠️ 雲端連線失敗，資料已存本機'));
@@ -1454,13 +1494,13 @@ function renderTopbar(){
   const ta=document.getElementById('topToolActions');
   const emptyRow=document.getElementById('topEmptyRow');
   const ti=document.getElementById('projTitleInput');
-  const empty=document.getElementById('emptyState'),gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea');
+  const empty=document.getElementById('emptyState'),gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea'),dash=document.getElementById('dashboardArea');
   if(!p){
     if(ti){ti.value='選擇或建立專案';ti.readOnly=true;}
     if(badge)badge.style.display='none';
     pa.style.display='none';ta.style.display='none';
     if(emptyRow)emptyRow.style.display='flex';
-    empty.style.display='flex';gantt.style.display='none';tbl.style.display='none';
+    empty.style.display='flex';gantt.style.display='none';tbl.style.display='none';dash.style.display='none';
     exitBulkMode();return;
   }
   if(ti){ti.value=p.name;ti.readOnly=!!window.SHARE_MODE;if(window.SHARE_MODE){ti.style.pointerEvents='none';ti.style.cursor='default';}}
@@ -1472,21 +1512,24 @@ function renderTopbar(){
 }
 
 function applyMainView(){
-  const gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea');
-  const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable');
+  const gantt=document.getElementById('ganttArea'),tbl=document.getElementById('tableArea'),dash=document.getElementById('dashboardArea');
+  const btnG=document.getElementById('btnViewGantt'),btnT=document.getElementById('btnViewTable'),btnD=document.getElementById('btnViewDash');
   if(!activeProj())return;
-  if(mainView==='table'){
-    gantt.style.display='none';
+  [btnG,btnT,btnD].forEach(b=>b&&b.classList.remove('active-view'));
+  if(mainView==='dashboard'){
+    gantt.style.display='none';tbl.style.display='none';
+    dash.style.display='flex';dash.style.flexDirection='column';
+    if(btnD)btnD.classList.add('active-view');
+  } else if(mainView==='table'){
+    gantt.style.display='none';dash.style.display='none';
     tbl.style.display='flex';
-    if(btnG)btnG.classList.remove('active-view');
     if(btnT)btnT.classList.add('active-view');
   } else {
-    tbl.style.display='none';
+    tbl.style.display='none';dash.style.display='none';
     gantt.style.display='flex';
     gantt.style.flexDirection='column';
     gantt.style.overflow='hidden';
     gantt.style.flex='1';
-    if(btnT)btnT.classList.remove('active-view');
     if(btnG)btnG.classList.add('active-view');
   }
 }
@@ -1496,6 +1539,138 @@ function setMainView(mode){
   localStorage.setItem('mainView',mode);
   applyMainView();
   render();
+}
+
+// ═══════════════════════
+// DASHBOARD（工作台）— 跨專案聚合視圖 + Notion 單向同步狀態
+// ═══════════════════════
+let _notionSyncing=false,_notionLastSyncAt=null,_notionLastSyncError=null;
+
+function dashJumpToTask(projId,taskId){
+  switchProject(projId);
+  setMainView('gantt');
+  setTimeout(()=>jumpToTask(taskId),150);
+}
+
+function dashDaysLeft(endStr){return Math.round((parseD(endStr)-today)/86400000);}
+
+function renderDashboard(){
+  const el=document.getElementById('dashboardArea');
+  if(!el)return;
+  const all=[];
+  projects.forEach(p=>(p.tasks||[]).forEach(t=>all.push({t,p})));
+  const activeTasks=all.filter(x=>effectiveStatus(x.t)!=='done');
+  const upcoming=activeTasks.filter(x=>x.t.end)
+    .map(x=>({t:x.t,p:x.p,daysLeft:dashDaysLeft(x.t.end)}))
+    .sort((a,b)=>a.daysLeft-b.daysLeft)
+    .slice(0,10);
+
+  const totalTasks=all.length;
+  const doneN=all.filter(x=>effectiveStatus(x.t)==='done').length;
+  const ongN=all.filter(x=>effectiveStatus(x.t)==='ongoing').length;
+  const overdueN=activeTasks.filter(x=>x.t.end&&dashDaysLeft(x.t.end)<0).length;
+
+  const kpiHtml=`<div class="dash-grid">
+    <div class="dash-kpi"><div class="sl">專案數</div><div class="sv ca">${projects.length}</div></div>
+    <div class="dash-kpi"><div class="sl">總任務</div><div class="sv ca">${totalTasks}</div></div>
+    <div class="dash-kpi"><div class="sl">已完成</div><div class="sv cg">${doneN}</div></div>
+    <div class="dash-kpi"><div class="sl">進行中</div><div class="sv ca">${ongN}</div></div>
+    <div class="dash-kpi"><div class="sl">逾期未完成</div><div class="sv cr">${overdueN}</div></div>
+  </div>`;
+
+  const upcomingHtml=upcoming.length?upcoming.map(x=>{
+    const badge=x.daysLeft<0?`<span class="dash-row-badge overdue">逾期 ${Math.abs(x.daysLeft)} 天</span>`
+      :x.daysLeft===0?`<span class="dash-row-badge soon">今天到期</span>`
+      :x.daysLeft<=3?`<span class="dash-row-badge soon">剩 ${x.daysLeft} 天</span>`
+      :`<span class="dash-row-badge later">剩 ${x.daysLeft} 天</span>`;
+    const dotColor=sanitizeHexColor(x.p.color)||'#9CA3AF';
+    return `<div class="dash-row" onclick="dashJumpToTask('${escAttr(x.p.id)}',${x.t.id})">
+      <div class="dash-row-dot" style="background:${dotColor}"></div>
+      <div class="dash-row-main">
+        <div class="dash-row-name">${escAttr(x.t.name)}</div>
+        <div class="dash-row-sub">${escAttr(x.p.name)} · ${fmt(x.t.end)}</div>
+      </div>
+      ${badge}
+    </div>`;
+  }).join(''):'<div class="dash-empty">目前沒有即將到期或逾期的任務 🎉</div>';
+
+  const projHtml=projects.length?projects.map(p=>{
+    const ts=p.tasks||[];
+    const n=ts.length;
+    const d=ts.filter(t=>effectiveStatus(t)==='done').length;
+    const o=ts.filter(t=>effectiveStatus(t)==='ongoing').length;
+    const dl=ts.filter(t=>effectiveStatus(t)==='delayed').length;
+    const pend=Math.max(0,n-d-o-dl);
+    const avg=n?Math.round(ts.reduce((a,t)=>a+(t.pct||0),0)/n):0;
+    const seg=(count,color)=>n&&count?`<div class="dash-proj-bar-seg" style="width:${count/n*100}%;background:${color}"></div>`:'';
+    return `<div class="dash-proj-item" onclick="switchProject('${escAttr(p.id)}');setMainView('gantt')">
+      <div class="dash-proj-top">
+        <div class="proj-dot" style="background:${sanitizeHexColor(p.color)||'#9CA3AF'}"></div>
+        <div class="dash-proj-name">${escAttr(p.name)}</div>
+        <div class="dash-proj-pct">${n} 項 · ${avg}%</div>
+      </div>
+      <div class="dash-proj-bar">${seg(d,'var(--done)')}${seg(o,'var(--acc)')}${seg(dl,'var(--del)')}${seg(pend,'var(--pend)')}</div>
+    </div>`;
+  }).join(''):'<div class="dash-empty">還沒有任何專案</div>';
+
+  const syncDotClass=_notionSyncing?'busy':(_notionLastSyncError?'err':(_notionLastSyncAt?'ok':''));
+  const syncLabel=_notionSyncing?'同步中…'
+    :_notionLastSyncError?('同步失敗：'+_notionLastSyncError)
+    :_notionLastSyncAt?('Notion 已同步於 '+_notionLastSyncAt.getHours().toString().padStart(2,'0')+':'+_notionLastSyncAt.getMinutes().toString().padStart(2,'0'))
+    :'尚未同步至 Notion';
+
+  el.innerHTML=`<div class="dash-wrap">
+    <div class="dash-head">
+      <div class="dash-title">🗂️ 工作台</div>
+      <div class="dash-sync">
+        <span class="dash-sync-dot ${syncDotClass}"></span>
+        <span id="dashSyncLabel">${syncLabel}</span>
+        <button class="dash-sync-btn" onclick="triggerNotionSync(true)">🔗 立即同步 Notion</button>
+      </div>
+    </div>
+    ${kpiHtml}
+    <div class="dash-cols">
+      <div class="dash-card">
+        <div class="dash-card-title">⏰ 即將到期／逾期任務</div>
+        ${upcomingHtml}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">🗂️ 各專案進度</div>
+        ${projHtml}
+      </div>
+    </div>
+  </div>`;
+}
+
+// manual=true 時會用 toast 回報結果；saveAll() 成功後會用 manual=false 靜默觸發，
+// 讓 Notion 那邊的鏡射資料庫在雲端儲存完成後自動跟著更新，不需要另外手動按同步。
+function triggerNotionSync(manual){
+  if(isGuestMode||!currentUser){
+    if(manual)toast('⚠️ 訪客模式無法同步至 Notion，請先登入雲端帳號');
+    return;
+  }
+  if(_notionSyncing)return;
+  _notionSyncing=true;
+  if(mainView==='dashboard')renderDashboard();
+  apiFetch('POST',null,{action:'syncNotion',username:currentUser.username,token:currentUser.token})
+    .then(res=>{
+      _notionSyncing=false;
+      if(res.ok){
+        _notionLastSyncAt=new Date();
+        _notionLastSyncError=null;
+        if(manual)toast('✅ 已同步至 Notion（新增 '+res.created+'，更新 '+res.updated+'）');
+      } else if(!res.needLogin){
+        _notionLastSyncError=res.error||'同步失敗';
+        if(manual)toast('⚠️ Notion 同步失敗：'+_notionLastSyncError);
+      }
+      if(mainView==='dashboard')renderDashboard();
+    })
+    .catch(()=>{
+      _notionSyncing=false;
+      _notionLastSyncError='連線失敗';
+      if(manual)toast('⚠️ Notion 同步連線失敗');
+      if(mainView==='dashboard')renderDashboard();
+    });
 }
 
 document.addEventListener('input',function(e){
@@ -1552,6 +1727,7 @@ function getVE(){return addD(getVS(),parseInt(document.getElementById('viewRange
 // ═══════════════════════
 function render(){
   const p=activeProj();if(!p)return;
+  if(mainView==='dashboard'){renderDashboard();return;}
   document.getElementById('projBadge').textContent=p.tasks.length+' 個任務';
   const allTasks=p.tasks;
   const tasks=getVisibleTasks(allTasks);
