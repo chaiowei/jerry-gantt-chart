@@ -1700,11 +1700,14 @@ function renderDashboard(){
   const all=[];
   projects.forEach(p=>(p.tasks||[]).forEach(t=>all.push({t,p})));
   const activeTasks=all.filter(x=>effectiveStatus(x.t)!=='done');
-  // Show every overdue/upcoming task — capping this list while the KPI tile
-  // above counts them all made the two numbers disagree (e.g. "逾期未完成 23"
-  // next to a 10-row list). The card scrolls instead of the list being cut.
-  const upcoming=activeTasks.filter(x=>x.t.end)
+  // Only overdue tasks and ones due within 5 days, and only from projects
+  // that are actually 進行中 (ongoing) — this card is for what needs
+  // attention right now, not a listing of every task with an end date
+  // (tasks months away) or tasks sitting in a paused/not-started/finished
+  // project. It shows every match (no count cap); the card scrolls if long.
+  const upcoming=activeTasks.filter(x=>x.t.end&&projectStatusInfo(x.p).key==='ongoing')
     .map(x=>({t:x.t,p:x.p,daysLeft:dashDaysLeft(x.t.end)}))
+    .filter(x=>x.daysLeft<=5)
     .sort((a,b)=>a.daysLeft-b.daysLeft);
 
   const totalTasks=all.length;
