@@ -150,7 +150,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .dash-kpi .sl{margin-bottom:4px;color:var(--dpb-tx);opacity:.75;font-size:12px}
 .dash-kpi:nth-child(even) .sl{color:var(--dpg-tx)}
 .dash-kpi .sv{font-size:26px}
-.dash-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.dash-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start}
 @media (max-width:860px){.dash-cols{grid-template-columns:1fr}}
 .dash-card{border-radius:var(--rl);padding:14px 16px;display:flex;flex-direction:column;gap:2px;border:1px solid var(--dpb-bd);background:var(--dpb)}
 .dash-card.green{border-color:var(--dpg-bd);background:var(--dpg)}
@@ -437,7 +437,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <div class="sb-dash-nav">
       <div class="sb-brand" onclick="toggleSidebar()" title="收合側欄">
         <div class="sb-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/></svg></div>
-        <div><div class="sb-title">專案管理系統</div><div class="sb-sub" id="sbSub">多專案排程系統</div></div>
+        <div><div class="sb-title" data-i18n="sb_brandTitle">專案管理系統</div><div class="sb-sub" id="sbSub" data-i18n="sb_brandSub">多專案排程系統</div></div>
       </div>
       <div class="sb-lang-sel">
         <button class="sb-lang-btn active" id="langBtnZH" onclick="setUILang('zh')">繁中</button>
@@ -445,7 +445,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
         <button class="sb-lang-btn" id="langBtnTH" onclick="setUILang('th')">ไทย</button>
       </div>
       <button class="sb-dash-btn" id="sbDashBtn" onclick="setMainView('dashboard')">
-        <span class="sb-dash-icon">🗂️</span><span>工作台</span>
+        <span class="sb-dash-icon">🗂️</span><span data-i18n="sb_dashboard">工作台</span>
       </button>
     </div>
     <div class="sb-section" data-i18n="sb_projects">我的專案</div>
@@ -498,7 +498,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             <button class="btn" id="btnBaseline" onclick="toggleBaseline()" data-i18n="tb_baseline">📌 基準</button>
             <button class="btn" onclick="saveBaseline()" data-i18n="tb_saveBaseline">💾 存基準</button>
             <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" data-i18n="tb_collapse">☰ 收合詳情</button>
-            <button class="btn" onclick="openChangeLog()">🕘 修改紀錄</button>
+            <button class="btn" onclick="openChangeLog()" data-i18n="cl_open">🕘 修改紀錄</button>
             <div class="tb-sep"></div>
             <div class="io-menu-wrap">
               <button class="btn b" id="ioMenuBtn" onclick="toggleIOMenu()">📤 <span data-i18n="tb_ioMenu">匯出／匯入</span> <span id="ioMenuArrow">▾</span></button>
@@ -755,10 +755,10 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
 <!-- CHANGE LOG MODAL -->
 <div class="mb" id="clm">
   <div class="modal" style="width:480px">
-    <h3>🕘 修改紀錄</h3>
+    <h3 data-i18n="cl_open">🕘 修改紀錄</h3>
     <div id="clList" style="max-height:60vh;overflow-y:auto"></div>
     <div class="mbt">
-      <button class="btn" onclick="cm('clm')">關閉</button>
+      <button class="btn" onclick="cm('clm')" data-i18n="cl_close">關閉</button>
     </div>
   </div>
 </div>
@@ -987,6 +987,13 @@ const TRANS={
     stats_toggle:'統計資訊',date_alert:'⚠️ 結束日期不能早於開始日期。',
     msp_success:'匯入成功',msp_fail:'匯入失敗',msp_noTasks:'找不到任務資料',
     jump_to_bar:'跳至甘特圖',
+    sb_brandTitle:'專案管理系統',sb_brandSub:'多專案排程系統',sb_dashboard:'工作台',
+    dash_ongoingProj:'進行中專案',dash_notStartedProj:'未開始專案',dash_pausedProj:'暫停專案',dash_doneProj:'已完成專案',
+    dash_totalTasks:'總任務',dash_doneTasks:'已完成任務',dash_overdueTasks:'逾期未完成',
+    dash_upcoming:'⏰ 即將到期／逾期任務',dash_projProgress:'🗂️ 各專案進度',
+    dash_emptyUpcoming:'目前沒有即將到期或逾期的任務 🎉',dash_emptyProj:'還沒有任何專案',
+    ps_ongoing:'進行中',ps_notStarted:'未開始',ps_paused:'暫停',ps_done:'已完成',
+    cl_open:'🕘 修改紀錄',cl_empty:'尚無修改紀錄',cl_close:'關閉',
   },
   en:{
     sl_done:'Done',sl_ongoing:'In Progress',sl_pending:'Pending',sl_delayed:'Delayed',
@@ -1018,6 +1025,13 @@ const TRANS={
     stats_toggle:'Statistics',date_alert:'⚠️ End date cannot be before start date.',
     msp_success:'Import successful',msp_fail:'Import failed',msp_noTasks:'No tasks found',
     jump_to_bar:'Jump to bar',
+    sb_brandTitle:'Project Manager',sb_brandSub:'Multi-Project Scheduler',sb_dashboard:'Dashboard',
+    dash_ongoingProj:'Ongoing Projects',dash_notStartedProj:'Not Started',dash_pausedProj:'Paused',dash_doneProj:'Completed',
+    dash_totalTasks:'Total Tasks',dash_doneTasks:'Tasks Done',dash_overdueTasks:'Overdue',
+    dash_upcoming:'⏰ Upcoming／Overdue Tasks',dash_projProgress:'🗂️ Project Progress',
+    dash_emptyUpcoming:'No upcoming or overdue tasks 🎉',dash_emptyProj:'No projects yet',
+    ps_ongoing:'Ongoing',ps_notStarted:'Not Started',ps_paused:'Paused',ps_done:'Completed',
+    cl_open:'🕘 Change Log',cl_empty:'No changes yet',cl_close:'Close',
   },
   th:{
     sl_done:'เสร็จแล้ว',sl_ongoing:'กำลังดำเนินการ',sl_pending:'รอดำเนินการ',sl_delayed:'ล่าช้า',
@@ -1049,6 +1063,13 @@ const TRANS={
     stats_toggle:'สถิติ',date_alert:'⚠️ วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น',
     msp_success:'นำเข้าสำเร็จ',msp_fail:'นำเข้าล้มเหลว',msp_noTasks:'ไม่พบข้อมูลงาน',
     jump_to_bar:'ไปที่แถบ',
+    sb_brandTitle:'ระบบจัดการโปรเจค',sb_brandSub:'ระบบจัดตารางหลายโปรเจค',sb_dashboard:'แดชบอร์ด',
+    dash_ongoingProj:'โปรเจคที่กำลังดำเนินการ',dash_notStartedProj:'ยังไม่เริ่ม',dash_pausedProj:'หยุดชั่วคราว',dash_doneProj:'เสร็จสมบูรณ์',
+    dash_totalTasks:'งานทั้งหมด',dash_doneTasks:'งานที่เสร็จแล้ว',dash_overdueTasks:'เลยกำหนดยังไม่เสร็จ',
+    dash_upcoming:'⏰ งานใกล้ครบกำหนด／เลยกำหนด',dash_projProgress:'🗂️ ความคืบหน้าโปรเจค',
+    dash_emptyUpcoming:'ไม่มีงานใกล้ครบกำหนดหรือเลยกำหนด 🎉',dash_emptyProj:'ยังไม่มีโปรเจค',
+    ps_ongoing:'กำลังดำเนินการ',ps_notStarted:'ยังไม่เริ่ม',ps_paused:'หยุดชั่วคราว',ps_done:'เสร็จสมบูรณ์',
+    cl_open:'🕘 ประวัติการแก้ไข',cl_empty:'ยังไม่มีประวัติการแก้ไข',cl_close:'ปิด',
   }
 };
 function T(k){return(TRANS[uiLang]||TRANS.zh)[k]||k;}
@@ -1058,6 +1079,8 @@ function applyI18n(){
   const ids={zh:'langBtnZH',en:'langBtnEN',th:'langBtnTH'};
   Object.values(ids).forEach(id=>{const b=document.getElementById(id);if(b)b.classList.remove('active');});
   const ab=document.getElementById(ids[uiLang]);if(ab)ab.classList.add('active');
+  renderTopbar();
+  if(mainView==='dashboard')renderDashboard();
   if(activeId)render();
 }
 function setUILang(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyI18n();}
@@ -1268,7 +1291,7 @@ function renderChangeLog() {
   const p = activeProj(); if (!p) return;
   const log = p.changeLog || [];
   const el = document.getElementById('clList'); if (!el) return;
-  if (!log.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx3);font-size:13px">尚無修改紀錄</div>'; return; }
+  if (!log.length) { el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--tx3);font-size:13px">${T('cl_empty')}</div>`; return; }
   el.innerHTML = log.map(e => {
     const d = new Date(e.ts);
     const time = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -1611,13 +1634,13 @@ function renderTopbar(){
     exitBulkMode();return;
   }
   if(ti){ti.value=p.name;ti.readOnly=!!window.SHARE_MODE;if(window.SHARE_MODE){ti.style.pointerEvents='none';ti.style.cursor='default';}}
-  if(badge){badge.textContent=p.tasks.length+' 個任務';badge.style.display='';}
+  if(badge){badge.textContent=fmtTaskCount(p.tasks.length);badge.style.display='';}
   if(activeBadge){
     if(window.SHARE_MODE){
       activeBadge.style.display='none';
     } else {
       const on=p.active!==false;
-      activeBadge.textContent=on?'🟢 進行中':'⏸ 已暫停';
+      activeBadge.textContent=on?('🟢 '+T('ps_ongoing')):('⏸ '+T('ps_paused'));
       activeBadge.className='proj-active-badge '+(on?'on':'off');
       activeBadge.style.display='';
     }
@@ -1684,18 +1707,26 @@ function dashJumpToTask(projId,taskId){
 
 function dashDaysLeft(endStr){return Math.round((parseD(endStr)-today)/86400000);}
 
+// Small language-aware formatters for dashboard strings that embed a number
+// — T() only maps a key to a fixed string, so these can't go through it.
+function fmtOverdue(n){return uiLang==='en'?`Overdue ${n}d`:uiLang==='th'?`เลยกำหนด ${n} วัน`:`逾期 ${n} 天`;}
+function fmtDueToday(){return uiLang==='en'?'Due today':uiLang==='th'?'ครบกำหนดวันนี้':'今天到期';}
+function fmtDaysLeft(n){return uiLang==='en'?`${n}d left`:uiLang==='th'?`เหลืออีก ${n} วัน`:`剩 ${n} 天`;}
+function fmtTaskCount(n){return uiLang==='en'?`${n} tasks`:uiLang==='th'?`${n} งาน`:`${n} 個任務`;}
+function fmtProjItems(n,pct){return uiLang==='en'?`${n} items · ${pct}%`:uiLang==='th'?`${n} งาน · ${pct}%`:`${n} 項 · ${pct}%`;}
+
 // Project-level status for the Dashboard breakdown (distinct from per-task
 // status). 暫停 is an explicit user toggle (p.active===false) and always
-// wins; otherwise it's derived from task progress.
-const DASH_STATUS_LABEL={ongoing:'進行中',notStarted:'未開始',paused:'暫停',done:'已完成'};
+// wins; otherwise it's derived from task progress. Label is looked up via
+// T() at call time (not cached) so it tracks the current uiLang.
 function projectStatusInfo(p){
-  if(p.active===false)return{key:'paused',label:DASH_STATUS_LABEL.paused};
+  if(p.active===false)return{key:'paused',label:T('ps_paused')};
   const ts=p.tasks||[];
-  if(!ts.length)return{key:'notStarted',label:DASH_STATUS_LABEL.notStarted};
-  if(ts.every(t=>effectiveStatus(t)==='done'))return{key:'done',label:DASH_STATUS_LABEL.done};
+  if(!ts.length)return{key:'notStarted',label:T('ps_notStarted')};
+  if(ts.every(t=>effectiveStatus(t)==='done'))return{key:'done',label:T('ps_done')};
   const started=ts.some(t=>(t.pct||0)>0||effectiveStatus(t)!=='pending');
-  if(!started)return{key:'notStarted',label:DASH_STATUS_LABEL.notStarted};
-  return{key:'ongoing',label:DASH_STATUS_LABEL.ongoing};
+  if(!started)return{key:'notStarted',label:T('ps_notStarted')};
+  return{key:'ongoing',label:T('ps_ongoing')};
 }
 
 function renderDashboard(){
@@ -1721,20 +1752,20 @@ function renderDashboard(){
   projects.forEach(p=>{projStatusN[projectStatusInfo(p).key]++;});
 
   const kpiHtml=`<div class="dash-grid">
-    <div class="dash-kpi"><div class="sl">進行中專案</div><div class="sv ca">${projStatusN.ongoing}</div></div>
-    <div class="dash-kpi"><div class="sl">未開始專案</div><div class="sv" style="color:var(--pend)">${projStatusN.notStarted}</div></div>
-    <div class="dash-kpi"><div class="sl">暫停專案</div><div class="sv co">${projStatusN.paused}</div></div>
-    <div class="dash-kpi"><div class="sl">已完成專案</div><div class="sv cg">${projStatusN.done}</div></div>
-    <div class="dash-kpi"><div class="sl">總任務</div><div class="sv ca">${totalTasks}</div></div>
-    <div class="dash-kpi"><div class="sl">已完成任務</div><div class="sv cg">${doneN}</div></div>
-    <div class="dash-kpi"><div class="sl">逾期未完成</div><div class="sv cr">${overdueN}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_ongoingProj')}</div><div class="sv ca">${projStatusN.ongoing}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_notStartedProj')}</div><div class="sv" style="color:var(--pend)">${projStatusN.notStarted}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_pausedProj')}</div><div class="sv co">${projStatusN.paused}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_doneProj')}</div><div class="sv cg">${projStatusN.done}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_totalTasks')}</div><div class="sv ca">${totalTasks}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_doneTasks')}</div><div class="sv cg">${doneN}</div></div>
+    <div class="dash-kpi"><div class="sl">${T('dash_overdueTasks')}</div><div class="sv cr">${overdueN}</div></div>
   </div>`;
 
   const upcomingHtml=upcoming.length?upcoming.map(x=>{
-    const badge=x.daysLeft<0?`<span class="dash-row-badge overdue">逾期 ${Math.abs(x.daysLeft)} 天</span>`
-      :x.daysLeft===0?`<span class="dash-row-badge soon">今天到期</span>`
-      :x.daysLeft<=3?`<span class="dash-row-badge soon">剩 ${x.daysLeft} 天</span>`
-      :`<span class="dash-row-badge later">剩 ${x.daysLeft} 天</span>`;
+    const badge=x.daysLeft<0?`<span class="dash-row-badge overdue">${fmtOverdue(Math.abs(x.daysLeft))}</span>`
+      :x.daysLeft===0?`<span class="dash-row-badge soon">${fmtDueToday()}</span>`
+      :x.daysLeft<=3?`<span class="dash-row-badge soon">${fmtDaysLeft(x.daysLeft)}</span>`
+      :`<span class="dash-row-badge later">${fmtDaysLeft(x.daysLeft)}</span>`;
     const dotColor=sanitizeHexColor(x.p.color)||'#9CA3AF';
     const ownerHtml=x.t.owner?` · 👤 ${escAttr(x.t.owner)}`:'';
     return `<div class="dash-row" onclick="dashJumpToTask('${escAttr(x.p.id)}',${x.t.id})">
@@ -1745,7 +1776,7 @@ function renderDashboard(){
       </div>
       ${badge}
     </div>`;
-  }).join(''):'<div class="dash-empty">目前沒有即將到期或逾期的任務 🎉</div>';
+  }).join(''):`<div class="dash-empty">${T('dash_emptyUpcoming')}</div>`;
 
   const projHtml=projects.length?projects.map(p=>{
     const ts=p.tasks||[];
@@ -1762,24 +1793,24 @@ function renderDashboard(){
         <div class="proj-dot" style="background:${sanitizeHexColor(p.color)||'#9CA3AF'}"></div>
         <div class="dash-proj-name">${escAttr(p.name)}</div>
         <span class="dash-proj-status ${st.key}">${st.label}</span>
-        <div class="dash-proj-pct">${n} 項 · ${avg}%</div>
+        <div class="dash-proj-pct">${fmtProjItems(n,avg)}</div>
       </div>
       <div class="dash-proj-bar">${seg(d,'var(--done)')}${seg(o,'var(--acc)')}${seg(dl,'var(--del)')}${seg(pend,'var(--pend)')}</div>
     </div>`;
-  }).join(''):'<div class="dash-empty">還沒有任何專案</div>';
+  }).join(''):`<div class="dash-empty">${T('dash_emptyProj')}</div>`;
 
   el.innerHTML=`<div class="dash-wrap">
     <div class="dash-head">
-      <div class="dash-title">🗂️ 工作台</div>
+      <div class="dash-title">🗂️ ${T('sb_dashboard')}</div>
     </div>
     ${kpiHtml}
     <div class="dash-cols">
       <div class="dash-card">
-        <div class="dash-card-title">⏰ 即將到期／逾期任務${upcoming.length?`（${upcoming.length}）`:''}</div>
+        <div class="dash-card-title">${T('dash_upcoming')}${upcoming.length?`（${upcoming.length}）`:''}</div>
         <div class="dash-list-scroll">${upcomingHtml}</div>
       </div>
       <div class="dash-card green">
-        <div class="dash-card-title">🗂️ 各專案進度</div>
+        <div class="dash-card-title">${T('dash_projProgress')}</div>
         ${projHtml}
       </div>
     </div>
@@ -3950,21 +3981,6 @@ function showHelpSection(idx){
 function closeHelp(){ document.getElementById('helpOverlay').style.display='none'; }
 
 // ═══════════════════════
-// AUTO SCALE — 依螢幕寬度自動縮放整體介面
-// ═══════════════════════
-// Layout is pixel-sized around a ~1440px-wide design. On a bigger monitor
-// that renders at a fixed size and looks small relative to the screen, so
-// scale the whole page up/down as the viewport departs from that baseline.
-// `zoom` (not `transform`) is used so layout math (scrollbars, sticky
-// columns, drag math in px) keeps working — it's a Chromium feature, which
-// matches this app's target browser.
-const AUTO_SCALE_BASE_W=1440;
-function applyAutoScale(){
-  const factor=Math.min(1.5,Math.max(0.85,window.innerWidth/AUTO_SCALE_BASE_W));
-  document.documentElement.style.zoom=factor;
-}
-
-// ═══════════════════════
 // INIT
 // ═══════════════════════
 // Check for share link hash
@@ -3975,8 +3991,8 @@ if(window.location.hash.startsWith('#s=')){
   setTimeout(initProjectView,400);
   initAuth();
 }
-applyI18n();applyToolBtnsState();applyAutoScale();
-window.addEventListener('resize',()=>{if(activeId)requestAnimationFrame(syncBodyPadding);applyAutoScale();});
+applyI18n();applyToolBtnsState();
+window.addEventListener('resize',()=>{if(activeId)requestAnimationFrame(syncBodyPadding);});
 </script>
 
 </body>
