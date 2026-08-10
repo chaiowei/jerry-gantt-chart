@@ -153,6 +153,7 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .dash-card-title{font-size:15px;font-weight:700;color:var(--dpb-tx);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .dash-card.green .dash-card-title{color:var(--dpg-tx)}
 .dash-empty{color:var(--tx2);font-size:13px;padding:10px 2px}
+.dash-list-scroll{max-height:460px;overflow-y:auto;padding-right:2px}
 .dash-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .12s;background:rgba(255,255,255,.55)}
 .dash-row+.dash-row{margin-top:4px}
 .dash-row:hover{background:#fff}
@@ -1699,10 +1700,12 @@ function renderDashboard(){
   const all=[];
   projects.forEach(p=>(p.tasks||[]).forEach(t=>all.push({t,p})));
   const activeTasks=all.filter(x=>effectiveStatus(x.t)!=='done');
+  // Show every overdue/upcoming task — capping this list while the KPI tile
+  // above counts them all made the two numbers disagree (e.g. "逾期未完成 23"
+  // next to a 10-row list). The card scrolls instead of the list being cut.
   const upcoming=activeTasks.filter(x=>x.t.end)
     .map(x=>({t:x.t,p:x.p,daysLeft:dashDaysLeft(x.t.end)}))
-    .sort((a,b)=>a.daysLeft-b.daysLeft)
-    .slice(0,10);
+    .sort((a,b)=>a.daysLeft-b.daysLeft);
 
   const totalTasks=all.length;
   const doneN=all.filter(x=>effectiveStatus(x.t)==='done').length;
@@ -1765,8 +1768,8 @@ function renderDashboard(){
     ${kpiHtml}
     <div class="dash-cols">
       <div class="dash-card">
-        <div class="dash-card-title">⏰ 即將到期／逾期任務</div>
-        ${upcomingHtml}
+        <div class="dash-card-title">⏰ 即將到期／逾期任務${upcoming.length?`（${upcoming.length}）`:''}</div>
+        <div class="dash-list-scroll">${upcomingHtml}</div>
       </div>
       <div class="dash-card green">
         <div class="dash-card-title">🗂️ 各專案進度</div>
