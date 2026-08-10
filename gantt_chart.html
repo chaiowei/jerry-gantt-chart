@@ -170,6 +170,11 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .dash-proj-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .dash-proj-name{font-size:13px;font-weight:500;color:var(--tx);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-proj-pct{font-size:11px;color:var(--tx2);font-weight:600}
+.dash-proj-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.dash-proj-status.ongoing{background:var(--acc-l);color:var(--acc-d)}
+.dash-proj-status.notStarted{background:var(--pend-l);color:var(--tx2)}
+.dash-proj-status.paused{background:rgba(217,119,6,.14);color:#B45309}
+.dash-proj-status.done{background:var(--done-l);color:var(--done)}
 .dash-proj-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.8);overflow:hidden;display:flex}
 .dash-proj-bar-seg{height:100%}
 /* task detail (nm) collapse */
@@ -255,6 +260,10 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .modal{background:var(--surf);border-radius:var(--rl);border:1px solid var(--bdr);padding:22px;width:430px;max-width:96vw;box-shadow:0 12px 40px rgba(0,0,0,.16);max-height:92vh;overflow-y:auto}
 .modal.sm{width:360px}
 .modal h3{font-size:15px;font-weight:600;margin-bottom:14px}
+.cl-item{padding:8px 10px;border:1px solid var(--bdr);border-radius:8px;background:var(--bg)}
+.cl-item+.cl-item{margin-top:6px}
+.cl-meta{font-size:11px;color:var(--tx3);margin-bottom:2px}
+.cl-text{font-size:12.5px;color:var(--tx);line-height:1.5}
 .modal label{font-size:12px;color:var(--tx2);display:block;margin:10px 0 3px}
 .modal input[type=text],.modal input[type=date],.modal select{width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg);color:var(--tx);font-family:inherit}
 .modal input:focus,.modal select:focus{outline:2px solid var(--acc);border-color:transparent}
@@ -479,6 +488,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
             <button class="btn" id="btnBaseline" onclick="toggleBaseline()" data-i18n="tb_baseline">📌 基準</button>
             <button class="btn" onclick="saveBaseline()" data-i18n="tb_saveBaseline">💾 存基準</button>
             <button class="btn" id="btnCollapseDetail" onclick="toggleAllTaskDetail()" data-i18n="tb_collapse">☰ 收合詳情</button>
+            <button class="btn" onclick="openChangeLog()">🕘 修改紀錄</button>
             <div class="tb-sep"></div>
             <div class="io-menu-wrap">
               <button class="btn b" id="ioMenuBtn" onclick="toggleIOMenu()">📤 <span data-i18n="tb_ioMenu">匯出／匯入</span> <span id="ioMenuArrow">▾</span></button>
@@ -734,6 +744,16 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <div class="mbt">
       <button class="btn" onclick="cm('dpm')">取消</button>
       <button class="btn btn-del" onclick="deleteProject()">確定刪除</button>
+    </div>
+  </div>
+</div>
+<!-- CHANGE LOG MODAL -->
+<div class="mb" id="clm">
+  <div class="modal" style="width:480px">
+    <h3>🕘 修改紀錄</h3>
+    <div id="clList" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="mbt">
+      <button class="btn" onclick="cm('clm')">關閉</button>
     </div>
   </div>
 </div>
@@ -1115,8 +1135,9 @@ async function handleMSProjectImport(inp){
     if(!tasks.length){toast(T('msp_noTasks'),'err');inp.value='';return;}
     const projName=file.name.replace(/\.xml$/i,'');
     const newId=Date.now();
-    const newProj={id:newId,name:projName,color:PROJ_COLORS[projects.length%PROJ_COLORS.length],tasks,baseline:null};
+    const newProj={id:newId,name:projName,color:PROJ_COLORS[projects.length%PROJ_COLORS.length],tasks,baseline:null,changeLog:[]};
     projects.push(newProj);activeId=newId;
+    logChange(`匯入 MS Project：${tasks.length} 個任務`,newProj);
     renderSidebar();renderTopbar();render();autoSave();
     toast(`✅ ${T('msp_success')}：${tasks.length} 個任務`);
   }catch(e){toast(`❌ ${T('msp_fail')}：${e.message}`,'err');}
@@ -1197,7 +1218,60 @@ function migrateProjects() {
       if (t.collapsed === undefined) t.collapsed = false;
       t.deps = normalizeDeps(t.deps||[]);
     });
+    if (!p.changeLog) p.changeLog = [];
   });
+}
+
+// ═══════════════════════
+// CHANGE LOG — per-project modification history
+// ═══════════════════════
+// Appended to on every task/project mutation so the user can see what
+// changed without digging through Drive file versions. Capped per project
+// so a long-lived project's JSON doesn't grow unbounded.
+const CHANGE_LOG_MAX = 200;
+function logChange(text, proj) {
+  const p = proj || activeProj(); if (!p) return;
+  if (!p.changeLog) p.changeLog = [];
+  const user = currentUser ? (currentUser.displayName || currentUser.username) : (isGuestMode ? '訪客' : '我');
+  p.changeLog.unshift({ ts: Date.now(), user, text });
+  if (p.changeLog.length > CHANGE_LOG_MAX) p.changeLog.length = CHANGE_LOG_MAX;
+}
+
+function logTaskEditDiff(oldT, newT) {
+  const changes = [];
+  if (oldT.name !== newT.name) changes.push(`名稱「${oldT.name}」→「${newT.name}」`);
+  if ((oldT.owner||'') !== (newT.owner||'')) changes.push(`負責人「${oldT.owner||'無'}」→「${newT.owner||'無'}」`);
+  if (oldT.start !== newT.start) changes.push(`開始日期 ${oldT.start}→${newT.start}`);
+  if (oldT.end !== newT.end) changes.push(`結束日期 ${oldT.end}→${newT.end}`);
+  if ((oldT.pct||0) !== (newT.pct||0)) changes.push(`完成度 ${oldT.pct||0}%→${newT.pct||0}%`);
+  if (oldT.status !== newT.status) changes.push(`狀態「${SL[oldT.status]||oldT.status}」→「${SL[newT.status]||newT.status}」`);
+  if ((oldT.note||'') !== (newT.note||'')) changes.push('備註已更新');
+  const depOld = getDepIds(oldT.deps||[]).slice().sort().join(',');
+  const depNew = getDepIds(newT.deps||[]).slice().sort().join(',');
+  if (depOld !== depNew) changes.push('前置任務已調整');
+  if (!changes.length) return;
+  logChange(`編輯任務「${newT.name}」：${changes.join('、')}`);
+}
+
+function openChangeLog() {
+  const p = activeProj(); if (!p) return;
+  renderChangeLog();
+  document.getElementById('clm').classList.add('open');
+}
+
+function renderChangeLog() {
+  const p = activeProj(); if (!p) return;
+  const log = p.changeLog || [];
+  const el = document.getElementById('clList'); if (!el) return;
+  if (!log.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx3);font-size:13px">尚無修改紀錄</div>'; return; }
+  el.innerHTML = log.map(e => {
+    const d = new Date(e.ts);
+    const time = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="cl-item">
+      <div class="cl-meta">${time} · ${escAttr(e.user)}</div>
+      <div class="cl-text">${escAttr(e.text)}</div>
+    </div>`;
+  }).join('');
 }
 
 function getVisibleTasks(tasks) {
@@ -1552,6 +1626,7 @@ function renderTopbar(){
 function toggleProjectActive(){
   const p=activeProj();if(!p||window.SHARE_MODE)return;
   p.active=p.active===false?true:false;
+  logChange(p.active?'專案狀態改為「進行中」':'專案狀態改為「已暫停」');
   renderTopbar();
   if(mainView==='dashboard')renderDashboard();
   autoSave();
@@ -1604,6 +1679,20 @@ function dashJumpToTask(projId,taskId){
 
 function dashDaysLeft(endStr){return Math.round((parseD(endStr)-today)/86400000);}
 
+// Project-level status for the Dashboard breakdown (distinct from per-task
+// status). 暫停 is an explicit user toggle (p.active===false) and always
+// wins; otherwise it's derived from task progress.
+const DASH_STATUS_LABEL={ongoing:'進行中',notStarted:'未開始',paused:'暫停',done:'已完成'};
+function projectStatusInfo(p){
+  if(p.active===false)return{key:'paused',label:DASH_STATUS_LABEL.paused};
+  const ts=p.tasks||[];
+  if(!ts.length)return{key:'notStarted',label:DASH_STATUS_LABEL.notStarted};
+  if(ts.every(t=>effectiveStatus(t)==='done'))return{key:'done',label:DASH_STATUS_LABEL.done};
+  const started=ts.some(t=>(t.pct||0)>0||effectiveStatus(t)!=='pending');
+  if(!started)return{key:'notStarted',label:DASH_STATUS_LABEL.notStarted};
+  return{key:'ongoing',label:DASH_STATUS_LABEL.ongoing};
+}
+
 function renderDashboard(){
   const el=document.getElementById('dashboardArea');
   if(!el)return;
@@ -1618,12 +1707,16 @@ function renderDashboard(){
   const totalTasks=all.length;
   const doneN=all.filter(x=>effectiveStatus(x.t)==='done').length;
   const overdueN=activeTasks.filter(x=>x.t.end&&dashDaysLeft(x.t.end)<0).length;
-  const activeProjN=projects.filter(p=>p.active!==false).length;
+  const projStatusN={ongoing:0,notStarted:0,paused:0,done:0};
+  projects.forEach(p=>{projStatusN[projectStatusInfo(p).key]++;});
 
   const kpiHtml=`<div class="dash-grid">
-    <div class="dash-kpi"><div class="sl">進行中的專案數</div><div class="sv ca">${activeProjN}</div></div>
+    <div class="dash-kpi"><div class="sl">進行中專案</div><div class="sv ca">${projStatusN.ongoing}</div></div>
+    <div class="dash-kpi"><div class="sl">未開始專案</div><div class="sv" style="color:var(--pend)">${projStatusN.notStarted}</div></div>
+    <div class="dash-kpi"><div class="sl">暫停專案</div><div class="sv co">${projStatusN.paused}</div></div>
+    <div class="dash-kpi"><div class="sl">已完成專案</div><div class="sv cg">${projStatusN.done}</div></div>
     <div class="dash-kpi"><div class="sl">總任務</div><div class="sv ca">${totalTasks}</div></div>
-    <div class="dash-kpi"><div class="sl">已完成</div><div class="sv cg">${doneN}</div></div>
+    <div class="dash-kpi"><div class="sl">已完成任務</div><div class="sv cg">${doneN}</div></div>
     <div class="dash-kpi"><div class="sl">逾期未完成</div><div class="sv cr">${overdueN}</div></div>
   </div>`;
 
@@ -1653,10 +1746,12 @@ function renderDashboard(){
     const pend=Math.max(0,n-d-o-dl);
     const avg=n?Math.round(ts.reduce((a,t)=>a+(t.pct||0),0)/n):0;
     const seg=(count,color)=>n&&count?`<div class="dash-proj-bar-seg" style="width:${count/n*100}%;background:${color}"></div>`:'';
+    const st=projectStatusInfo(p);
     return `<div class="dash-proj-item" onclick="switchProject('${escAttr(p.id)}');setMainView('gantt')">
       <div class="dash-proj-top">
         <div class="proj-dot" style="background:${sanitizeHexColor(p.color)||'#9CA3AF'}"></div>
         <div class="dash-proj-name">${escAttr(p.name)}</div>
+        <span class="dash-proj-status ${st.key}">${st.label}</span>
         <div class="dash-proj-pct">${n} 項 · ${avg}%</div>
       </div>
       <div class="dash-proj-bar">${seg(d,'var(--done)')}${seg(o,'var(--acc)')}${seg(dl,'var(--del)')}${seg(pend,'var(--pend)')}</div>
@@ -1681,6 +1776,13 @@ function renderDashboard(){
   </div>`;
 }
 
+let _titleEditOldName=null;
+document.addEventListener('focusin',function(e){
+  if(e.target.id==='projTitleInput'){
+    const p=activeProj();
+    _titleEditOldName=p?p.name:null;
+  }
+});
 document.addEventListener('input',function(e){
   if(e.target.id==='projTitleInput'){
     const p=activeProj();if(!p)return;
@@ -1691,6 +1793,13 @@ document.addEventListener('input',function(e){
     autoSave();
   }
 });
+document.addEventListener('change',function(e){
+  if(e.target.id==='projTitleInput'){
+    const p=activeProj();if(!p)return;
+    if(_titleEditOldName!==null&&_titleEditOldName!==p.name)logChange(`專案名稱「${_titleEditOldName}」→「${p.name}」`);
+    _titleEditOldName=null;
+  }
+});
 
 // ═══════════════════════
 // NEW / DELETE PROJECT
@@ -1699,8 +1808,9 @@ function newProject(){document.getElementById('npName').value='';newProjColor=PR
 function renderNpColors(){document.getElementById('npColors').innerHTML=PROJ_COLORS.map(c=>`<div style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===newProjColor?'#111':'transparent'};transition:all .1s" onclick="newProjColor='${c}';renderNpColors()"></div>`).join('');}
 function createProject(){
   const name=document.getElementById('npName').value.trim()||'未命名';
-  const p={id:'proj_'+Date.now(),name,color:newProjColor,nextId:1,tasks:[],active:true};
+  const p={id:'proj_'+Date.now(),name,color:newProjColor,nextId:1,tasks:[],active:true,changeLog:[]};
   projects.push(p);activeId=p.id;cm('npm');renderSidebar();renderTopbar();render();
+  logChange('建立專案',p);
   toast(`✅ 已建立「${name}」`);
   autoSave();
 }
@@ -2076,22 +2186,37 @@ function tvApplyChange(el){
     case 'name':{
       const v=val.trim();
       if(!v){toast('⚠️ 任務名稱不可為空');return false;}
+      if(v!==t.name)logChange(`任務「${t.name}」的名稱改為「${v}」`);
       t.name=v;
       tvRefreshDepsDisplay();
       return true;
     }
-    case 'owner':t.owner=val.trim();return true;
-    case 'note':t.note=val.trim();return true;
+    case 'owner':{
+      const v=val.trim();
+      if(v!==(t.owner||''))logChange(`「${t.name}」的負責人改為「${v||'（無）'}」`);
+      t.owner=v;return true;
+    }
+    case 'note':{
+      const v=val.trim();
+      if(v!==(t.note||''))logChange(`「${t.name}」的備註已更新`);
+      t.note=v;return true;
+    }
     case 'start':
       if(!val||parseD(val)>parseD(t.end)){toast('⚠️ 開始日期不能晚於結束日期');return false;}
+      if(val!==t.start)logChange(`「${t.name}」的開始日期從 ${t.start} 改為 ${val}`);
       t.start=val;tvRefreshRowStatus(id);return true;
     case 'end':
       if(!val||parseD(val)<parseD(t.start)){toast('⚠️ 結束日期不能早於開始日期');return false;}
+      if(val!==t.end)logChange(`「${t.name}」的結束日期從 ${t.end} 改為 ${val}`);
       t.end=val;tvRefreshRowStatus(id);return true;
-    case 'status':t.status=val;t.statusManual=true;return true;
+    case 'status':
+      if(val!==t.status)logChange(`「${t.name}」的狀態改為「${SL[val]||val}」`);
+      t.status=val;t.statusManual=true;return true;
     case 'pct':{
       let n=parseInt(val);if(isNaN(n))n=0;
-      t.pct=Math.min(100,Math.max(0,n));
+      n=Math.min(100,Math.max(0,n));
+      if(n!==t.pct)logChange(`「${t.name}」的完成度從 ${t.pct}% 改為 ${n}%`);
+      t.pct=n;
       tvRefreshRowStatus(id);return true;
     }
   }
@@ -2164,6 +2289,7 @@ function tvAddRow(){
   const p=activeProj();if(!p)return;
   const t={id:p.nextId++,name:T('tv_newTaskName')||'新任務',owner:'',start:ds(today),end:ds(addD(today,7)),status:'pending',statusManual:false,pct:0,note:'',deps:[],color:null,type:'task',parentId:null,collapsed:false};
   p.tasks.push(t);
+  logChange(`新增任務「${t.name}」`);
   _tvFocus={id:t.id,field:'name'};
   autoSave();render();
 }
@@ -2174,6 +2300,7 @@ function tvDeleteRow(id){
   if(!confirm(`確定刪除任務「${t.name}」？`))return;
   p.tasks=p.tasks.filter(x=>x.id!==id);
   p.tasks.forEach(x=>{x.deps=normalizeDeps(x.deps||[]).filter(d=>d.id!==id);});
+  logChange(`刪除任務「${t.name}」`);
   autoSave();render();
 }
 
@@ -2341,6 +2468,7 @@ function tvCommitCellColorText(v){
 function tvApplyCellColor(hex){
   const p=activeProj();if(!p)return;
   const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  if((hex||null)!==(t.color||null))logChange(`「${t.name}」的 Bar 顏色已變更`);
   t.color=hex||null;
   const eff=hex||taskBarBg(t);
   const hexEl=document.getElementById('tvCpHex'),txtEl=document.getElementById('tvCpTxt'),prevEl=document.getElementById('tvBarPrev');
@@ -2430,6 +2558,7 @@ function tvSelectAddDep(depId){
   }
   t.deps=normalizeDeps(t.deps);
   t.deps.push({id:depId,type,lag});
+  logChange(`「${t.name}」新增前置任務「${dep.name}」`);
   a.classList.remove('show');
   const inp=document.getElementById('tvDepSearch');if(inp)inp.value='';
   const dd=document.getElementById('tvDepDropdown');if(dd)dd.style.display='none';
@@ -2440,7 +2569,9 @@ function tvSelectAddDep(depId){
 function tvRemoveDep(depId){
   const p=activeProj();if(!p)return;
   const t=p.tasks.find(x=>x.id===_tvPopTaskId);if(!t)return;
+  const removedDep=p.tasks.find(x=>x.id===depId);
   t.deps=normalizeDeps(t.deps).filter(d=>d.id!==depId);
+  if(removedDep)logChange(`「${t.name}」移除前置任務「${removedDep.name}」`);
   document.getElementById('tvDepAlert').classList.remove('show');
   tvRenderDepTags();
   tvPatchRowDeps(t);
@@ -3109,6 +3240,7 @@ function bulkDelete(){
   p.tasks.forEach(t=>{
     t.deps=normalizeDeps(t.deps).filter(d=>!bulkSelected.has(d.id));
   });
+  logChange(`批次刪除 ${n} 個任務`);
   toast(`🗑 已刪除 ${n} 個任務`);
   exitBulkMode();
   autoSave();
@@ -3380,8 +3512,11 @@ function saveModal(){
     collapsed:editId?(p.tasks.find(x=>x.id===editId)?.collapsed||false):false
   };
   if(editId){
-    const i=p.tasks.findIndex(x=>x.id===editId);p.tasks[i]=task;
+    const i=p.tasks.findIndex(x=>x.id===editId);
+    logTaskEditDiff(p.tasks[i],task);
+    p.tasks[i]=task;
   } else {
+    logChange(`新增任務「${task.name}」`);
     const insVal=document.getElementById('minsertPos').value;
     if(insVal===''){
       p.tasks.push(task);
@@ -3401,10 +3536,12 @@ function saveModal(){
 function deleteTask(){
   if(!editId||!confirm('確定刪除此任務？'))return;
   const p=activeProj();if(!p)return;
+  const delT=p.tasks.find(x=>x.id===editId);
   p.tasks=p.tasks.filter(x=>x.id!==editId);
   p.tasks.forEach(t=>{
     t.deps=normalizeDeps(t.deps||[]).filter(d=>d.id!==editId);
   });
+  if(delT)logChange(`刪除任務「${delT.name}」`);
   cm('em');render();
   autoSave();
 }
@@ -3709,6 +3846,7 @@ function handleFile(file){
         imp++;
       });
       document.getElementById('ir').textContent=`✅ 匯入 ${imp} 筆`;
+      if(imp>0)logChange(`匯入 Excel：新增 ${imp} 筆任務`);
       render();
       autoSave();
     }catch(err){document.getElementById('ir').textContent='❌ 失敗：'+err.message;}
@@ -3740,9 +3878,10 @@ function importProjectJSON(file){
       const newId='proj_'+Date.now();
       const sameName=projects.some(p=>p.name===data.name);
       const newName=sameName?`${data.name}（匯入 ${ds(today)}）`:data.name;
-      const proj={id:newId,name:newName,color:sanitizeHexColor(data.color)||'#4F6BED',nextId:data.nextId||1,tasks:data.tasks||[]};
+      const proj={id:newId,name:newName,color:sanitizeHexColor(data.color)||'#4F6BED',nextId:data.nextId||1,tasks:data.tasks||[],changeLog:[]};
       projects.push(proj);activeId=newId;
       migrateProjects();
+      logChange(`匯入專案檔：${proj.tasks.length} 個任務`,proj);
       renderSidebar();renderTopbar();render();
       toast(`✅ 已匯入為新專案「${newName}」（${proj.tasks.length} 個任務）`);
       autoSave();
