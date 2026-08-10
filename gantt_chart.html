@@ -456,13 +456,13 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
       <div id="loginStatus" class="sb-auth-block">
         <div id="guestStatus" class="sb-auth-row" style="display:none">
           <div class="sb-auth-dot" style="background:#F59E0B"></div>
-          <span class="sb-auth-label">訪客模式</span>
-          <button class="sb-auth-btn" onclick="openLoginModal()">🔐 登入</button>
+          <span class="sb-auth-label" data-i18n="sb_guestMode">訪客模式</span>
+          <button class="sb-auth-btn" onclick="openLoginModal()" data-i18n="sb_login">🔐 登入</button>
         </div>
         <div id="loggedInStatus" class="sb-auth-row" style="display:none">
           <div class="sb-auth-dot" style="background:#10B981"></div>
           <span class="sb-auth-label" id="loggedInName" title="已登入 · 雲端同步"></span>
-          <button class="sb-auth-btn out" onclick="doLogout()">登出</button>
+          <button class="sb-auth-btn out" onclick="doLogout()" data-i18n="sb_logout">登出</button>
         </div>
       </div>
     </div>
@@ -662,7 +662,7 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
   <div class="modal">
     <h3 id="mt">編輯任務</h3>
     <label data-i18n="lbl_name">任務名稱 *</label><input id="mn" type="text" placeholder="必填">
-    <label data-i18n="lbl_owner">負責人</label><input id="mo" type="text" placeholder="e.g. 小明">
+    <label data-i18n="lbl_owner">負責人</label><input id="mo" type="text" placeholder="e.g. 小明" data-i18n-ph="ph_owner">
     <label data-i18n="lbl_type">任務類型</label>
     <select id="mtype">
       <option value="task" data-i18n="type_task">一般任務</option>
@@ -703,11 +703,11 @@ body.share-mode .share-mode-badge{display:inline-flex!important}
     <label data-i18n="lbl_color">Bar 顏色（此任務專屬）</label>
     <div class="cp-grid" id="cpGrid"></div>
     <div class="cp-custom">
-      <label>自訂</label>
+      <label data-i18n="lbl_custom">自訂</label>
       <input type="color" id="cpHex" value="#4F6BED" oninput="onCustomColor(this.value)">
       <input type="text" id="cpTxt" value="#4F6BED" onchange="onCustomColorText(this.value)" placeholder="#rrggbb">
     </div>
-    <div class="bar-prev" id="barPrev">預覽</div>
+    <div class="bar-prev" id="barPrev" data-i18n="lbl_preview">預覽</div>
     <label data-i18n="lbl_note">備註</label><input id="mno" type="text" placeholder="可留空">
     <div style="display:flex;align-items:center;gap:8px;margin:8px 0">
       <input type="checkbox" id="mcritical" style="width:16px;height:16px;accent-color:#DC2626;cursor:pointer">
@@ -833,7 +833,7 @@ function doGuestMode() {
 }
 
 function doLogout() {
-  if (!confirm('確定登出？本機未儲存的資料將會保留。')) return;
+  if (!confirm(T('confirm_logout'))) return;
   if (currentUser && currentUser.token) {
     // Best-effort session revoke — don't block logout on it either way.
     apiFetch('POST', null, { action: 'logout', username: currentUser.username, token: currentUser.token }).catch(() => {});
@@ -841,7 +841,7 @@ function doLogout() {
   currentUser = null; isGuestMode = true;
   localStorage.removeItem('gm_user');
   applyLoginState();
-  toast('已登出');
+  toast(T('toast_loggedOut'));
 }
 
 // Called when the backend says our session token is missing/expired
@@ -994,6 +994,10 @@ const TRANS={
     dash_emptyUpcoming:'目前沒有即將到期或逾期的任務 🎉',dash_emptyProj:'還沒有任何專案',
     ps_ongoing:'進行中',ps_notStarted:'未開始',ps_paused:'暫停',ps_done:'已完成',
     cl_open:'🕘 修改紀錄',cl_empty:'尚無修改紀錄',cl_close:'關閉',
+    stat_total:'總任務',stat_done:'已完成',stat_ongoing:'進行中',stat_delayed:'延遲中',
+    stat_avgPct:'整體完成度',stat_critical:'關鍵任務',stat_milestone:'里程碑',stat_totalDays:'專案總天數',
+    col_task:'任務',sb_login:'🔐 登入',sb_guestMode:'訪客模式',sb_logout:'登出',confirm_logout:'確定登出？本機未儲存的資料將會保留。',toast_loggedOut:'已登出',
+    ph_owner:'e.g. 小明',lbl_custom:'自訂',lbl_preview:'預覽',btn_clearCustomColor:'清除自訂顏色（改用狀態預設色）',
   },
   en:{
     sl_done:'Done',sl_ongoing:'In Progress',sl_pending:'Pending',sl_delayed:'Delayed',
@@ -1032,6 +1036,10 @@ const TRANS={
     dash_emptyUpcoming:'No upcoming or overdue tasks 🎉',dash_emptyProj:'No projects yet',
     ps_ongoing:'Ongoing',ps_notStarted:'Not Started',ps_paused:'Paused',ps_done:'Completed',
     cl_open:'🕘 Change Log',cl_empty:'No changes yet',cl_close:'Close',
+    stat_total:'Total Tasks',stat_done:'Done',stat_ongoing:'In Progress',stat_delayed:'Delayed',
+    stat_avgPct:'Overall Progress',stat_critical:'Critical Tasks',stat_milestone:'Milestones',stat_totalDays:'Total Days',
+    col_task:'Task',sb_login:'🔐 Login',sb_guestMode:'Guest Mode',sb_logout:'Logout',confirm_logout:'Log out? Unsaved local data will be kept.',toast_loggedOut:'Logged out',
+    ph_owner:'e.g. John',lbl_custom:'Custom',lbl_preview:'Preview',btn_clearCustomColor:'Clear custom color (use status default)',
   },
   th:{
     sl_done:'เสร็จแล้ว',sl_ongoing:'กำลังดำเนินการ',sl_pending:'รอดำเนินการ',sl_delayed:'ล่าช้า',
@@ -1070,11 +1078,16 @@ const TRANS={
     dash_emptyUpcoming:'ไม่มีงานใกล้ครบกำหนดหรือเลยกำหนด 🎉',dash_emptyProj:'ยังไม่มีโปรเจค',
     ps_ongoing:'กำลังดำเนินการ',ps_notStarted:'ยังไม่เริ่ม',ps_paused:'หยุดชั่วคราว',ps_done:'เสร็จสมบูรณ์',
     cl_open:'🕘 ประวัติการแก้ไข',cl_empty:'ยังไม่มีประวัติการแก้ไข',cl_close:'ปิด',
+    stat_total:'งานทั้งหมด',stat_done:'เสร็จแล้ว',stat_ongoing:'กำลังดำเนินการ',stat_delayed:'ล่าช้า',
+    stat_avgPct:'ความคืบหน้ารวม',stat_critical:'งานวิกฤต',stat_milestone:'ไมล์สโตน',stat_totalDays:'จำนวนวันทั้งโปรเจค',
+    col_task:'งาน',sb_login:'🔐 เข้าสู่ระบบ',sb_guestMode:'โหมดผู้เยี่ยมชม',sb_logout:'ออกจากระบบ',confirm_logout:'ออกจากระบบ? ข้อมูลที่ยังไม่ได้บันทึกในเครื่องจะยังคงอยู่',toast_loggedOut:'ออกจากระบบแล้ว',
+    ph_owner:'เช่น สมชาย',lbl_custom:'กำหนดเอง',lbl_preview:'ตัวอย่าง',btn_clearCustomColor:'ล้างสีที่กำหนดเอง (ใช้สีตามสถานะ)',
   }
 };
 function T(k){return(TRANS[uiLang]||TRANS.zh)[k]||k;}
 function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=T(el.dataset.i18n);});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=T(el.dataset.i18nPh);});
   SL.done=T('sl_done');SL.ongoing=T('sl_ongoing');SL.pending=T('sl_pending');SL.delayed=T('sl_delayed');
   const ids={zh:'langBtnZH',en:'langBtnEN',th:'langBtnTH'};
   Object.values(ids).forEach(id=>{const b=document.getElementById(id);if(b)b.classList.remove('active');});
@@ -1714,6 +1727,14 @@ function fmtDueToday(){return uiLang==='en'?'Due today':uiLang==='th'?'ครบ
 function fmtDaysLeft(n){return uiLang==='en'?`${n}d left`:uiLang==='th'?`เหลืออีก ${n} วัน`:`剩 ${n} 天`;}
 function fmtTaskCount(n){return uiLang==='en'?`${n} tasks`:uiLang==='th'?`${n} งาน`:`${n} 個任務`;}
 function fmtProjItems(n,pct){return uiLang==='en'?`${n} items · ${pct}%`:uiLang==='th'?`${n} งาน · ${pct}%`:`${n} 項 · ${pct}%`;}
+function fmtDaysTotal(n){return uiLang==='en'?`${n}d`:uiLang==='th'?`${n} วัน`:`${n}天`;}
+function fmtDayCountInline(n){return uiLang==='en'?`📅 ${n} days total`:uiLang==='th'?`📅 รวม ${n} วัน`:`📅 共 ${n} 天`;}
+function fmtInsertAfter(name){return uiLang==='en'?`Insert after "${name}"`:uiLang==='th'?`แทรกหลัง "${name}"`:`在「${name}」之後插入`;}
+const MONTH_NAMES={
+  zh:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+  en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  th:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],
+};
 
 // Project-level status for the Dashboard breakdown (distinct from per-task
 // status). 暫停 is an explicit user toggle (p.active===false) and always
@@ -1887,7 +1908,7 @@ function getVE(){return addD(getVS(),parseInt(document.getElementById('viewRange
 function render(){
   const p=activeProj();if(!p)return;
   if(mainView==='dashboard'){renderDashboard();return;}
-  document.getElementById('projBadge').textContent=p.tasks.length+' 個任務';
+  document.getElementById('projBadge').textContent=fmtTaskCount(p.tasks.length);
   const allTasks=p.tasks;
   const tasks=getVisibleTasks(allTasks);
   const vs=getVS(),ve=getVE();
@@ -1902,14 +1923,14 @@ function render(){
   const avg=allTasks.length?Math.round(allTasks.reduce((a,t)=>a+t.pct,0)/allTasks.length):0;
   const spanDays=allTasks.length>=1?dayCount(allTasks.reduce((a,t)=>a<t.start?a:t.start,allTasks[0].start),allTasks.reduce((a,t)=>a>t.end?a:t.end,allTasks[0].end)):0;
   document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="sl">總任務</div><div class="sv ca">${allTasks.length}</div></div>
-    <div class="stat"><div class="sl">已完成</div><div class="sv cg">${done}</div></div>
-    <div class="stat"><div class="sl">進行中</div><div class="sv ca">${ong}</div></div>
-    <div class="stat"><div class="sl">延遲中</div><div class="sv cr">${del}</div></div>
-    <div class="stat"><div class="sl">整體完成度</div><div class="sv co">${avg}%</div></div>
-    <div class="stat"><div class="sl">關鍵任務</div><div class="sv cr">${criticalCount}</div></div>
-    <div class="stat"><div class="sl">里程碑</div><div class="sv" style="color:#7C3AED">${milestoneCount}</div></div>
-    <div class="stat"><div class="sl">專案總天數</div><div class="sv" style="color:var(--pend)">${spanDays}天</div></div>`;
+    <div class="stat"><div class="sl">${T('stat_total')}</div><div class="sv ca">${allTasks.length}</div></div>
+    <div class="stat"><div class="sl">${T('stat_done')}</div><div class="sv cg">${done}</div></div>
+    <div class="stat"><div class="sl">${T('stat_ongoing')}</div><div class="sv ca">${ong}</div></div>
+    <div class="stat"><div class="sl">${T('stat_delayed')}</div><div class="sv cr">${del}</div></div>
+    <div class="stat"><div class="sl">${T('stat_avgPct')}</div><div class="sv co">${avg}%</div></div>
+    <div class="stat"><div class="sl">${T('stat_critical')}</div><div class="sv cr">${criticalCount}</div></div>
+    <div class="stat"><div class="sl">${T('stat_milestone')}</div><div class="sv" style="color:#7C3AED">${milestoneCount}</div></div>
+    <div class="stat"><div class="sl">${T('stat_totalDays')}</div><div class="sv" style="color:var(--pend)">${fmtDaysTotal(spanDays)}</div></div>`;
 
   // Header generation based on viewMode (Feature 9)
   const COL_W = viewMode === 'month' ? 60 : viewMode === 'week' ? 40 : 28;
@@ -1920,10 +1941,10 @@ function render(){
     if(!monthGroups.length||monthGroups[monthGroups.length-1].m!==m) monthGroups.push({m,start:i,count:1});
     else monthGroups[monthGroups.length-1].count++;
   }
-  const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const MN=MONTH_NAMES[uiLang]||MONTH_NAMES.zh;
 
   let lHead=`<tr><th class="num-th" rowspan="2">#</th><th class="lth" rowspan="2" style="position:relative;vertical-align:middle">
-    任務
+    ${T('col_task')}
     <div class="col-resizer" id="colResizer"></div>
   </th></tr><tr></tr>`;
   document.getElementById('ghLeft').innerHTML=lHead;
@@ -2483,17 +2504,17 @@ function tvOpenColorPopover(id,anchorEl){
   const p=activeProj();if(!p)return;
   const t=p.tasks.find(x=>x.id===id);if(!t)return;
   _tvPopField='color';_tvPopTaskId=id;
-  document.getElementById('tvPopTitle').textContent='Bar 顏色（此任務專屬）';
+  document.getElementById('tvPopTitle').textContent=T('lbl_color');
   const eff=taskBarBg(t);
   document.getElementById('tvPopBody').innerHTML=`
     <div class="cp-grid" id="tvCpGrid"></div>
     <div class="cp-custom">
-      <label>自訂</label>
+      <label>${T('lbl_custom')}</label>
       <input type="color" id="tvCpHex" value="${eff}" oninput="tvApplyCellColor(this.value)">
       <input type="text" id="tvCpTxt" value="${t.color?escAttr(t.color):''}" placeholder="#rrggbb" onchange="tvCommitCellColorText(this.value)">
     </div>
-    <div class="bar-prev" id="tvBarPrev" style="background:${eff}">預覽 ${escAttr(eff)}</div>
-    <button type="button" class="btn" style="margin-top:10px;width:100%" onclick="tvApplyCellColor(null)">清除自訂顏色（改用狀態預設色）</button>`;
+    <div class="bar-prev" id="tvBarPrev" style="background:${eff}">${T('lbl_preview')} ${escAttr(eff)}</div>
+    <button type="button" class="btn" style="margin-top:10px;width:100%" onclick="tvApplyCellColor(null)">${T('btn_clearCustomColor')}</button>`;
   tvBuildCpGrid(t.color);
   tvShowPopover(anchorEl);
 }
@@ -2515,7 +2536,7 @@ function tvApplyCellColor(hex){
   const hexEl=document.getElementById('tvCpHex'),txtEl=document.getElementById('tvCpTxt'),prevEl=document.getElementById('tvBarPrev');
   if(hexEl)hexEl.value=eff;
   if(txtEl)txtEl.value=hex||'';
-  if(prevEl){prevEl.textContent='預覽 '+eff;prevEl.style.background=eff;}
+  if(prevEl){prevEl.textContent=T('lbl_preview')+' '+eff;prevEl.style.background=eff;}
   tvBuildCpGrid(hex);
   tvPatchRowColor(t);
   autoSave();
@@ -3319,7 +3340,7 @@ function dEnd(e){document.querySelectorAll('.do').forEach(r=>r.classList.remove(
 // ═══════════════════════
 // VALIDATION
 // ═══════════════════════
-function updDci(){const s=document.getElementById('msd').value,e=document.getElementById('med').value,el=document.getElementById('dayCountInfo');if(s&&e&&parseD(e)>=parseD(s)){el.textContent=`📅 共 ${dayCount(s,e)} 天`;el.style.display='';}else el.style.display='none';}
+function updDci(){const s=document.getElementById('msd').value,e=document.getElementById('med').value,el=document.getElementById('dayCountInfo');if(s&&e&&parseD(e)>=parseD(s)){el.textContent=fmtDayCountInline(dayCount(s,e));el.style.display='';}else el.style.display='none';}
 function chkDates(){const s=document.getElementById('msd').value,e=document.getElementById('med').value,a=document.getElementById('dateAlert');if(s&&e&&parseD(e)<parseD(s)){a.classList.add('show');document.getElementById('dayCountInfo').style.display='none';return false;}a.classList.remove('show');updDci();return true;}
 function chkDeps(){
   const start=document.getElementById('msd').value;if(!start)return true;
@@ -3384,7 +3405,7 @@ function buildCpGrid(cur){document.getElementById('cpGrid').innerHTML=PALETTE.ma
 function selPalColor(hex){editColor=hex;document.querySelectorAll('.cp-sw').forEach(s=>s.classList.remove('sel'));event.currentTarget.classList.add('sel');document.getElementById('cpHex').value=hex;document.getElementById('cpTxt').value=hex;updBP(hex);}
 function onCustomColor(hex){editColor=hex;document.getElementById('cpTxt').value=hex;document.querySelectorAll('.cp-sw').forEach(s=>s.classList.remove('sel'));updBP(hex);}
 function onCustomColorText(val){const h=val.trim().startsWith('#')?val.trim():'#'+val.trim();if(/^#[0-9a-fA-F]{6}$/.test(h)){editColor=h;document.getElementById('cpHex').value=h;updBP(h);}}
-function updBP(hex){const p=document.getElementById('barPrev');p.style.background=hex;p.textContent='預覽 '+hex;}
+function updBP(hex){const p=document.getElementById('barPrev');p.style.background=hex;p.textContent=T('lbl_preview')+' '+hex;}
 
 // ═══════════════════════
 // EDIT MODAL
@@ -3408,7 +3429,7 @@ function openAdd(){
   // populate parent select
   const parentSel = document.getElementById('mparent');
   const tasks = getTasks();
-  parentSel.innerHTML = '<option value="">無（頂層任務）</option>';
+  parentSel.innerHTML = `<option value="">${T('opt_noParent')}</option>`;
   tasks.filter(t=>t.type==='group').forEach(t=>{
     parentSel.innerHTML += `<option value="${t.id}">${escAttr(t.name)}</option>`;
   });
@@ -3416,10 +3437,10 @@ function openAdd(){
   const insSel=document.getElementById('minsertPos');
   const _ap=activeProj();
   const visTasks=getVisibleTasks(_ap?_ap.tasks:[]);
-  insSel.innerHTML='<option value="">加入到最末尾</option>';
+  insSel.innerHTML=`<option value="">${T('opt_insertEnd')}</option>`;
   visTasks.forEach((t,i)=>{
     const indent=t.parentId?'　':'';
-    insSel.innerHTML+=`<option value="${i}">${indent}在「${escAttr(t.name)}」之後插入</option>`;
+    insSel.innerHTML+=`<option value="${i}">${indent}${fmtInsertAfter(escAttr(t.name))}</option>`;
   });
   document.getElementById('insertPosRow').style.display='';
   document.getElementById('em').classList.add('open');
@@ -3447,7 +3468,7 @@ function openEdit(id){
   updDci();buildDepUI(id);buildCpGrid(t.color||taskBarBg(t));
   // populate parent select
   const parentSel = document.getElementById('mparent');
-  parentSel.innerHTML = '<option value="">無（頂層任務）</option>';
+  parentSel.innerHTML = `<option value="">${T('opt_noParent')}</option>`;
   tasks.filter(x=>x.type==='group'&&x.id!==id).forEach(x=>{
     parentSel.innerHTML += `<option value="${x.id}"${t.parentId===x.id?' selected':''}>${escAttr(x.name)}</option>`;
   });
