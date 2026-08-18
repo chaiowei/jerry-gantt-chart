@@ -227,6 +227,8 @@ select.ctrl{height:30px;padding:0 8px;font-size:12px;font-family:inherit;border:
 .bar.hfrom{box-shadow:0 0 0 2.5px var(--acc),0 1px 3px rgba(0,0,0,.14)!important}
 .bar.hto{box-shadow:0 0 0 2.5px var(--del),0 1px 3px rgba(0,0,0,.14)!important}
 .bar.critical-bar{box-shadow:0 0 0 2px #DC2626,0 1px 3px rgba(0,0,0,.14)!important}
+.bar.jump-flash{animation:jumpFlash 1.3s ease-out}
+@keyframes jumpFlash{0%,35%{box-shadow:0 0 0 3px var(--acc),0 1px 3px rgba(0,0,0,.14)}100%{box-shadow:0 1px 3px rgba(0,0,0,.14)}}
 .bar.milestone-bar{clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);border-radius:0;background:#7C3AED!important;width:26px!important;height:26px!important}
 .bar.baseline-bar{opacity:0.45;border:2px dashed rgba(0,0,0,.3);background:repeating-linear-gradient(45deg,rgba(0,0,0,.1),rgba(0,0,0,.1) 2px,transparent 2px,transparent 8px)!important}
 .bar{touch-action:none}
@@ -1222,6 +1224,13 @@ function effectiveStatus(t){
   return(t.statusManual&&t.status)?t.status:computeAutoStatus(t);
 }
 
+// A task stays flagged as an overdue warning even after its status is manually
+// switched away from "delayed" (e.g. back to "ongoing") — the deadline was still
+// missed, so the red warning should keep showing until it's actually done.
+function isOverdueWarn(t){
+  return effectiveStatus(t)!=='done'&&!!t.end&&parseD(t.end)<today;
+}
+
 // Only ever returns a validated #RRGGBB string (or null). Task/project colors
 // can come from imported JSON files we don't control the contents of, and get
 // dropped straight into style="background:${...}" attributes when rendered —
@@ -1235,6 +1244,7 @@ function sanitizeHexColor(c){
 function taskBarBg(t){
   const c=sanitizeHexColor(t.color);
   if(c)return c;
+  if(isOverdueWarn(t))return'#DC2626';
   return{done:'#059669',ongoing:'#4F6BED',pending:'#9CA3AF',delayed:'#DC2626'}[effectiveStatus(t)]||'#9CA3AF';
 }
 
@@ -2047,7 +2057,7 @@ function render(){
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <div class="dep-dot${hasDep?' has':''}" title="${hasDep?'有前置任務':''}"></div>
           ${isCritical?`<span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:9px">關鍵</span>`:cpmResult[t.id]&&cpmResult[t.id].float>0?`<span style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace">浮時:${cpmResult[t.id].float}d</span>`:''}
-          <span class="badge ${SC[effectiveStatus(t)]}">${SL[effectiveStatus(t)]}</span>
+          <span class="badge ${isOverdueWarn(t)?SC.delayed:SC[effectiveStatus(t)]}">${SL[effectiveStatus(t)]}</span>
           ${!window.SHARE_MODE?`<span class="detail-tog" onclick="jumpToTask(${t.id},event)" title="${T('jump_to_bar')}" style="color:var(--acc);font-weight:bold">→</span>`:''}
           <span class="detail-tog" onclick="toggleTaskDetail(${t.id},event)" title="${detailHidden?'展開詳情':'收合詳情'}">${detailHidden?'▶':'▽'}</span>
         </div>
@@ -2133,7 +2143,7 @@ function renderTable(){
     const depNames=normalizeDeps(t.deps).map(d=>{const f=allTasks.find(x=>x.id===d.id);return f?f.name:'';}).filter(Boolean).join(', ');
     const swatch=taskBarBg(t);
     const eStatus=effectiveStatus(t);
-    html+=`<tr data-id="${t.id}" class="${eStatus==='delayed'?'tv-row-delayed':''}">`;
+    html+=`<tr data-id="${t.id}" class="${(eStatus==='delayed'||isOverdueWarn(t))?'tv-row-delayed':''}">`;
     html+=`<td class="tv-num">${ri+1}${ro?'':'<div class="tv-row-resizer" onmousedown="tvStartRowResize(event)"></div>'}</td>`;
     html+=`<td style="padding-left:${4+level*20}px"><div style="display:flex;align-items:center;gap:2px;height:100%">`;
     if(isGroup)html+=`<span class="group-toggle" onclick="toggleGroupCollapse(${t.id})" title="${t.collapsed?'展開':'摺疊'}">${t.collapsed?'▶':'▼'}</span>`;
@@ -2295,7 +2305,7 @@ function tvRefreshRowStatus(id){
   const es=effectiveStatus(t);
   const sel=row.querySelector('select[data-field="status"]');
   if(sel&&!t.statusManual&&sel.value!==es)sel.value=es;
-  row.classList.toggle('tv-row-delayed',es==='delayed');
+  row.classList.toggle('tv-row-delayed',es==='delayed'||isOverdueWarn(t));
   const sw=row.querySelector('button[data-field="color"] .tv-swatch');
   if(sw)sw.style.background=taskBarBg(t);
 }
@@ -2917,6 +2927,24 @@ function jumpToTask(id,e){
   br.scrollLeft=Math.max(0,barMid-br.clientWidth/2);
   const hr=document.getElementById('ganttHeadRight');
   if(hr)hr.scrollLeft=br.scrollLeft;
+
+  const row=br.querySelector(`tr[data-id="${id}"]`);
+  if(row){
+    const rowRect=row.getBoundingClientRect();
+    const brRect=br.getBoundingClientRect();
+    const rowMidY=(rowRect.top-brRect.top)+br.scrollTop+rowRect.height/2;
+    br.scrollTop=Math.max(0,rowMidY-br.clientHeight/2);
+    const bl=document.getElementById('ganttBodyLeft');
+    if(bl)bl.scrollTop=br.scrollTop;
+  }
+
+  const bar=br.querySelector(`.bar[data-id="${id}"]`);
+  if(bar){
+    bar.classList.remove('jump-flash');
+    void bar.offsetWidth; // restart the animation if it's already mid-flash
+    bar.classList.add('jump-flash');
+    setTimeout(()=>bar.classList.remove('jump-flash'),1300);
+  }
 }
 
 // ═══════════════════════
@@ -3057,7 +3085,7 @@ function drawGanttCanvas(p){
     cx.beginPath();cx.moveTo(PADDING+NAME_W,y);cx.lineTo(PADDING+NAME_W,y+rowH);cx.stroke();
     if(isCritical){cx.fillStyle='#DC2626';cx.fillRect(0,y,3,rowH);}
     // Badge
-    const bc=badgeCfg[effectiveStatus(t)]||badgeCfg.pending;const blabel=SL[effectiveStatus(t)];
+    const bc=isOverdueWarn(t)?badgeCfg.delayed:(badgeCfg[effectiveStatus(t)]||badgeCfg.pending);const blabel=SL[effectiveStatus(t)];
     cx.font=`600 9px "DM Sans",sans-serif`;cx.textBaseline='alphabetic';
     const bw2=cx.measureText(blabel).width+14;const badgeX=PADDING+NAME_W-bw2-8;const badgeMidY=y+rowH/2;
     cx.fillStyle=bc.bg;roundRect(cx,badgeX,badgeMidY-8,bw2,16,8);cx.fill();
